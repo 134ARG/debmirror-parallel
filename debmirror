@@ -1,0 +1,42 @@
+#!/bin/sh
+# Anon rsync binary-only mirror of debian.
+
+FLAGS="-rLpt $@ --exclude Packages --delete --partial"
+
+# The host to connect to:
+#HOST=ftp.eecs.umich.edu
+HOST=debian.midco.net
+NON_US=pandora.debian.org
+
+# Where to put your mirror:
+DEST=/home/mirror/debian
+
+DIST=unstable
+
+# Architecture:
+ARCH=i386
+
+install -d $DEST/dists $DEST/misc
+
+rsync $FLAGS \
+	$HOST::debian/dists/$DIST/Contents-${ARCH}.gz \
+	$DEST/misc/
+
+for type in binary-${ARCH}  source; do
+	for section in contrib main non-free; do
+		install -d $DEST/non-US/$section/$type
+		rsync $FLAGS \
+			$NON_US::debian-non-US/dists/$DIST/non-US/$section/$type \
+			$DEST/non-US/$section/
+		install -d $DEST/$section/$type
+		rsync $FLAGS \
+			$HOST::debian/dists/$DIST/$section/$type \
+			$DEST/$section/
+	done
+done
+
+# Update symlinks
+install -d  $DEST/all
+cd $DEST/all || exit 1
+rm *.deb
+find .. -name "*.deb" -type f |grep -v ^../all |xargs --replace ln -sf {} .
