@@ -1,7 +1,7 @@
 #!/bin/sh
 # Anon rsync binary-only mirror of debian.
 
-FLAGS="-rLpt $@ --exclude Packages --delete --whole-file"
+FLAGS="-rLpt $@ --exclude Packages --delete --partial"
 
 # The host to connect to:
 #HOST=debian.midco.net
@@ -9,7 +9,7 @@ HOST=download.sourceforge.net
 NON_US=pandora.debian.org
 
 # Where to put your mirror:
-DEST=/home/mirror/debian
+DEST=/mirror/debian
 
 DIST=unstable
 
