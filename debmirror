@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/bin/perl -w
 
 # TODO: I'd like to be able to tell it to get some extra files, by name.
 # I'm thinking Contents files. It would be really nice if it could pull
@@ -55,7 +55,7 @@ Usage: $0 mirrordir [--debug] [--progress] [--source|--nosource]
           [--root=directory] [--dist=foo[,bar,..] ...]
           [--section=foo[,bar,..] ...] [--arch=foo[,bar,..] ...]
           [--cleanup|--nocleanup] [--skippackages] [--adddir=directory]
-	  [--ignore=regex] [--getcontents] [--help]
+	  [--ignore=regex] [--getcontents] [--exclude=regex] [--help]
 
 For details, see man page.
 EOF
@@ -139,7 +139,11 @@ Do not clean up the local mirror after mirroring is complete.
 
 =item --ignore=regex
 
-Never delete any files whose filenames match the regex.
+Never delete any files whose filenames match the regex. May be used multiple times.
+
+=item --exclude=regex
+
+Never download any files whose filenames match the regex. May be used multiple times.
 
 =item --skippackages
 
@@ -185,8 +189,6 @@ and testing versions of Debian. Download from ftp.kernel.org.
 
 =cut
 
-use v5.6;
-use warnings;
 use strict;
 use Net::FTP;
 use Getopt::Long;
@@ -194,10 +196,9 @@ use Getopt::Long;
 # Yeah, I use too many global variables in this program.
 my ($debug, $progress, $check_md5sums, $passive, $skippackages,
     $getcontents);
-my (@dists, @sections, @arches, @extra_dirs);
+my (@dists, @sections, @arches, @extra_dirs, @ignores, @excludes);
 my $cleanup=1;
 my $do_source=1;
-my $ignore='';
 my $host="ftp.debian.org";
 my $remoteroot="/debian";
 
@@ -222,7 +223,8 @@ GetOptions(
 	'arch|a=s'	=> \@arches,
 	'adddir=s'	=> \@extra_dirs,
 	'cleanup!'	=> \$cleanup,
-	'ignore=s' 	=> \$ignore,
+	'ignore=s' 	=> \@ignores,
+	'exclude=s' 	=> \@excludes,
 	'skippackages'	=> \$skippackages,
 	'getcontents'	=> \$getcontents,
 	'help' => \$help,
@@ -315,11 +317,13 @@ if ($do_source && ! @source_files) {
 # Parse Packages and Sources files and add to the file list everything therein.
 {
 	local $/="\n\n";
-	my ($filename, $size, $md5sum, $directory);
+	my ($filename, $size, $md5sum, $directory, $exclude);
+	$exclude =  "(".join("|", @excludes).")" if @excludes;
 	foreach my $file (@package_files) {
 		open IN, "zcat $file|" or die "$file: $!";
 		while (<IN>) {
 			($filename)=m/^Filename:\s+(.*)/im;
+			next if (defined($exclude) && $filename=~/$exclude/o);
 			($size)=m/^Size:\s+(\d+)/im;
 			($md5sum)=m/^MD5sum:\s+([A-Za-z0-9]+)/im
 				if $check_md5sums;
@@ -334,6 +338,7 @@ if ($do_source && ! @source_files) {
 			while (m/^ ([A-Za-z0-9]{32} .*)/mg) {
 				($md5sum, $size, $filename)=split(' ', $1, 3);
 				$filename="$directory/$filename";
+				next if (defined($exclude) && $filename=~/$exclude/o);
 				$files{$filename}=check_file($filename, $size, $md5sum);
 			}
 		}
@@ -342,11 +347,13 @@ if ($do_source && ! @source_files) {
 }
 
 if ($cleanup) {
+	my $ignore;
+	$ignore = "(".join("|", @ignores).")" if @ignores;
 	# Remove all files in the mirror that we don't know about
 	foreach my $file (`find . -type f`) {
 		chomp $file;
 		$file=~s:^\./::;
-		unless (exists $files{$file} or $file=~/$ignore/) {
+		unless (exists $files{$file} or (defined($ignore) && $file=~/$ignore/o)) {
 			debug("deleting $file");
 			unlink $file or die "unlink $file: $!";
 		}
@@ -461,7 +468,7 @@ sub get_sources {
 		foreach my $part (@parts) {
 			$current.="$part/";
 			if (! $seen{$current}) {
-				mkdir $current;
+				mkdir ($current, 0755);
 				$seen{$current}=1;
 			}
 		}
