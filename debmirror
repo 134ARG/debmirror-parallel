@@ -1,9 +1,5 @@
 #!/usr/bin/perl
 
-# TODO: remove all empty directories.
-# TODO: my symlink farm thing.
-# TODO: non-us!
-
 =head1 NAME
 
 debmirror - Debian partial mirror script, with ftp and package pool support
@@ -27,18 +23,18 @@ To support package pools, this program mirrors in three steps.
 First it downloads all Packages and Sources files for the subset of Debian it
 was instructed to get.
 
-=item 2. download rest
+=item 2. clean up
+
+Any files and directories on the local mirror that are not in the list are
+removed. This proceeds in the background while ...
+
+=item 3. download rest
 
 The Packages and Sources files are scanned, to build up a list of all the
 files they refer to. A few other miscellaneous files are added to the list.
 Then the program makes sure that each file in the list is present on the 
 local mirror and is up-to-date, using file size (and optionally md5sum) checks.
 Any necessary files are downloaded.
-
-=item 3. clean up
-
-Any files and directories on the local mirror that are not in the list are
-removed.
 
 =back
 
@@ -51,7 +47,7 @@ Usage: $0 mirrordir [--debug] [--progress] [--source|--nosource]
           [--md5sums|--nomd5sums] [--passive] [--host=remotehost]
           [--remoteroot=directory] [--dist=foo[,bar,..] ...]
           [--section=foo[,bar,..] ...] [--arch=foo[,bar,..] ...]
-          [--cleanup|--nocleanup] [--help]
+          [--cleanup|--nocleanup] [--skippackages] [--help]
 
 For details, see man page.
 EOF
@@ -73,7 +69,7 @@ your home directory with a Debian mirror!
 
 Enables verbose debug output, including ftp protocol dump.
 
-=item --progress
+=item --progress -p
 
 Displays progress bars as files are downloaded.
 
@@ -85,7 +81,7 @@ Include source in the mirror (default).
 
 Do not include source.
 
-=item --md5sums
+=item --md5sums -m
 
 Use md5sums to determine if files on the local mirror that are the correct
 size actually have the correct content. Not enabled by default, because
@@ -95,28 +91,28 @@ it is too paranoid, and too slow.
 
 Download in passive mode.
 
-=item --host=remotehost
+=item --host=remotehost -h
 
 Specify the remote host to mirror from. Defaults to ftp.debian.org,
 you are strongly encouraged to find a closer mirror.
 
-=item --remoteroot=directory
+=item --remoteroot=directory -r directory
 
 Specifies the directory on the remote host that is the root of the Debian
 archive. Defaults to "/debian", which will work for most mirrors. The root
 directory has a dists/ subdirectory.
 
-=item --dist=foo[,bar,..]
+=item --dist=foo[,bar,..] -d foo
 
 Specify the distribution (version) of Debian to mirror. This option may be
 used multiple times, and multiple distributions may be specified at once,
 separated by commas. Defaults to mirroring unstable.
 
-=item --section=foo[,bar,..]
+=item --section=foo[,bar,..] -s foo
 
 Specify the section of Debian to mirror. Defaults to main,contrib,non-free.
 
-=item --arches=foo[,bar,..]
+=item --arches=foo[,bar,..] -a foo
 
 Specify the architectures to mirror. You must prefix the name of the 
 architecture with 'binary-', as in 'binary-i386', which is the default.
@@ -126,12 +122,17 @@ use 'debian-installer/binary-i386'
 
 =item --cleanup
 
-Do clean up the local mirror after mirroring is complete (see step 3 above).
-Default.
+Do clean up any unknown files and directories on the local mirror 
+(see step 2 above). On by default.
 
 =item --nocleanup
 
 Do not clean up the local mirror after mirroring is complete.
+
+=item --skippackages
+
+Don't re-download Packages and Sources files. Useful if you know they are
+up-to-date.
 
 =item --help
 
@@ -145,10 +146,14 @@ Display a usage summary.
 
 Simply make a mirror in /mirror/debian, using all defaults.
 
- debmirror --nosource --progress --arch=binary-i386,binary-sparc \
- 	--section=main --host=ftp.kernel.org --dist=unstable \
-	--dist=testing /home/me/debian/mirror
+ debmirror /mirror/debian-non-US -h non-us.debian.org -r /debian-non-US \
+ 	-s non-US/main,non-US/contrib,non-US/non-free
 
+Make a mirror of non-us.
+
+ debmirror --nosource --progress -a binary-i386,binary-sparc \
+ 	-s main -h ftp.kernel.org -d unstable \
+	-d testing /home/me/debian/mirror
 
 Make a mirror of i386 and sparc binaries, main only, and include both unstable
 and testing versions of Debian. Download from ftp.kernel.org.
@@ -161,31 +166,27 @@ use Net::FTP;
 use Getopt::Long;
 
 # Yeah, I use too many global variables in this program.
-my ($debug, $progress, $check_md5sums, $passive);
+my ($debug, $progress, $check_md5sums, $passive, $skippackages);
 my (@dists, @sections, @arches);
 my $cleanup=1;
 my $do_source=1;
 my $hostname="ftp.debian.org";
 my $remoteroot="/debian";
 
-sub debug {
-	print join(" ", @_)."\n" if $debug;
-}
-
 my $help;
 GetOptions(
-	'debug|d' => \$debug,
+	'debug' => \$debug,
 	'progress|p' => \$progress,
-	'source|s' => \$do_source,
+	'source!' => \$do_source,
 	'md5sums|m' => \$check_md5sums,
-	'passive' => \$passive,
+	'passive!' => \$passive,
 	'host|h=s' => \$hostname,
 	'remoteroot|r=s' => \$remoteroot,
 	'dist|d=s' => \@dists,
-	'section=s' => \@sections,
+	'section|s=s' => \@sections,
 	'arch|a=s' => \@arches,
-	'source' => \$do_source,
-	'cleanup' => \$cleanup,
+	'cleanup!' => \$cleanup,
+	'skippackages' => \$skippackages,
 	'help' => \$help,
 ) or usage;
 usage if $help;
@@ -202,14 +203,15 @@ my $mirrordir=shift or usage("mirrordir not specified");
 @arches=split(/,/,join(',',@arches));
 @arches=qw(binary-i386) unless @arches;
 
+# Display configuration.
 debug("Mirroring to $mirrordir from ftp://$hostname/$remoteroot/");
 debug("Arches: ".join(",", @arches));
 debug("Dists: ".join(",", @dists));
 debug("Sections: ".join(",", @sections));
-debug("Source: $do_source");
-debug("Passive: $passive");
-debug("Md5sums: $check_md5sums");
-debug("Cleanup: $cleanup");
+debug("Including source.") if $do_source;
+debug("Passive mode on.") if $passive;
+debug("Checking md5sums.") if $check_md5sums;
+debug("Will NOT clean up.") unless $cleanup;
 
 # Set up mirror directory.
 make_dir($mirrordir);
@@ -217,22 +219,11 @@ chdir($mirrordir) or die "chdir $mirrordir: $!";
 
 # Start up ftp.
 my $ftp;
-if ($progress) {
-	$ftp=Net::FTP->new($hostname, 
-		Debug => $debug,
-		Hash => *STDOUT,
-		Passive => $passive,
-	);
-}
-else {
-	$ftp=Net::FTP->new($hostname,
-		Debug => $debug,
-		Passive => $passive,
-	);
-}
-die "$@\n" if $@;
-$ftp->login || die "login failed"; # anonymous
-$ftp->binary;
+my %opts = (Debug => $debug, Passive => $passive,);
+$opts{Hash}=*STDOUT if $progress;
+$ftp=Net::FTP->new($hostname, %opts) or die "$@\n";
+$ftp->login or die "login failed"; # anonymous
+$ftp->binary or die "could not set binary mode";
 $ftp->cwd($remoteroot) or die "cwd to $remoteroot failed";
 
 # This hash holds all the files we know about, If the hash key is false,
@@ -248,22 +239,33 @@ foreach my $dist (@dists) {
 		foreach my $arch (@arches) {
 			my $subdir="dists/$dist/$section/$arch";
 			make_dir($subdir);
-			ftp_get("$subdir/Packages.gz", "$subdir/Packages.gz") and
+			if ($skippackages) {
 				push @package_files, "$subdir/Packages.gz";
+			}
+			else {
+				ftp_get("$subdir/Packages.gz", "$subdir/Packages.gz") and
+					push @package_files, "$subdir/Packages.gz";
+			}
 			$files{"$subdir/Packages.gz"}=0;
-			# Get the release file later.
+			# Get the Release file later.
 			$files{"$subdir/Release"}=1;
 		}
 		if ($do_source) {
 			my $subdir="dists/$dist/$section/source";
 			make_dir($subdir);
-			ftp_get("$subdir/Sources.gz", "$subdir/Sources.gz") and
+			if ($skippackages) {
 				push @source_files, "$subdir/Sources.gz";
+			}
+			else {
+				ftp_get("$subdir/Sources.gz", "$subdir/Sources.gz") and
+					push @source_files, "$subdir/Sources.gz";
+			}
 			$files{"$subdir/Sources.gz"}=0;
 		}
 	}
 }
 
+# Sanity check. I once nuked a mirror because of this..
 if (@arches && ! @package_files) {
 	die "Failed to download any Packages files!\n";
 }
@@ -272,33 +274,47 @@ if ($do_source && ! @source_files) {
 }
 
 # Parse Packages and Sources files and add to the file list everything therein.
-$/="\n\n";
-my ($filename, $size, $md5sum, $md5, $directory);
-if ($check_md5sums) {
-        eval q{use Digest::MD5};
-	$md5=Digest::MD5->new;
-}
-foreach my $file (@package_files) {
-	open IN, "zcat $file|" or die "$file: $!";
-	while (<IN>) {
-		($filename)=m/^Filename:\s+(.*)/im;
-		($size)=m/^Size:\s+(\d+)/im;
-		($md5sum)=m/^MD5sum:\s+([A-Za-z0-9]+)/im;
-		$files{$filename}=check_file($filename, $size, $md5sum);
-	}
-	close IN;
-}
-foreach my $file (@source_files) {
-	open IN, "zcat $file|" or die "$file: $!";
-	while (<IN>) {
-		($directory) = m/^Directory:\s+(.*)/im;
-		while (m/^ ([A-Za-z0-9]{32} .*)/mg) {
-			($md5sum, $size, $filename)=split(' ', $1, 3);
-			$filename="$directory/$filename";
+{
+	local $/="\n\n";
+	my ($filename, $size, $md5sum, $directory);
+	foreach my $file (@package_files) {
+		open IN, "zcat $file|" or die "$file: $!";
+		while (<IN>) {
+			($filename)=m/^Filename:\s+(.*)/im;
+			($size)=m/^Size:\s+(\d+)/im;
+			($md5sum)=m/^MD5sum:\s+([A-Za-z0-9]+)/im
+				if $check_md5sums;
 			$files{$filename}=check_file($filename, $size, $md5sum);
 		}
+		close IN;
 	}
-	close IN;
+	foreach my $file (@source_files) {
+		open IN, "zcat $file|" or die "$file: $!";
+		while (<IN>) {
+			($directory) = m/^Directory:\s+(.*)/im;
+			while (m/^ ([A-Za-z0-9]{32} .*)/mg) {
+				($md5sum, $size, $filename)=split(' ', $1, 3);
+				$filename="$directory/$filename";
+				$files{$filename}=check_file($filename, $size, $md5sum);
+			}
+		}
+		close IN;
+	}
+}
+
+# Fork a child to do the cleanup. Why not, it is independant of
+# the main download..
+if ($cleanup and fork == 0) {
+	# Remove all files in the mirror that we don't know about.
+	foreach my $file (`find . -type f`) {
+		chomp $file;
+		$file=~s:^\./::;
+		unless (exists $files{$file}) {
+			print "deleting $file\n";
+			debug("deleting $file");
+			unlink $file or die "unlink $file: $!";
+		}
+	}
 }
 
 # Download all files that we need to get.
@@ -309,47 +325,48 @@ foreach my $file (sort keys %files) {
 		make_dir($dirname);
 		ftp_get($file, $file);
 	}
-	else {
-		print "skipping $file\n" if $debug;
-	}
 }
 
 $ftp->quit;
-
-# Now clean up the mirror. First, remove all files in the mirror that
-# we don't know about.
-$/="\n";
-foreach my $file (`find . -type f`) {
-	chomp $file;
-	$file=~s:^\./::;
-	unless (exists $files{$file}) {
-		print "deleting $file\n" if $debug;
-		unlink $file or die "unlink $file: $!";
-	}
+if ($cleanup) {
+	wait; # on child forked earlier
+        # Remove all empty directories. Not done as part of main cleanup
+	# to prevent race problems with pool download code, which
+	# makes directories..
+	system("find . -type d -not -name '.' -not -name '..' -empty | xargs -r rmdir -p --ignore-fail-on-non-empty");
+			
 }
-# Then remove all empty directories.
-system("find . -type d -empty | xargs -r rmdir -p --ignore-fail-on-non-empty");
+exit;
 
 # Pass this function a filename, a file size (bytes), and a md5sum (hex).
-# It will return true if the file nees to be downloaded.
-sub check_file {
-	my ($filename, $size, $md5sum)=@_;
-	if (-f $filename and $size == -s _) {
-		if ($check_md5sums) {
-			open HANDLE, $filename or
-				die "$filename: $!";
-			$md5->addfile(*HANDLE);
-			if ($md5sum eq $md5->hexdigest) {
+# It will return true if the file needs to be downloaded.
+{
+
+	my $md5;
+	if ($check_md5sums) {
+		eval q{use Digest::MD5};
+		$md5=Digest::MD5->new;
+	}
+						
+	sub check_file {
+		my ($filename, $size, $md5sum)=@_;
+		if (-f $filename and $size == -s _) {
+			if ($check_md5sums) {
+				open HANDLE, $filename or
+					die "$filename: $!";
+				$md5->addfile(*HANDLE);
+				if ($md5sum eq $md5->hexdigest) {
+					return 0;
+				}
+			}
+			else {
+				# Assume it is ok, w/o md5 check.
 				return 0;
 			}
 		}
-		else {
-			# Assume it is ok, w/o md5 check.
-			return 0;
-		}
-	}
 
-	return 1;
+		return 1;
+	}
 }
 
 # Get a file via ftp, first displaying its filename if progress is on.
@@ -358,7 +375,10 @@ sub check_file {
 sub ftp_get {
 	print "$_[0]: " if $progress;
 	my $ret=$ftp->get(@_);
-	print "failed\n" if ! $ret;
+	warn "$_[0] failed\n" if ! $ret;
+	# I'm not sure why, but mirror sites seem to dislike being flooded
+	# with requests; this makes them behave better.
+	sleep 2;
 	return $ret;
 }
 
@@ -381,6 +401,10 @@ sub ftp_get {
 	}
 }
 
+sub debug {
+	print $0.': '.join(' ', @_)."\n" if $debug;
+}
+
 =head1 COPYRIGHT
 
 This program is copyright 2001 by Joey Hess <joeyh@debian.org>, under
@@ -399,28 +423,3 @@ Joey Hess <joeyh@debian.org>
 Waste bandwith -- put a partial mirror on your laptop today!
 
 =cut
-
-#######################################################################################
-# Configure this program here:
-
-# The system to mirror from.
-#my $hostname="ftp.kernel.org";
-# Root of the remote debian mirror.
-#my $remoteroot="/debian";
-# WHere to put the local mirror.
-#my $mirrordir="/mirror/debian";
-# List of distributions to mirror.
-#my @dists=qw{unstable};
-# List of sections to mirror.
-#my @sections=qw{main contrib non-free};
-# List of architectures to mirror (include binary- prefix)
-#my @arches=qw{binary-i386 debian-installer/binary-i386};
-# List of sources to mirror (generally either ('source') or empty.
-#my @sources=qw{source};
-# Should I do slow, paranoid md5 checks to catch files that are of same size as
-# what is listed in Packages/Sources files, but do not md5sum the same.
-#my $check_md5sums=0;
-# Should passive ftp be used?
-#my $passive=1;
-#
-#######################################################################################
