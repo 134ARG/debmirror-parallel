@@ -5,8 +5,8 @@ FLAGS="-rLpt $@ --exclude Packages --delete --partial"
 
 # The host to connect to:
 #HOST=debian.midco.net
-HOST=download.sourceforge.net
-NON_US=pandora.debian.org
+HOST=ftp.stormix.com
+NON_US=ftp.stormix.com
 
 # Where to put your mirror:
 DEST=/mirror/debian
