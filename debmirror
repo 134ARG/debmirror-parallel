@@ -180,7 +180,7 @@ my ($debug, $progress, $check_md5sums, $passive, $skippackages, $ignore);
 my (@dists, @sections, @arches);
 my $cleanup=1;
 my $do_source=1;
-my $hostname="ftp.debian.org";
+my $host="ftp.debian.org";
 my $remoteroot="/debian";
 
 my $help;
@@ -190,7 +190,7 @@ GetOptions(
 	'source!'	=> \$do_source,
 	'md5sums|m'	=> \$check_md5sums,
 	'passive!'	=> \$passive,
-	'host|h=s'	=> \$hostname,
+	'host|h=s'	=> \$host,
 	'root|r=s' 	=> \$remoteroot,
 	'dist|d=s'	=> \@dists,
 	'section|s=s'	=> \@sections,
@@ -215,7 +215,7 @@ my $mirrordir=shift or usage("mirrordir not specified");
 @arches=qw(binary-i386) unless @arches;
 
 # Display configuration.
-debug("Mirroring to $mirrordir from ftp://$hostname/$remoteroot/");
+debug("Mirroring to $mirrordir from ftp://$host/$remoteroot/");
 debug("Arches: ".join(",", @arches));
 debug("Dists: ".join(",", @dists));
 debug("Sections: ".join(",", @sections));
@@ -228,11 +228,23 @@ debug("Will NOT clean up.") unless $cleanup;
 make_dir($mirrordir);
 chdir($mirrordir) or die "chdir $mirrordir: $!";
 
+# Handle the lock file. This is the same method used by official
+# Debian push mirrors.
+my $hostname=`hostname -f`;
+chomp $hostname;
+my $lockfile="Archive-Update-in-Progress-$hostname";
+system(qw{lockfile -! -l 43200 -r 0}, $lockfile) or
+	die "$lockfile exists; aborting\n";
+my $killlater=1;
+$SIG{INT}=sub { exit 1 };
+$SIG{TERM}=sub { exit 1 };
+END { unlink $lockfile if $killlater }
+
 # Start up ftp.
 my $ftp;
 my %opts = (Debug => $debug, Passive => $passive,);
 $opts{Hash}=*STDOUT if $progress;
-$ftp=Net::FTP->new($hostname, %opts) or die "$@\n";
+$ftp=Net::FTP->new($host, %opts) or die "$@\n";
 $ftp->login or die "login failed"; # anonymous
 $ftp->binary or die "could not set binary mode";
 $ftp->cwd($remoteroot) or die "cwd to $remoteroot failed";
