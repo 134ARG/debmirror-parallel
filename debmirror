@@ -3,7 +3,8 @@
 # TODO: locking. Might as well use the same archive maintainence in 
 # progress thing real mirrors do. Same with last-updated date stamp.
 # TODO: I'd like to be able to tell it to get some extra files, by name.
-# I'm thinking Contents files.
+# I'm thinking Contents files. It would be really nice if it could pull
+# a whole directory -- think project/trace, or disks-i386...
 
 =head1 NAME
 
