@@ -73,7 +73,6 @@ for type in binary-${ARCH} $SOURCE; do
 done
 
 # Update the package pool.
-# Note that the same pool is used for non-us as everything else.
 # TODO: probably needs to be optimized, we'll see as time goes by..
 cd $DEST/pool || exit 1 # If this fails, we're screwed.
 rm -f .filelist
@@ -100,10 +99,14 @@ mv -f .filelist.new .filelist
 
 (cd .. && mkdir -p $DIRS)
 # Tell rsync to download only the files in the list. The exclude is here 
-# to make the recursion not get anything else.
-# TODO: main pool needs to be donwloaded from too, once there is one.
+# to make the recursion not get anything else. The two pools from the
+# mirror are actually merged into one local pool; rsync handles that just
+# fine.
 rsync $FLAGS_POOL \
 	$HOST::debian-non-US/pool/ --include-from .filelist \
+	--exclude '*' .
+rsync $FLAGS_POOL \
+	$HOST::debian/pool/ --include-from .filelist \
 	--exclude '*' .
 # Delete all files that are not in the list, then any empty directories.
 # This also kills the filelist.
