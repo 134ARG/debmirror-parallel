@@ -421,7 +421,7 @@ sub ftp_get {
 	my $ret=$ftp->get($file, $file);
 	if ($ret) {
 		my $mtime=$ftp->mdtm($file);
-		utime($mtime, $mtime, $file);
+		utime($mtime, $mtime, $file) if defined $mtime;
 	}
 	else {
 		warn "$file failed\n";
