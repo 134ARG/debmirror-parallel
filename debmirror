@@ -17,7 +17,8 @@ debmirror mirrordir [options]
 
 This program downloads and maintains a partial local Debian mirror. It can
 mirror any combination of architectures, distributions, and sections. Files
-are transferred by ftp, and package pools are fully supported.
+are transferred by ftp, and package pools are fully supported. It also does
+locking and updates trace files.
 
 To support package pools, this program mirrors in three steps.
 
@@ -183,6 +184,12 @@ my $do_source=1;
 my $host="ftp.debian.org";
 my $remoteroot="/debian";
 
+# This hash holds all the files we know about, If the hash key is false,
+# the file already exists in the mirror (or is locally created) and does not
+# need to be downloaded, if it is true the file needs to be downloaded. 
+# Filenames should be relative to $mirrordir.
+my %files;
+
 my $help;
 GetOptions(
 	'debug'		=> \$debug,
@@ -233,12 +240,17 @@ chdir($mirrordir) or die "chdir $mirrordir: $!";
 my $hostname=`hostname -f`;
 chomp $hostname;
 my $lockfile="Archive-Update-in-Progress-$hostname";
+$files{$lockfile}=0;
 system(qw{lockfile -! -l 43200 -r 0}, $lockfile) or
 	die "$lockfile exists; aborting\n";
 my $killlater=1;
 $SIG{INT}=sub { exit 1 };
 $SIG{TERM}=sub { exit 1 };
 END { unlink $lockfile if $killlater }
+
+# Register the trace file.
+my $tracefile="project/trace/$hostname";
+$files{$tracefile}=0;
 
 # Start up ftp.
 my $ftp;
@@ -248,12 +260,6 @@ $ftp=Net::FTP->new($host, %opts) or die "$@\n";
 $ftp->login or die "login failed"; # anonymous
 $ftp->binary or die "could not set binary mode";
 $ftp->cwd($remoteroot) or die "cwd to $remoteroot failed";
-
-# This hash holds all the files we know about, If the hash key is false,
-# the file already exists in the mirror and does not need to be downloaded,
-# if it is true the file needs to be downloaded. Filenames should be
-# relative to $mirrordir.
-my %files;
 
 # Get Packages and Sources files and other miscellany.
 my (@package_files, @source_files);
@@ -331,7 +337,6 @@ if ($cleanup) {
 		chomp $file;
 		$file=~s:^\./::;
 		unless (exists $files{$file} or $file=~/$ignore/) {
-			print "deleting $file\n";
 			debug("deleting $file");
 			unlink $file or die "unlink $file: $!";
 		}
@@ -352,7 +357,12 @@ foreach my $file (sort keys %files) {
 	}
 }
 
+# Finish up. Write out trace file.
 $ftp->quit;
+make_dir("project/trace");
+open OUT, ">$tracefile" or die "$tracefile: $!";
+print OUT `date -u`;
+close OUT;
 exit;
 
 # Pass this function a filename, a file size (bytes), and a md5sum (hex).
