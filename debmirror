@@ -55,7 +55,7 @@ Usage: $0 mirrordir [--debug] [--progress] [--source|--nosource]
           [--root=directory] [--dist=foo[,bar,..] ...]
           [--section=foo[,bar,..] ...] [--arch=foo[,bar,..] ...]
           [--cleanup|--nocleanup] [--skippackages] [--adddir=directory]
-	  [--ignore=regex] [--help]
+	  [--ignore=regex] [--getcontents] [--help]
 
 For details, see man page.
 EOF
@@ -153,6 +153,10 @@ the remote host (the directory is relative to the root of the Debian
 archive). For example, "--adddir dists/proposed-updates" will mirror the
 proposed-updates directory.
 
+=item --getcontents
+
+Download Contents.arch.gz files.
+
 =item --help
 
 Display a usage summary.
@@ -188,7 +192,8 @@ use Net::FTP;
 use Getopt::Long;
 
 # Yeah, I use too many global variables in this program.
-my ($debug, $progress, $check_md5sums, $passive, $skippackages);
+my ($debug, $progress, $check_md5sums, $passive, $skippackages,
+    $getcontents);
 my (@dists, @sections, @arches, @extra_dirs);
 my $cleanup=1;
 my $do_source=1;
@@ -219,6 +224,7 @@ GetOptions(
 	'cleanup!'	=> \$cleanup,
 	'ignore=s' 	=> \$ignore,
 	'skippackages'	=> \$skippackages,
+	'getcontents'	=> \$getcontents,
 	'help' => \$help,
 ) or usage;
 usage if $help;
@@ -283,6 +289,14 @@ foreach my $dist (@dists) {
 			get_packages("dists/$dist/$section/$arch");
 		}
 		get_sources("dists/$dist/$section/source");
+	}
+	if ($getcontents) {
+		foreach my $arch (@arches) {
+			next if $arch=~/source/;
+			$arch=~s/binary-//;
+			ftp_get("dists/$dist/Contents-$arch.gz");
+			$files{"dists/$dist/Contents-$arch.gz"}=0;
+		}
 	}
 }
 foreach (@extra_dirs) {
@@ -349,7 +363,7 @@ foreach my $file (sort keys %files) {
 	if ($files{$file}) {
 		($dirname) = $file =~ m:(.*)/:;
 		make_dir($dirname);
-		ftp_get($file, $file);
+		ftp_get($file);
 	}
 }
 
@@ -397,7 +411,7 @@ exit;
 # but it's late.
 sub ftp_get {
 	print "$_[0]: " if $progress;
-	my $ret=$ftp->get(@_);
+	my $ret=$ftp->get($_[0], $_[0]);
 	warn "$_[0] failed\n" if ! $ret;
 	return $ret;
 }
@@ -410,7 +424,7 @@ sub get_packages {
 		push @package_files, "$subdir/Packages.gz";
 	}
 	else {
-		ftp_get("$subdir/Packages.gz", "$subdir/Packages.gz") and
+		ftp_get("$subdir/Packages.gz") and
 			push @package_files, "$subdir/Packages.gz";
 		$ftp->get("$subdir/Release"); # optional
 	}
@@ -428,7 +442,7 @@ sub get_sources {
 			push @source_files, "$subdir/Sources.gz";
 		}
 		else {
-			ftp_get("$subdir/Sources.gz", "$subdir/Sources.gz") and
+			ftp_get("$subdir/Sources.gz") and
 				push @source_files, "$subdir/Sources.gz";
 		}
 		$files{"$subdir/Sources.gz"}=0;
