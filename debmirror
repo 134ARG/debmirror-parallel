@@ -32,6 +32,8 @@ DIST=unstable
 ARCH=i386
 # Should source be mirrored too?
 SOURCE=yes
+# How about the debian-installer? (All of it, this is a little imperfect..)
+DEBIAN_INSTALLER=yes
 # The sections to mirror (main, non-free, etc):
 SECTIONS="main contrib non-free"
 # Should a contents file kept up to date?
@@ -58,17 +60,23 @@ else
 	SOURCE=""
 fi
 
+if [ "$DEBIAN_INSTALLER" = yes ]; then
+	DEBIAN_INSTALLER=debian-installer
+else
+	DEBIAN_INSTALLER=""
+fi
+
 # Download packages files (and .debs and sources too, until we move fully
 # to pools).
-for type in binary-${ARCH} $SOURCE; do
+for type in binary-${ARCH} $DEBIAN_INSTALLER $SOURCE; do
 	for section in $SECTIONS; do
 		mkdir -p $DEST/non-US/$section/$type $DEST/$section/$type
 		rsync $FLAGS_NOPOOL \
 			$HOST::debian-non-US/dists/$DIST/non-US/$section/$type \
-			$DEST/non-US/$section/
+			$DEST/non-US/$section/ || true
 		rsync $FLAGS_NOPOOL \
 			$HOST::debian/dists/$DIST/$section/$type \
-			$DEST/$section/
+			$DEST/$section/ || true
 	done
 done
 
