@@ -165,7 +165,8 @@ Make one full mirror, and suppliment it with a mirror of non-US, in a
 directory inside.
 
  debmirror -a binary-i386,binary-sparc -s main -h ftp.kernel.org \
- 	-d unstable -d testing /home/me/debian/mirror --nosource --progress
+ 	-d unstable -d testing /home/me/debian/mirror --nosource \
+	--progress
 
 Make a mirror of i386 and sparc binaries, main only, and include both unstable
 and testing versions of Debian. Download from ftp.kernel.org.
