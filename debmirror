@@ -1,10 +1,10 @@
 #!/usr/bin/perl
 
-# TODO: locking. Might as well use the same archive maintainence in 
-# progress thing real mirrors do. Same with last-updated date stamp.
 # TODO: I'd like to be able to tell it to get some extra files, by name.
 # I'm thinking Contents files. It would be really nice if it could pull
 # a whole directory -- think project/trace, or disks-i386...
+# TODO: It would probably be cleaner and easier to learn if it took
+# apt-style lines to tell where to mirror from and what portions to use.
 
 =head1 NAME
 
@@ -54,7 +54,8 @@ Usage: $0 mirrordir [--debug] [--progress] [--source|--nosource]
           [--md5sums|--nomd5sums] [--passive] [--host=remotehost]
           [--root=directory] [--dist=foo[,bar,..] ...]
           [--section=foo[,bar,..] ...] [--arch=foo[,bar,..] ...]
-          [--cleanup|--nocleanup] [--skippackages] [--ignore=regex] [--help]
+          [--cleanup|--nocleanup] [--skippackages] [--adddir=directory]
+	  [--ignore=regex] [--help]
 
 For details, see man page.
 EOF
@@ -145,6 +146,13 @@ Never delete any files whose filenames match the regex.
 Don't re-download Packages and Sources files. Useful if you know they are
 up-to-date.
 
+=item --adddir directory
+
+Also download Packages and Sources files from the specified directory on
+the remote host (the directory is relative to the root of the Debian
+archive). For example, "--adddir dists/proposed-updates" will mirror the
+proposed-updates directory.
+
 =item --help
 
 Display a usage summary.
@@ -180,10 +188,11 @@ use Net::FTP;
 use Getopt::Long;
 
 # Yeah, I use too many global variables in this program.
-my ($debug, $progress, $check_md5sums, $passive, $skippackages, $ignore);
-my (@dists, @sections, @arches);
+my ($debug, $progress, $check_md5sums, $passive, $skippackages);
+my (@dists, @sections, @arches, @extra_dirs);
 my $cleanup=1;
 my $do_source=1;
+my $ignore='';
 my $host="ftp.debian.org";
 my $remoteroot="/debian";
 
@@ -197,6 +206,7 @@ my $help;
 GetOptions(
 	'debug'		=> \$debug,
 	'progress|p'	=> \$progress,
+	'verbose'	=> \$progress,
 	'source!'	=> \$do_source,
 	'md5sums|m'	=> \$check_md5sums,
 	'passive!'	=> \$passive,
@@ -205,6 +215,7 @@ GetOptions(
 	'dist|d=s'	=> \@dists,
 	'section|s=s'	=> \@sections,
 	'arch|a=s'	=> \@arches,
+	'adddir=s'	=> \@extra_dirs,
 	'cleanup!'	=> \$cleanup,
 	'ignore=s' 	=> \$ignore,
 	'skippackages'	=> \$skippackages,
@@ -269,32 +280,14 @@ my (@package_files, @source_files);
 foreach my $dist (@dists) {
 	foreach my $section (@sections) {
 		foreach my $arch (@arches) {
-			my $subdir="dists/$dist/$section/$arch";
-			make_dir($subdir);
-			if ($skippackages) {
-				push @package_files, "$subdir/Packages.gz";
-			}
-			else {
-				ftp_get("$subdir/Packages.gz", "$subdir/Packages.gz") and
-					push @package_files, "$subdir/Packages.gz";
-			}
-			$files{"$subdir/Packages.gz"}=0;
-			# Get the Release file later.
-			$files{"$subdir/Release"}=1;
+			get_packages("dists/$dist/$section/$arch");
 		}
-		if ($do_source) {
-			my $subdir="dists/$dist/$section/source";
-			make_dir($subdir);
-			if ($skippackages) {
-				push @source_files, "$subdir/Sources.gz";
-			}
-			else {
-				ftp_get("$subdir/Sources.gz", "$subdir/Sources.gz") and
-					push @source_files, "$subdir/Sources.gz";
-			}
-			$files{"$subdir/Sources.gz"}=0;
-		}
+		get_sources("dists/$dist/$section/source");
 	}
+}
+foreach (@extra_dirs) {
+	get_packages($_);
+	get_sources($_);
 }
 
 # Sanity check. I once nuked a mirror because of this..
@@ -407,6 +400,39 @@ sub ftp_get {
 	my $ret=$ftp->get(@_);
 	warn "$_[0] failed\n" if ! $ret;
 	return $ret;
+}
+
+# Get Packages file in the passed subdirectory.
+sub get_packages {
+	my $subdir=shift;
+	make_dir($subdir);
+	if ($skippackages) {
+		push @package_files, "$subdir/Packages.gz";
+	}
+	else {
+		ftp_get("$subdir/Packages.gz", "$subdir/Packages.gz") and
+			push @package_files, "$subdir/Packages.gz";
+		$ftp->get("$subdir/Release"); # optional
+	}
+	$files{"$subdir/Packages.gz"}=0;
+	$files{"$subdir/Release"}=0;
+}
+
+# Get Sources file
+sub get_sources {
+	my $subdir=shift;
+	
+	if ($do_source) {
+		make_dir($subdir);
+		if ($skippackages) {
+			push @source_files, "$subdir/Sources.gz";
+		}
+		else {
+			ftp_get("$subdir/Sources.gz", "$subdir/Sources.gz") and
+				push @source_files, "$subdir/Sources.gz";
+		}
+		$files{"$subdir/Sources.gz"}=0;
+	}
 }
 
 # Make a directory including all needed parents.
