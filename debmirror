@@ -66,8 +66,7 @@ else
 	DEBIAN_INSTALLER=""
 fi
 
-# Download packages files (and .debs and sources too, until we move fully
-# to pools).
+# Download packages files.
 for type in binary-${ARCH} $DEBIAN_INSTALLER $SOURCE; do
 	for section in $SECTIONS; do
 		mkdir -p $DEST/non-US/$section/$type $DEST/$section/$type
@@ -82,44 +81,35 @@ done
 
 # Update the package pool.
 # TODO: probably needs to be optimized, we'll see as time goes by..
-cd $DEST/pool || exit 1 # If this fails, we're screwed.
+cd $DEST || exit 1 # If this fails, we're screwed.
 rm -f .filelist
 
 # Get a list of all the files that are in the pool based on the Packages
 # files that were already updated. Thanks to aj for the awk-fu.
-for file in `find $DEST -name Packages.gz | \
-		xargs -r zgrep -i ^Filename: | cut -d ' ' -f 2 | \
-	    `find $DEST -name Sources.gz | xargs -r zcat | \
-		    awk '/^Directory:/ {D=$2} /Files:/,/^$/ { \
-			if ($1 != "Files:" && $0 != "") print D "/" $3; \
-		}'`
-do
-	DIRS="`dirname $file` $DIRS"
-	echo $file >> .filelist
-done
+find $DEST -name Packages.gz | \
+	xargs -r zgrep -i ^Filename: | cut -d ' ' -f 2 > .filelist
+find $DEST -name Sources.gz | xargs -r zcat | \
+	awk '/^Directory:/ {D=$2} /Files:/,/^$/ { \
+		if ($1 != "Files:" && $0 != "") print D "/" $3; \
+	     }' >> .filelist
 
-# Remove leading "pool/" from all files in the file list.
-# The "./" we change it to is there so the file names
-# exactly match in the delete step and the files that get downloaded
-# are not deleted.
-sed 's!^pool/!./!' .filelist > .filelist.new
-mv -f .filelist.new .filelist
+# Make all dirs. I think perl is the fastest way.
+perl -ne 's![^/]*$!!; $dirs{$_}=1; END { system "mkdir -p ".join(" ", keys %dirs) }' .filelist
 
-(cd .. && mkdir -p $DIRS)
 # Tell rsync to download only the files in the list. The exclude is here 
 # to make the recursion not get anything else. The two pools from the
 # mirror are actually merged into one local pool; rsync handles that just
 # fine.
 rsync $FLAGS_POOL \
-	$HOST::debian-non-US/pool/ --include-from .filelist \
+	$HOST::debian-non-US/ --include-from .filelist \
 	--exclude '*' .
 rsync $FLAGS_POOL \
-	$HOST::debian/pool/ --include-from .filelist \
+	$HOST::debian/ --include-from .filelist \
 	--exclude '*' .
 # Delete all files that are not in the list, then any empty directories.
 # This also kills the filelist.
-find -type f | fgrep -vxf .filelist | xargs -r rm -f
-find -type d -empty | xargs -r rmdir -p --ignore-fail-on-non-empty
+#find -type f | fgrep -vxf .filelist | xargs -r rm -f
+#find -type d -empty | xargs -r rmdir -p --ignore-fail-on-non-empty
 # End of package pool update.
 
 # Update symlinks (I like to have a link to every .deb in one directory).
