@@ -51,7 +51,7 @@ if [ "$CONTENTS" = yes ]; then
 	mkdir -p $DEST/misc
 	rsync $FLAGS_NOPOOL \
 		$HOST::debian/dists/$DIST/Contents-${ARCH}.gz \
-		$DEST/misc/
+		$DEST/misc/ || true
 fi
 
 if [ "$SOURCE" = yes ]; then
