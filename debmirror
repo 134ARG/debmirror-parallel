@@ -118,7 +118,7 @@ find -type d -empty | xargs -r rmdir -p --ignore-fail-on-non-empty
 if [ "$SYMLINK_FARM" = yes ]; then
 	install -d  $DEST/all
 	cd $DEST/all || exit 1
-	find -name \*.deb | xargs -r rm -f
+	find -name \*.deb -or -name \*.udeb | xargs -r rm -f
 	find .. -name "*.deb" -type f | grep -v ^../all | \
 		xargs -r -i ln -sf {} .
 fi
