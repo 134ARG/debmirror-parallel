@@ -119,8 +119,8 @@ if [ "$SYMLINK_FARM" = yes ]; then
 	install -d  $DEST/all
 	cd $DEST/all || exit 1
 	find -name \*.deb -or -name \*.udeb | xargs -r rm -f
-	find .. -name "*.deb" -type f | grep -v ^../all | \
-		xargs -r -i ln -sf {} .
+	find .. -name "*.deb" -or -name \*.udeb -type f | \
+		grep -v ^../all | xargs -r -i ln -sf {} .
 fi
 
 # Waste bandwidth. Put a partial mirror on your laptop today!
