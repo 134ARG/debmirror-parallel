@@ -107,9 +107,11 @@ rsync $FLAGS_POOL \
 	$HOST::debian/ --include-from .filelist \
 	--exclude '*' .
 # Delete all files that are not in the list, then any empty directories.
-# This also kills the filelist.
-#find -type f | fgrep -vxf .filelist | xargs -r rm -f
-#find -type d -empty | xargs -r rmdir -p --ignore-fail-on-non-empty
+# This also kills the filelist. Have to exclude the stuff we download
+# that's not in the filelist though.
+find -type f | sed s:\./:: | fgrep -vxf .filelist | grep -v Packages | \
+	grep -v Sources | grep -v Contents | xargs -r rm -f
+find -type d -empty | xargs -r rmdir -p --ignore-fail-on-non-empty
 # End of package pool update.
 
 # Update symlinks (I like to have a link to every .deb in one directory).
