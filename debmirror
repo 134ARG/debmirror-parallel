@@ -56,6 +56,7 @@ else {
 }
 $ftp->login; # anonymous
 $ftp->binary;
+$ftp->cwd($remoteroot) or die "cwd to $remoteroot failed";
 
 # This hash holds all the files we know about, If the hash key is false,
 # the file already exists in the mirror and does not need to be downloaded,
@@ -69,10 +70,8 @@ foreach my $dist (@dists) {
 	foreach my $section (@sections) {
 		foreach my $arch (@arches) {
 			my $subdir="dists/$dist/$section/$arch";
-			$ftp->cwd("$remoteroot/$subdir") or
-				warn "skipping $remoteroot/$subdir\n" and next;
 			make_dir($subdir);
-			ftp_get("Packages.gz", "$subdir/Packages.gz") and
+			ftp_get("$subdir/Packages.gz", "$subdir/Packages.gz") and
 				push @package_files, "$subdir/Packages.gz";
 			$files{"$subdir/Packages.gz"}=0;
 			# Get the release file later.
@@ -80,14 +79,19 @@ foreach my $dist (@dists) {
 		}
 		foreach my $source (@sources) {
 			my $subdir="dists/$dist/$section/$source";
-			$ftp->cwd("$remoteroot/$subdir") or
-				warn "skipping $remoteroot/$subdir\n" and next;
 			make_dir($subdir);
-			ftp_get("Sources.gz", "$subdir/Sources.gz") and
+			ftp_get("$subdir/Sources.gz", "$subdir/Sources.gz") and
 				push @source_files, "$subdir/Sources.gz";
 			$files{"$subdir/Sources.gz"}=0;
 		}
 	}
+}
+
+if (@arches && ! @package_files) {
+	die "Failed to download any Packages files!\n";
+}
+if (@sources && ! @source_files) {
+	die "Failed to download any Sources files!\n";
 }
 
 # Parse Packages and Sources files and add to the file list everything therein.
@@ -121,7 +125,6 @@ foreach my $file (@source_files) {
 }
 
 # Download all files that we need to get.
-$ftp->cwd($remoteroot) or die "cdw to $remoteroot failed";
 my $dirname;
 foreach my $file (sort keys %files) {
 	if ($files{$file}) {
