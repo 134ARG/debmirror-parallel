@@ -26,7 +26,7 @@ was instructed to get.
 =item 2. clean up
 
 Any files and directories on the local mirror that are not in the list are
-removed. This proceeds in the background while ...
+removed.
 
 =item 3. download rest
 
@@ -302,9 +302,7 @@ if ($do_source && ! @source_files) {
 	}
 }
 
-# Fork a child to do the cleanup. Why not, it is independant of
-# the main download..
-if ($cleanup and fork == 0) {
+if ($cleanup) {
 	# Remove all files in the mirror that we don't know about.
 	foreach my $file (`find . -type f`) {
 		chomp $file;
@@ -315,6 +313,10 @@ if ($cleanup and fork == 0) {
 			unlink $file or die "unlink $file: $!";
 		}
 	}
+	# Remove all empty directories. Not done as part of main cleanup
+	# to prevent race problems with pool download code, which
+	# makes directories..
+	system("find . -type d -not -name '.' -not -name '..' -empty | xargs -r rmdir -p --ignore-fail-on-non-empty");
 }
 
 # Download all files that we need to get.
@@ -328,14 +330,6 @@ foreach my $file (sort keys %files) {
 }
 
 $ftp->quit;
-if ($cleanup) {
-	wait; # on child forked earlier
-        # Remove all empty directories. Not done as part of main cleanup
-	# to prevent race problems with pool download code, which
-	# makes directories..
-	system("find . -type d -not -name '.' -not -name '..' -empty | xargs -r rmdir -p --ignore-fail-on-non-empty");
-			
-}
 exit;
 
 # Pass this function a filename, a file size (bytes), and a md5sum (hex).
