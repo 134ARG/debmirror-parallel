@@ -420,11 +420,16 @@ exit;
 # I should just be able to subclass Net::Ftp and override the get method,
 # but it's late.
 sub ftp_get {
-	print "$_[0]: " if $progress;
-	my $ret=$ftp->get($_[0], $_[0]);
-	my $mtime = $ftp->mdtm($_[0]);
-	utime($mtime, $mtime, $_[0]);
-	warn "$_[0] failed\n" if ! $ret;
+	my $file=shift;
+	print "$file: " if $progress;
+	my $ret=$ftp->get($file, $file);
+	if ($ret) {
+		my $mtime=$ftp->mdtm($file);
+		utime($mtime, $mtime, $file);
+	}
+	else {
+		warn "$file failed\n";
+	}
 	return $ret;
 }
 
