@@ -91,7 +91,7 @@ do
 	echo $file >> .filelist
 done
 
-# Remove leading "pool" from all files in the file list.
+# Remove leading "pool/" from all files in the file list.
 # The "./" we change it to is there so the file names
 # exactly match in the delete step and the files that get downloaded
 # are not deleted.
