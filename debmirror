@@ -264,7 +264,7 @@ chdir($mirrordir) or die "chdir $mirrordir: $!";
 
 # Handle the lock file. This is the same method used by official
 # Debian push mirrors.
-my $hostname=`hostname -f`;
+my $hostname=`hostname -f 2>/dev/null || hostname`;
 chomp $hostname;
 my $lockfile="Archive-Update-in-Progress-$hostname";
 $files{$lockfile}=0;
@@ -369,8 +369,9 @@ if ($cleanup) {
 	}
 	# Remove all empty directories. Not done as part of main cleanup
 	# to prevent race problems with pool download code, which
-	# makes directories..
-	system("find . -type d -not -name '.' -not -name '..' -empty | xargs -r rmdir -p --ignore-fail-on-non-empty");
+	# makes directories.. Sort so they are removable in bottom-up
+	# order.
+	system("find . -type d ! -name . ! -name .. | sort -r | xargs rmdir 2>/dev/null");
 }
 
 # Download all files that we need to get.
