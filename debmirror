@@ -120,13 +120,12 @@ separated by commas. Defaults to mirroring unstable.
 
 Specify the section of Debian to mirror. Defaults to main,contrib,non-free.
 
+Note that to mirror the debian-installer's part of the archive, you can
+use 'main/debian-installer'
+
 =item --arch=foo[,bar,..] -a foo
 
-Specify the architectures to mirror. You must prefix the name of the 
-architecture with 'binary-', as in 'binary-i386', which is the default.
-
-Note that to mirror the debian-installer's part of the archive, you can
-use 'debian-installer/binary-i386'
+Specify the architectures to mirror. The default is --arch=i386.
 
 =item --cleanup
 
@@ -180,7 +179,7 @@ Simply make a mirror in /mirror/debian, using all defaults.
 Make one full mirror, and suppliment it with a mirror of non-US, in a
 directory inside.
 
- debmirror -a binary-i386,binary-sparc -s main -h ftp.kernel.org \
+ debmirror -a i386,sparc -s main -h ftp.kernel.org \
  	-d unstable -d testing /home/me/debian/mirror --nosource \
 	--progress
 
@@ -241,7 +240,7 @@ my $mirrordir=shift or usage("mirrordir not specified");
 @sections=split(/,/,join(',',@sections));
 @sections=qw(main contrib non-free) unless @sections;
 @arches=split(/,/,join(',',@arches));
-@arches=qw(binary-i386) unless @arches;
+@arches=qw(i386) unless @arches;
 
 # Display configuration.
 debug("Mirroring to $mirrordir from ftp://$host/$remoteroot/");
@@ -288,14 +287,13 @@ my (@package_files, @source_files);
 foreach my $dist (@dists) {
 	foreach my $section (@sections) {
 		foreach my $arch (@arches) {
-			get_packages("dists/$dist/$section/$arch");
+			get_packages("dists/$dist/$section/binary-$arch");
 		}
 		get_sources("dists/$dist/$section/source");
 	}
 	if ($getcontents) {
 		foreach my $arch (@arches) {
 			next if $arch=~/source/;
-			$arch=~s/binary-//;
 			ftp_get("dists/$dist/Contents-$arch.gz");
 			$files{"dists/$dist/Contents-$arch.gz"}=0;
 		}
@@ -317,12 +315,17 @@ if ($do_source && ! @source_files) {
 # Parse Packages and Sources files and add to the file list everything therein.
 {
 	local $/="\n\n";
-	my ($filename, $size, $md5sum, $directory, $exclude);
+	my ($filename, $size, $md5sum, $directory, $exclude, $architecture);
+
+	my %arches = map { $_ => 1 } (@arches, "all");
+	
 	$exclude =  "(".join("|", @excludes).")" if @excludes;
 	foreach my $file (@package_files) {
 		open IN, "zcat $file|" or die "$file: $!";
 		while (<IN>) {
 			($filename)=m/^Filename:\s+(.*)/im;
+			($architecture)=m/^Architecture:\s+(.*)/im;
+			next if (!$arches{$architecture});
 			next if (defined($exclude) && $filename=~/$exclude/o);
 			($size)=m/^Size:\s+(\d+)/im;
 			($md5sum)=m/^MD5sum:\s+([A-Za-z0-9]+)/im
