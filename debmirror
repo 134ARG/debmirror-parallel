@@ -75,7 +75,7 @@ done
 # Update the package pool.
 # Note that the same pool is used for non-us as everything else.
 # TODO: probably needs to be optimized, we'll see as time goes by..
-cd $DEST/pool || exit 1
+cd $DEST/pool || exit 1 # If this fails, we're screwed.
 rm -f .filelist
 
 # Get a list of all the files that are in the pool based on the Packages
@@ -103,7 +103,8 @@ mv -f .filelist.new .filelist
 # to make the recursion not get anything else.
 # TODO: main pool needs to be donwloaded from too, once there is one.
 rsync $FLAGS_POOL \
-	$HOST::debian-non-US/pool/ --include-from .filelist --exclude '*' .
+	$HOST::debian-non-US/pool/ --include-from .filelist \
+	--exclude '*' .
 # Delete all files that are not in the list, then any empty directories.
 # This also kills the filelist.
 find -type f | fgrep -vxf .filelist | xargs -r rm -f
