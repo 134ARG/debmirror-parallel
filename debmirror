@@ -27,6 +27,8 @@ my @sources=qw{source};
 # Should I do slow, paranoid md5 checks to catch files that are of same size as
 # what is listed in Packages/Sources files, but do not md5sum the same.
 my $check_md5sums=0;
+# Should passive ftp be used?
+my $passive=1;
 
 #######################################################################################
 
@@ -49,12 +51,19 @@ chdir($localroot) or die "chdir $localroot: $!";
 # Start up ftp.
 my $ftp;
 if ($progress) {
-	$ftp=Net::FTP->new($hostname, Debug => $debug, Hash => *STDOUT);
+	$ftp=Net::FTP->new($hostname, 
+		Debug => $debug,
+		Hash => *STDOUT,
+		Passive => $passive
+	);
 }
 else {
-	$ftp=Net::FTP->new($hostname, Debug => $debug);
+	$ftp=Net::FTP->new($hostname, 
+		Debug => $debug
+		Passive => $passive
+	);
 }
-$ftp->login; # anonymous
+$ftp->login || die "login failed"; # anonymous
 $ftp->binary;
 $ftp->cwd($remoteroot) or die "cwd to $remoteroot failed";
 
