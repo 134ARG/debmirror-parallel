@@ -21,9 +21,12 @@ FLAGS_NOPOOL="$FLAGS --exclude Packages --delete"
 # And these flags are passed in only when we are getting files from pools.
 # Remember, do _not_ include --delete.
 FLAGS_POOL="$FLAGS"
-# The host to connect to. Currently must carry both non-us and main
-# and support anon rsync, which limits the options somewhat.
-HOST=ftp.stormix.com
+# The host to rsync from. Include the rsync module name/directory
+# for debian.
+HOST=zeus.kernel.org::mirrors/debian
+# The host to rsync non-us from. Include the rsync module name/directory
+# for debian/non-US
+HOST_NONUS=pandora.debian.org::debian-non-US
 # Where to put the mirror (absolute path, please):
 DEST=/mirror/debian
 # The distribution to mirror:
@@ -50,7 +53,7 @@ mkdir -p $DEST/dists $DEST/pool
 if [ "$CONTENTS" = yes ]; then
 	mkdir -p $DEST/misc
 	rsync $FLAGS_NOPOOL \
-		$HOST::debian/dists/$DIST/Contents-${ARCH}.gz \
+		$HOST/dists/$DIST/Contents-${ARCH}.gz \
 		$DEST/misc/ || true
 fi
 
@@ -71,10 +74,10 @@ for type in binary-${ARCH} $DEBIAN_INSTALLER $SOURCE; do
 	for section in $SECTIONS; do
 		mkdir -p $DEST/non-US/$section/$type $DEST/$section/$type
 		rsync $FLAGS_NOPOOL \
-			$HOST::debian-non-US/dists/$DIST/non-US/$section/$type \
+			$HOST_NONUS/dists/$DIST/non-US/$section/$type \
 			$DEST/non-US/$section/ || true
 		rsync $FLAGS_NOPOOL \
-			$HOST::debian/dists/$DIST/$section/$type \
+			$HOST/dists/$DIST/$section/$type \
 			$DEST/$section/ || true
 	done
 done
@@ -100,12 +103,8 @@ perl -ne 's![^/]*$!!; $dirs{$_}=1; END { system "mkdir -p ".join(" ", keys %dirs
 # to make the recursion not get anything else. The two pools from the
 # mirror are actually merged into one local pool; rsync handles that just
 # fine.
-rsync $FLAGS_POOL \
-	$HOST::debian-non-US/ --include-from .filelist \
-	--exclude '*' .
-rsync $FLAGS_POOL \
-	$HOST::debian/ --include-from .filelist \
-	--exclude '*' .
+rsync $FLAGS_POOL $HOST_NONUS --include-from .filelist --exclude '*' .
+rsync $FLAGS_POOL $HOST --include-from .filelist --exclude '*' .
 # Delete all files that are not in the list, then any empty directories.
 # This also kills the filelist. Have to exclude the stuff we download
 # that's not in the filelist though.
