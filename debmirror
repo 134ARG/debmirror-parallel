@@ -252,6 +252,12 @@ debug("Passive mode on.") if $passive;
 debug("Checking md5sums.") if $check_md5sums;
 debug("Will NOT clean up.") unless $cleanup;
 
+my $md5;
+if ($check_md5sums) {
+	eval q{use Digest::MD5; $md5=Digest::MD5->new;};
+	$md5=Digest::MD5->new;
+}
+
 # Set up mirror directory.
 make_dir($mirrordir);
 chdir($mirrordir) or die "chdir $mirrordir: $!";
@@ -387,33 +393,23 @@ exit;
 
 # Pass this function a filename, a file size (bytes), and a md5sum (hex).
 # It will return true if the file needs to be downloaded.
-{
-
-	my $md5;
-	if ($check_md5sums) {
-		eval q{use Digest::MD5};
-		$md5=Digest::MD5->new;
-	}
-						
-	sub check_file {
-		my ($filename, $size, $md5sum)=@_;
-		if (-f $filename and $size == -s _) {
-			if ($check_md5sums) {
-				open HANDLE, $filename or
-					die "$filename: $!";
-				$md5->addfile(*HANDLE);
-				if ($md5sum eq $md5->hexdigest) {
-					return 0;
-				}
-			}
-			else {
-				# Assume it is ok, w/o md5 check.
+sub check_file {
+	my ($filename, $size, $md5sum)=@_;
+	if (-f $filename and $size == -s _) {
+		if ($check_md5sums) {
+			open HANDLE, $filename or
+				die "$filename: $!";
+			$md5->addfile(*HANDLE);
+			if ($md5sum eq $md5->hexdigest) {
 				return 0;
 			}
 		}
-
-		return 1;
+		else {
+			# Assume it is ok, w/o md5 check.
+			return 0;
+		}
 	}
+	return 1;
 }
 
 # Get a file via ftp, first displaying its filename if progress is on.
