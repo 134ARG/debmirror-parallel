@@ -88,11 +88,11 @@ rm -f .filelist
 # Get a list of all the files that are in the pool based on the Packages
 # files that were already updated. Thanks to aj for the awk-fu.
 for file in `find $DEST -name Packages.gz | \
-		xargs -r zgrep -i ^Filename: | cut -d ' ' -f 2 | grep ^pool/` \
+		xargs -r zgrep -i ^Filename: | cut -d ' ' -f 2 | \
 	    `find $DEST -name Sources.gz | xargs -r zcat | \
 		    awk '/^Directory:/ {D=$2} /Files:/,/^$/ { \
 			if ($1 != "Files:" && $0 != "") print D "/" $3; \
-		}' | grep ^pool/`
+		}'`
 do
 	DIRS="`dirname $file` $DIRS"
 	echo $file >> .filelist
