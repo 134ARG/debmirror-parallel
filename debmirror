@@ -119,7 +119,7 @@ separated by commas. Defaults to mirroring unstable.
 
 Specify the section of Debian to mirror. Defaults to main,contrib,non-free.
 
-=item --arches=foo[,bar,..] -a foo
+=item --arch=foo[,bar,..] -a foo
 
 Specify the architectures to mirror. You must prefix the name of the 
 architecture with 'binary-', as in 'binary-i386', which is the default.
@@ -173,6 +173,7 @@ and testing versions of Debian. Download from ftp.kernel.org.
 
 =cut
 
+use v5.6;
 use warnings;
 use strict;
 use Net::FTP;
@@ -188,7 +189,7 @@ my $remoteroot="/debian";
 
 # This hash holds all the files we know about, If the hash key is false,
 # the file already exists in the mirror (or is locally created) and does not
-# need to be downloaded, if it is true the file needs to be downloaded. 
+# need to be downloaded, if it is true the file needs to be downloaded.
 # Filenames should be relative to $mirrordir.
 my %files;
 
