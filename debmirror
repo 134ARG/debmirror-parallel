@@ -1,11 +1,11 @@
 #!/bin/sh
 # Anon rsync binary-only mirror of debian.
 
-FLAGS="-rLpt $@ --exclude Packages --delete --partial"
+FLAGS="-rLpt $@ --exclude Packages --delete --whole-file"
 
 # The host to connect to:
-#HOST=ftp.eecs.umich.edu
-HOST=debian.midco.net
+#HOST=debian.midco.net
+HOST=download.sourceforge.net
 NON_US=pandora.debian.org
 
 # Where to put your mirror:
@@ -38,5 +38,5 @@ done
 # Update symlinks
 install -d  $DEST/all
 cd $DEST/all || exit 1
-rm *.deb
+find -name \*.deb | xargs rm
 find .. -name "*.deb" -type f |grep -v ^../all |xargs --replace ln -sf {} .
