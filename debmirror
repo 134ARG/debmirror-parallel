@@ -54,13 +54,13 @@ if ($progress) {
 	$ftp=Net::FTP->new($hostname, 
 		Debug => $debug,
 		Hash => *STDOUT,
-		Passive => $passive
+		Passive => $passive,
 	);
 }
 else {
-	$ftp=Net::FTP->new($hostname, 
-		Debug => $debug
-		Passive => $passive
+	$ftp=Net::FTP->new($hostname,
+		Debug => $debug,
+		Passive => $passive,
 	);
 }
 $ftp->login || die "login failed"; # anonymous
