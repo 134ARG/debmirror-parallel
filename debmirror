@@ -1,52 +1,219 @@
 #!/usr/bin/perl
-#
-# Debian partial mirror script, with ftp and package pool support.
-# Copyright 2001 Joey Hess <joeyh@debian.org>, GPL'd.
 
 # TODO: remove all empty directories.
 # TODO: my symlink farm thing.
 # TODO: non-us!
 
-#######################################################################################
-# Configure this program here:
+=head1 NAME
 
-# The system to mirror from.
-my $hostname="ftp.kernel.org";
-# Root of the remote debian mirror.
-my $remoteroot="/debian";
-# WHere to put the local mirror.
-my $localroot="/mirror/debian";
-# List of distributions to mirror.
-my @dists=qw{unstable};
-# List of sections to mirror.
-my @sections=qw{main contrib non-free};
-# List of architectures to mirror (include binary- prefix)
-my @arches=qw{binary-i386 debian-installer/binary-i386};
-# List of sources to mirror (generally either ('source') or empty.
-my @sources=qw{source};
-# Should I do slow, paranoid md5 checks to catch files that are of same size as
-# what is listed in Packages/Sources files, but do not md5sum the same.
-my $check_md5sums=0;
-# Should passive ftp be used?
-my $passive=1;
+debmirror - Debian partial mirror script, with ftp and package pool support
 
-#######################################################################################
+=head1 SYNOPSIS
+
+debmirror mirrordir [options]
+
+=head1 DESCRIPTION
+
+This program downloads and maintains a partial local Debian mirror. It can
+mirror any combination of architectures, distributions, and sections. Files
+are transferred by ftp, and package pools are fully supported.
+
+To support package pools, this program mirrors in three steps.
+
+=over 4
+
+=item 1. download Packages and Sources files
+
+First it downloads all Packages and Sources files for the subset of Debian it
+was instructed to get.
+
+=item 2. download rest
+
+The Packages and Sources files are scanned, to build up a list of all the
+files they refer to. A few other miscellaneous files are added to the list.
+Then the program makes sure that each file in the list is present on the 
+local mirror and is up-to-date, using file size (and optionally md5sum) checks.
+Any necessary files are downloaded.
+
+=item 3. clean up
+
+Any files and directories on the local mirror that are not in the list are
+removed.
+
+=back
+
+=cut
+
+sub usage {
+        warn join(" ", @_)."\n" if @_;
+        warn <<EOF;
+Usage: $0 mirrordir [--debug] [--progress] [--source|--nosource]
+          [--md5sums|--nomd5sums] [--passive] [--host=remotehost]
+          [--remoteroot=directory] [--dist=foo[,bar,..] ...]
+          [--section=foo[,bar,..] ...] [--arch=foo[,bar,..] ...]
+          [--cleanup|--nocleanup] [--help]
+
+For details, see man page.
+EOF
+        exit(1);
+}
+
+=head1 OPTIONS
+
+=over 4
+
+=item mirrordir
+
+This required parameter specifies where the local mirror directory is. If the
+directory does not exist, it will be created. Be careful; telling this 
+program that your home directory is the mirrordir is guarenteed to replace
+your home directory with a Debian mirror!
+
+=item --debug
+
+Enables verbose debug output, including ftp protocol dump.
+
+=item --progress
+
+Displays progress bars as files are downloaded.
+
+=item --source
+
+Include source in the mirror (default).
+
+=item --nosource
+
+Do not include source.
+
+=item --md5sums
+
+Use md5sums to determine if files on the local mirror that are the correct
+size actually have the correct content. Not enabled by default, because
+it is too paranoid, and too slow.
+
+=item --passive
+
+Download in passive mode.
+
+=item --host=remotehost
+
+Specify the remote host to mirror from. Defaults to ftp.debian.org,
+you are strongly encouraged to find a closer mirror.
+
+=item --remoteroot=directory
+
+Specifies the directory on the remote host that is the root of the Debian
+archive. Defaults to "/debian", which will work for most mirrors. The root
+directory has a dists/ subdirectory.
+
+=item --dist=foo[,bar,..]
+
+Specify the distribution (version) of Debian to mirror. This option may be
+used multiple times, and multiple distributions may be specified at once,
+separated by commas. Defaults to mirroring unstable.
+
+=item --section=foo[,bar,..]
+
+Specify the section of Debian to mirror. Defaults to main,contrib,non-free.
+
+=item --arches=foo[,bar,..]
+
+Specify the architectures to mirror. You must prefix the name of the 
+architecture with 'binary-', as in 'binary-i386', which is the default.
+
+Note that to mirror the debian-installer's part of the archive, you can
+use 'debian-installer/binary-i386'
+
+=item --cleanup
+
+Do clean up the local mirror after mirroring is complete (see step 3 above).
+Default.
+
+=item --nocleanup
+
+Do not clean up the local mirror after mirroring is complete.
+
+=item --help
+
+Display a usage summary.
+
+=back
+
+=head1 EXAMPLES
+
+ debmirror /mirror/debian
+
+Simply make a mirror in /mirror/debian, using all defaults.
+
+ debmirror --nosource --progress --arch=binary-i386,binary-sparc \
+ 	--section=main --host=ftp.kernel.org --dist=unstable \
+	--dist=testing /home/me/debian/mirror
+
+
+Make a mirror of i386 and sparc binaries, main only, and include both unstable
+and testing versions of Debian. Download from ftp.kernel.org.
+
+=cut
 
 use warnings;
 use strict;
 use Net::FTP;
 use Getopt::Long;
 
-# Parse command line.
-my ($debug, $progress);
+# Yeah, I use too many global variables in this program.
+my ($debug, $progress, $check_md5sums, $passive);
+my (@dists, @sections, @arches);
+my $cleanup=1;
+my $do_source=1;
+my $hostname="ftp.debian.org";
+my $remoteroot="/debian";
+
+sub debug {
+	print join(" ", @_)."\n" if $debug;
+}
+
+my $help;
 GetOptions(
 	'debug|d' => \$debug,
 	'progress|p' => \$progress,
-) or die "Syntax: $0 [-d|-p]\n";
+	'source|s' => \$do_source,
+	'md5sums|m' => \$check_md5sums,
+	'passive' => \$passive,
+	'host|h=s' => \$hostname,
+	'remoteroot|r=s' => \$remoteroot,
+	'dist|d=s' => \@dists,
+	'section=s' => \@sections,
+	'arch|a=s' => \@arches,
+	'source' => \$do_source,
+	'cleanup' => \$cleanup,
+	'help' => \$help,
+) or usage;
+usage if $help;
+
+# This parameter is so important that it is the only required parameter.
+my $mirrordir=shift or usage("mirrordir not specified");
+
+# Post-process arrays. Allow commas to seperate values the user entered.
+# If the user entered nothing, provide defaults.
+@dists=split(/,/,join(',',@dists));
+@dists=qw(unstable) unless @dists;
+@sections=split(/,/,join(',',@sections));
+@sections=qw(main contrib non-free) unless @sections;
+@arches=split(/,/,join(',',@arches));
+@arches=qw(binary-i386) unless @arches;
+
+debug("Mirroring to $mirrordir from ftp://$hostname/$remoteroot/");
+debug("Arches: ".join(",", @arches));
+debug("Dists: ".join(",", @dists));
+debug("Sections: ".join(",", @sections));
+debug("Source: $do_source");
+debug("Passive: $passive");
+debug("Md5sums: $check_md5sums");
+debug("Cleanup: $cleanup");
 
 # Set up mirror directory.
-make_dir($localroot);
-chdir($localroot) or die "chdir $localroot: $!";
+make_dir($mirrordir);
+chdir($mirrordir) or die "chdir $mirrordir: $!";
 
 # Start up ftp.
 my $ftp;
@@ -63,6 +230,7 @@ else {
 		Passive => $passive,
 	);
 }
+die "$@\n" if $@;
 $ftp->login || die "login failed"; # anonymous
 $ftp->binary;
 $ftp->cwd($remoteroot) or die "cwd to $remoteroot failed";
@@ -70,7 +238,7 @@ $ftp->cwd($remoteroot) or die "cwd to $remoteroot failed";
 # This hash holds all the files we know about, If the hash key is false,
 # the file already exists in the mirror and does not need to be downloaded,
 # if it is true the file needs to be downloaded. Filenames should be
-# relative to $localroot.
+# relative to $mirrordir.
 my %files;
 
 # Get Packages and Sources files and other miscellany.
@@ -86,8 +254,8 @@ foreach my $dist (@dists) {
 			# Get the release file later.
 			$files{"$subdir/Release"}=1;
 		}
-		foreach my $source (@sources) {
-			my $subdir="dists/$dist/$section/$source";
+		if ($do_source) {
+			my $subdir="dists/$dist/$section/source";
 			make_dir($subdir);
 			ftp_get("$subdir/Sources.gz", "$subdir/Sources.gz") and
 				push @source_files, "$subdir/Sources.gz";
@@ -99,7 +267,7 @@ foreach my $dist (@dists) {
 if (@arches && ! @package_files) {
 	die "Failed to download any Packages files!\n";
 }
-if (@sources && ! @source_files) {
+if ($do_source && ! @source_files) {
 	die "Failed to download any Sources files!\n";
 }
 
@@ -212,3 +380,47 @@ sub ftp_get {
 		}
 	}
 }
+
+=head1 COPYRIGHT
+
+This program is copyright 2001 by Joey Hess <joeyh@debian.org>, under
+the terms of the GNU GPL.
+
+The author disclaims any responsibility for any mangling of your system,
+unexpected bandwidth usage bills, meltdown of the Debian mirror network, 
+etc, that this script may cause. See NO WARRANTY section of GPL.
+
+=head1 AUTHOR
+
+Joey Hess <joeyh@debian.org>
+
+=head1 MOTTO
+
+Waste bandwith -- put a partial mirror on your laptop today!
+
+=cut
+
+#######################################################################################
+# Configure this program here:
+
+# The system to mirror from.
+#my $hostname="ftp.kernel.org";
+# Root of the remote debian mirror.
+#my $remoteroot="/debian";
+# WHere to put the local mirror.
+#my $mirrordir="/mirror/debian";
+# List of distributions to mirror.
+#my @dists=qw{unstable};
+# List of sections to mirror.
+#my @sections=qw{main contrib non-free};
+# List of architectures to mirror (include binary- prefix)
+#my @arches=qw{binary-i386 debian-installer/binary-i386};
+# List of sources to mirror (generally either ('source') or empty.
+#my @sources=qw{source};
+# Should I do slow, paranoid md5 checks to catch files that are of same size as
+# what is listed in Packages/Sources files, but do not md5sum the same.
+#my $check_md5sums=0;
+# Should passive ftp be used?
+#my $passive=1;
+#
+#######################################################################################
