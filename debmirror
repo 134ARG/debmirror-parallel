@@ -52,6 +52,7 @@ sub usage {
         warn <<EOF;
 Usage: $0 mirrordir [--debug] [--progress] [--source|--nosource]
           [--md5sums|--nomd5sums] [--passive] [--host=remotehost]
+          [--user=remoteusername]
           [--root=directory] [--dist=foo[,bar,..] ...]
           [--section=foo[,bar,..] ...] [--arch=foo[,bar,..] ...]
           [--cleanup|--nocleanup] [--skippackages] [--adddir=directory]
@@ -103,6 +104,11 @@ Download in passive mode.
 
 Specify the remote host to mirror from. Defaults to ftp.debian.org,
 you are strongly encouraged to find a closer mirror.
+
+=item --user=remoteusername -u
+
+Specify the remote user name to use to log to the remote host. Helpful when
+dealing with baraindamaged proxy servers. Defaults to anonymous.
 
 =item --root=directory -r directory
 
@@ -199,6 +205,7 @@ my (@dists, @sections, @arches, @extra_dirs, @ignores, @excludes);
 my $cleanup=1;
 my $do_source=1;
 my $host="ftp.debian.org";
+my $user="anonymous";
 my $remoteroot="/debian";
 
 # This hash holds all the files we know about, If the hash key is false,
@@ -216,6 +223,7 @@ GetOptions(
 	'md5sums|m'	=> \$check_md5sums,
 	'passive!'	=> \$passive,
 	'host|h=s'	=> \$host,
+	'user|u=s'	=> \$user,
 	'root|r=s' 	=> \$remoteroot,
 	'dist|d=s'	=> \@dists,
 	'section|s=s'	=> \@sections,
@@ -243,7 +251,7 @@ my $mirrordir=shift or usage("mirrordir not specified");
 @arches=qw(i386) unless @arches;
 
 # Display configuration.
-debug("Mirroring to $mirrordir from ftp://$host/$remoteroot/");
+debug("Mirroring to $mirrordir from ftp://$user:$host/$remoteroot/");
 debug("Arches: ".join(",", @arches));
 debug("Dists: ".join(",", @dists));
 debug("Sections: ".join(",", @sections));
@@ -284,7 +292,7 @@ my $ftp;
 my %opts = (Debug => $debug, Passive => $passive,);
 $opts{Hash}=*STDOUT if $progress;
 $ftp=Net::FTP->new($host, %opts) or die "$@\n";
-$ftp->login or die "login failed"; # anonymous
+$ftp->login($user) or die "login failed"; # anonymous
 $ftp->binary or die "could not set binary mode";
 $ftp->cwd($remoteroot) or die "cwd to $remoteroot failed";
 
@@ -504,3 +512,4 @@ Joey Hess <joeyh@debian.org>
 Waste bandwith -- put a partial mirror on your laptop today!
 
 =cut
+
