@@ -1,5 +1,10 @@
 #!/usr/bin/perl
 
+# TODO: locking. Might as well use the same archive maintainence in 
+# progress thing real mirrors do. Same with last-updated date stamp.
+# TODO: I'd like to be able to tell it to get some extra files, by name.
+# I'm thinking Contents files.
+
 =head1 NAME
 
 debmirror - Debian partial mirror script, with ftp and package pool support
@@ -23,12 +28,12 @@ To support package pools, this program mirrors in three steps.
 First it downloads all Packages and Sources files for the subset of Debian it
 was instructed to get.
 
-=item 2. clean up
+=item 2. clean up unknown files
 
 Any files and directories on the local mirror that are not in the list are
 removed.
 
-=item 3. download rest
+=item 3. download everything else
 
 The Packages and Sources files are scanned, to build up a list of all the
 files they refer to. A few other miscellaneous files are added to the list.
@@ -45,9 +50,9 @@ sub usage {
         warn <<EOF;
 Usage: $0 mirrordir [--debug] [--progress] [--source|--nosource]
           [--md5sums|--nomd5sums] [--passive] [--host=remotehost]
-          [--remoteroot=directory] [--dist=foo[,bar,..] ...]
+          [--root=directory] [--dist=foo[,bar,..] ...]
           [--section=foo[,bar,..] ...] [--arch=foo[,bar,..] ...]
-          [--cleanup|--nocleanup] [--skippackages] [--help]
+          [--cleanup|--nocleanup] [--skippackages] [--ignore=regex] [--help]
 
 For details, see man page.
 EOF
@@ -96,7 +101,7 @@ Download in passive mode.
 Specify the remote host to mirror from. Defaults to ftp.debian.org,
 you are strongly encouraged to find a closer mirror.
 
-=item --remoteroot=directory -r directory
+=item --root=directory -r directory
 
 Specifies the directory on the remote host that is the root of the Debian
 archive. Defaults to "/debian", which will work for most mirrors. The root
@@ -104,7 +109,7 @@ directory has a dists/ subdirectory.
 
 =item --dist=foo[,bar,..] -d foo
 
-Specify the distribution (version) of Debian to mirror. This option may be
+Specify the distribution (version) of Debian to mirror. This switch may be
 used multiple times, and multiple distributions may be specified at once,
 separated by commas. Defaults to mirroring unstable.
 
@@ -129,6 +134,10 @@ Do clean up any unknown files and directories on the local mirror
 
 Do not clean up the local mirror after mirroring is complete.
 
+=item --ignore=regex
+
+Never delete any files whose filenames match the regex.
+
 =item --skippackages
 
 Don't re-download Packages and Sources files. Useful if you know they are
@@ -146,14 +155,15 @@ Display a usage summary.
 
 Simply make a mirror in /mirror/debian, using all defaults.
 
- debmirror /mirror/debian-non-US -h non-us.debian.org -r /debian-non-US \
+ debmirror /mirror/debian --ignore=non-US/
+ debmirror /mirror/debian/non-US -h non-us.debian.org -r /debian-non-US \
  	-s non-US/main,non-US/contrib,non-US/non-free
 
-Make a mirror of non-us.
+Make one full mirror, and suppliment it with a mirror of non-US, in a
+directory inside.
 
- debmirror --nosource --progress -a binary-i386,binary-sparc \
- 	-s main -h ftp.kernel.org -d unstable \
-	-d testing /home/me/debian/mirror
+ debmirror -a binary-i386,binary-sparc -s main -h ftp.kernel.org \
+ 	-d unstable -d testing /home/me/debian/mirror --nosource --progress
 
 Make a mirror of i386 and sparc binaries, main only, and include both unstable
 and testing versions of Debian. Download from ftp.kernel.org.
@@ -166,7 +176,7 @@ use Net::FTP;
 use Getopt::Long;
 
 # Yeah, I use too many global variables in this program.
-my ($debug, $progress, $check_md5sums, $passive, $skippackages);
+my ($debug, $progress, $check_md5sums, $passive, $skippackages, $ignore);
 my (@dists, @sections, @arches);
 my $cleanup=1;
 my $do_source=1;
@@ -175,18 +185,19 @@ my $remoteroot="/debian";
 
 my $help;
 GetOptions(
-	'debug' => \$debug,
-	'progress|p' => \$progress,
-	'source!' => \$do_source,
-	'md5sums|m' => \$check_md5sums,
-	'passive!' => \$passive,
-	'host|h=s' => \$hostname,
-	'remoteroot|r=s' => \$remoteroot,
-	'dist|d=s' => \@dists,
-	'section|s=s' => \@sections,
-	'arch|a=s' => \@arches,
-	'cleanup!' => \$cleanup,
-	'skippackages' => \$skippackages,
+	'debug'		=> \$debug,
+	'progress|p'	=> \$progress,
+	'source!'	=> \$do_source,
+	'md5sums|m'	=> \$check_md5sums,
+	'passive!'	=> \$passive,
+	'host|h=s'	=> \$hostname,
+	'root|r=s' 	=> \$remoteroot,
+	'dist|d=s'	=> \@dists,
+	'section|s=s'	=> \@sections,
+	'arch|a=s'	=> \@arches,
+	'cleanup!'	=> \$cleanup,
+	'ignore=s' 	=> \$ignore,
+	'skippackages'	=> \$skippackages,
 	'help' => \$help,
 ) or usage;
 usage if $help;
@@ -303,11 +314,11 @@ if ($do_source && ! @source_files) {
 }
 
 if ($cleanup) {
-	# Remove all files in the mirror that we don't know about.
+	# Remove all files in the mirror that we don't know about
 	foreach my $file (`find . -type f`) {
 		chomp $file;
 		$file=~s:^\./::;
-		unless (exists $files{$file}) {
+		unless (exists $files{$file} or $file=~/$ignore/) {
 			print "deleting $file\n";
 			debug("deleting $file");
 			unlink $file or die "unlink $file: $!";
@@ -370,9 +381,6 @@ sub ftp_get {
 	print "$_[0]: " if $progress;
 	my $ret=$ftp->get(@_);
 	warn "$_[0] failed\n" if ! $ret;
-	# I'm not sure why, but mirror sites seem to dislike being flooded
-	# with requests; this makes them behave better.
-	sleep 2;
 	return $ret;
 }
 
