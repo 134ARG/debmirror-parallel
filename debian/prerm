@@ -1,0 +1,5 @@
+#!/bin/sh
+
+if ( [ "$1" = "upgrade" ] || [ "$1" = "remove" ] ) && [ -L /usr/doc/debmirror ]; then
+        rm -f /usr/doc/debmirror
+fi

@@ -1,0 +1,45 @@
+#!/usr/bin/make -f
+
+PACKAGE=debmirror
+VERSION=$(shell dpkg-parsechangelog |grep "^Version:" | cut -f2 -d' ')
+SECTION=$(shell grep "^Section:" debian/control | cut -f2 -d' ')
+PRIORITY=$(shell grep "^Priority:" debian/control | cut -f2 -d' ')
+TMPDIR=debian/tmp
+BINDIR=$(TMPDIR)/usr/bin
+DOCDIR=$(TMPDIR)/usr/share/doc/$(PACKAGE)
+MANDIR=$(TMPDIR)/usr/share/man/man1
+
+#strip away epoch
+ifneq (,$(findstring :,$(VERSION)))
+VERSION:=$(word 2,$(subst :, ,$(VERSION)))
+endif
+
+clean:
+	rm -rf $(TMPDIR) debian/files
+	find -name "*~" -exec rm -- "{}" \;
+
+build:
+
+binary:binary-indep
+
+binary-arch:
+
+binary-indep:
+	test "`id -u`" = 0
+	install -D -m 0755 debmirror $(BINDIR)/debmirror
+	install -d -m 0755 $(DOCDIR)
+	install -d -m 0755 $(MANDIR)
+	pod2man debmirror | gzip -9 -c > $(MANDIR)/debmirror.1.gz
+	install -m 0644 debian/copyright $(DOCDIR)/copyright
+	install -m 0644 debian/changelog $(DOCDIR)/changelog
+	install -m 0644 debian/NEWS.Debian $(DOCDIR)/NEWS.Debian
+	install -m 0644 debmirror.conf $(DOCDIR)/debmirror.conf
+	gzip -9 $(DOCDIR)/changelog
+	install -d -m 0755 $(TMPDIR)/DEBIAN
+	install -m 0755 debian/prerm $(TMPDIR)/DEBIAN
+	chmod 0755 `find $(TMPDIR) -type d`
+
+	dpkg-distaddfile $(PACKAGE)_$(VERSION)_all.deb $(SECTION) $(PRIORITY)
+	dpkg-gencontrol -isp
+	dpkg --build $(TMPDIR) ../$(PACKAGE)_$(VERSION)_all.deb
+

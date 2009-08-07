@@ -1,0 +1,10 @@
+This package was put together by Joerg Wendland <joergland@debian.org>
+on Thu Oct 25 17:12:13 CEST 2001
+
+The upstream author was Joey Hess <joeyh@debian.org>, the script
+itself was maintained by Joerg Wendland <joergland@debian.org> for
+some time and is now maintained by Goswin von Brederlow
+<brederlo@informatik.uni-tuebingen.de>
+
+License: The debmirror script is licensed under the terms of the GNU
+         General Public License (see /usr/share/common-licenses/GPL).

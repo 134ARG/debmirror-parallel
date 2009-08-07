@@ -1,0 +1,65 @@
+debmirror (20050207) unstable; urgency=normal
+
+
+  * Release.gpg file and check is now mandatory unless ignored
+
+    Debmirror now checks the Release.gpg signature when mirroring to
+    guard against syncing against a compromised mirror. For security
+    reasons this check is on by default but can be disabled using
+    --ignore-release-gpg. For the check to work the Debian archive key
+    must be added to the (debmirror) users keyring or an alternative
+    keyring must be configured.
+
+    !!! This breaks existing debmirror scripts and cron !!!
+    !!! jobs in almost all cases. Take care to adapt.   !!!
+
+  * Release files are now mandatory unless ignored
+
+    Sometimes downloads of meta files can abort for some reason and the
+    download modules are not always reliable on reporting this.
+    Debmirror now stops if the md5sum of meta file does not match the
+    info in the Release file to guard against tampering or download
+    failures. This check can be disabled with --ignore-missing-release
+    but that is discouraged strongly.
+
+  * output options have been split into verbose, progress and debug
+
+    Verbose gives an overview of whats happening and a file by file
+    progress while progress option adds individual download progress
+    for the files (FTP and rsync only). Debug isn't useful unless
+    something doesn't work.
+
+  * download methods now include hftp and http
+
+    Hftp is ftp over a http proxy like squid, what most people will
+    (mistakenly) know as ftp_proxy.
+
+    Hftp requires the use of a proxy while http will use it if given.
+    ftp_proxy or http_proxy are taken from the environment unless
+    overridden by --proxy.
+
+  * cleanup can now be done pre or post mirroring
+
+    Cleaning up after mirroring will use more space during mirroring
+    but keeps a consistent mirror available at all times. Cleaning up
+    before mirroring on the other hand will remove obsolete files
+    while they are still referenced from the old Packages/Sources
+    files. --postcleanup is recommended unless space prohibits it.
+
+  * rsync options can be specified, e.g. to add --bwlimit
+
+    Take note that --rsync-options override the default options
+    completely and should include "-aIL --partial" for normal
+    operation.
+
+  * small errors (a missing deb or src)) can be ignored
+
+    Sometimes the upstream mirror is inconsistent in itself. By
+    default debmirror will download all available files but not update
+    the meta data (Packages/Sources files) unless the mirror is
+    consistent. Your mirror will stay stuck in the past until the
+    upstream mirror is repaired. With --ignore-small-errors you can
+    sync the mirror even if some files are missing.
+
+    Users of --cleanup might want to always use --ignore-small-errors
+    to minimize the overall inconsistencies.

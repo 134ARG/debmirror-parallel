@@ -1,0 +1,250 @@
+debmirror (20050207) unstable; urgency=low
+
+  * Add NEWS.Debian (Closes: #289025)
+  * Add ~/.debmirror.conf and /etc/debmirror.conf (Closes: #244023)
+  * Typo fix by Nico Golde and more (Closes: #292791)
+  * Add example config file
+
+ -- Goswin von Brederlow <brederlo@informatik.uni-tuebingen.de>  Mon,  7 Feb 2005 05:30:34 +0100
+
+debmirror (20050118) unstable; urgency=low
+
+  * Add --no-tty option to gpg (Closes: #289286)
+    reported by Holger Ruckdeschel <holger@hoicher.de>
+  * Move cleanup code into function and add missing chdir (Closes: #287465)
+    adapted patch by Daniel Parthey <pada@hrz.tu-chemnitz.de>
+  * Unlink hardlinks before system calls with redirected IO (Closes: #288814)
+    adapted patch by Mirko Parthey <mirko.parthey@informatik.tu-chemnitz.de>
+  * Unlink metafiles later (Closes: #289752)
+    patch by Ingo Saitz <ingo@debian.org>
+  * Typo fixes as found by Martin Kourim <martin.kourim@seznam.cz>
+    (Closes: #287732)
+  * Add --ignore-small-errors to allow updating inconsistent upstream
+    mirrors (Closes: #288973)
+  * Hide gpg signature check output if !verbose (Closes: #286575)
+
+ -- Goswin von Brederlow <brederlo@informatik.uni-tuebingen.de>  Tue, 18 Jan 2005 02:59:34 +0200
+
+debmirror (20041219) unstable; urgency=low
+
+  * Tell LockFile::Simple not to force unlocking after an hour even if the
+    old debmirror is still running. (Closes: #286330)
+
+ -- Goswin von Brederlow <brederlo@informatik.uni-tuebingen.de>  Sun, 19 Dec 2004 18:18:34 +0200
+
+debmirror (20041209) unstable; urgency=high
+
+  * hide gpg --version output
+  * test for gpg and give cluefull error
+  * add Recommends: gnupg
+  * add trailing / to remoteroot for rsync
+  * add --ignore-release-gpg and gpg check Release
+  * Remember size/md5sums of files to get and check after retrieval
+  * L 1046: Only call $ftp->size($file) once to avoid different results
+  * Handle EOF in Release when searching for md5sums,
+    patch by dean gaudet <dean-debian@arctic.org> (Closes: #284037)
+  * Fail on chdir failures, patch by dean gaudet <dean-debian@arctic.org>
+    (Closes: #283457)
+  * Fixed division by 0 as reported by Jeroen van Wolffelaar
+    (Closes: #277422) [urgency high, should have been RC]
+  * Fixed ftp failures not detected as reported by Dean Gaudet
+    (Closes: #281151)
+
+ -- Goswin von Brederlow <brederlo@informatik.uni-tuebingen.de>  Thu, 09 Dec 2004 18:36:34 +0200
+
+debmirror (20040926) unstable; urgency=low
+
+  * Skip Contents files for *-proposed-updates and experimental
+  * Skip debian-installer section for experimental and proposed-updates
+    (Closes: #267721)
+  * Cleanup empty directories only at the very end to avoid
+    races with .temp (Closes: #264503)
+  * Add -L to default rsync options (Closes: #265575)
+  * Add --rsync-options option (Closes: #193797, #219976, #267034)
+  * Copy meta files in cases where hardlinks fail (afs) (Closes: #267956)
+  * Unlink meta files before download (Closes: #264504)
+
+ -- Goswin von Brederlow <brederlo@informatik.uni-tuebingen.de>  Sun, 16 Sep 2004 14:29:34 +0200
+
+debmirror (20040802) unstable; urgency=low
+
+  * Display Byte counters in MiB and speed in Kib/s
+  * Fix progress/verbose output for ftp method broken by --dry-run
+  * Fix rsync method for --dry-run
+  * Add --rsync-batch option limiting the number of files per rsync call
+  * Count 'batch limit exceeded' as error
+  * Fix XSI:isms in prerm reported by David Weinehall <tao@debian.org>
+    (Closes: #262893)
+
+ -- Goswin von Brederlow <brederlo@informatik.uni-tuebingen.de>  Mon,  2 Aug 2004 13:43:34 +0200
+
+debmirror (20040730) unstable; urgency=low
+
+  * Don't download Contents-$arch.gz for experimental. Thanks to Eric Wong
+  * Add main/debian-installer to the default sections
+  * Add support for http and hftp, adding --proxy option
+    (Adapted from patch by thomas@poindessous.com)
+    (Closes: #134187, #154364, #196196, #229666)
+
+ -- Goswin von Brederlow <brederlo@informatik.uni-tuebingen.de>  Fri, 30 Jul 2004 23:05:34 +0200
+
+debmirror (20040729) unstable; urgency=low
+
+  * Download meta files to temp directory first (Closes: #219977)
+  * Added --postcleanup
+  * Download Release files for sources (Closes: #248903)
+  * Typo fix (Closes: #258390). Thanks to Steve Kemp <skx@debian.org>
+  * Probable fix for (Closes: #249445)
+  * Add --dry-run (Closes: #126954)
+  * Code cleanup
+    - Reindent long description in debian/control and add rsync method
+    - use -depth and -print0 in the find | xargs calls
+    - don't use -z for rsync on debs and sources
+
+ -- Goswin von Brederlow <brederlo@informatik.uni-tuebingen.de>  Thu, 29 Jul 2004 19:45:34 +0200
+
+debmirror (20040509) unstable; urgency=low
+
+  * Added --limit-deb-priority
+
+ -- Goswin von Brederlow <brederlo@informatik.uni-tuebingen.de>  Sun,  9 May 2004 20:11:34 +0200
+
+debmirror (20040427) unstable; urgency=low
+
+  * Reindented source code to xemacs CPerl style (Closes: #211214)
+  * Added ftp error message to the warning during download
+    and not just the errlog
+  * Added Depends on bzip2 (Closes: #233558)
+  * Due to popular demand: Adding hacks for main/debian-installer
+    (Closes: #245499, #232093, #243634)
+  * Don't fail is extra metafiles are broken (Closes: #211847)
+  * Adopted --exclude-deb-section patch by
+    Meszaros Andras <andrej@draconis.elte.hu> (Closes: #245462)
+  * Added mdtm check to ftp method (Closes: #149984)
+  * Added --ignore-missing-release option (Closes: #221491)
+
+ -- Goswin von Brederlow <brederlo@informatik.uni-tuebingen.de>  Tue, 27 Apr 2004 01:18:34 +0200
+
+debmirror (20040118) unstable; urgency=medium
+
+  * Check for root in binary-indep to ensure files are owned by root.root
+    (Closes: #215993)
+  * Correct example for non-US (Closes: #213869, #219409)
+  * Forgot to toggle Archive-Update-in-Progress-dual and
+    project/trace/dual (Closes: #221490, #215500, #211210)
+  * Added patch by Marcel Meckel <debian@thermoman.de>: eliminate warning
+    of uninitialized value (Closes: #223059)
+  * Adpated parts of patch by Pedro Larroy <piotr@member.fsf.org>:
+    Added human readable verbose output (Closes: #224694)
+  * Added -v --verbose option
+  * List errors (if any) at the end
+  * Report when the batch limit is exceeded
+  * revert 'stoped using regexps on --include' (Closes: #214306)
+
+ -- Goswin von Brederlow <brederlo@informatik.uni-tuebingen.de>  Sun, 18 Jan 2004 16:49:34 +0100
+
+debmirror (20030829) unstable; urgency=low
+
+  * Added oneliner by Alexander Wirt <formorer@formorer.de>
+    +die "You need write permissions on $mirrordir" if (!-w $mirrordir);
+  * changed synopsis of usage too (bug #126857)
+  * Use Release file to md5sum check Packages/Sources files before and
+    after download [Patch by "Ingo Saitz" <ingo@debian.org>]+changes
+    (Closes:  #149890)
+  * Download Packages/Packages.bz2 files too and same for Sources.gz
+    (Closes: #159322)
+  * Removed "proposed-updates" example from --adddir, --adddir now
+    obsolete (Closes: #174857)
+  * Preserve partial files with the rsync method
+    (Closes: #181097)
+  * Ignore timestamps on rsync method to fix files with broken MD5sum.
+    (We already only rsync files with wrong size or wrong MD5sum.)
+
+ -- Goswin von Brederlow <brederlo@informatik.uni-tuebingen.de>  Fri, 29 Aug 2003 13:58:34 +0200
+
+debmirror (20030822.1) unstable; urgency=low
+
+  * Synopsis in manpage now has [options] first (Closes: #126857)
+  * added epoch splitting to debian/rules
+  * stoped using regexps on --include (Closes: #146763)
+  * close ftp connection before scanning the mirror and reopen it after
+    (Closes: #149888) [Patch by "Ingo Saitz" <ingo@debian.org>]+fix
+  * count number of errors when fetching files, stop if metafiles failed
+    and report summary at the end otherwise. (Closes: #151164, #154522)
+    [PS: rsync method does not report errors for missing files, ftp only]
+  * clarify --dist and change default to sid
+
+ -- Goswin von Brederlow <brederlo@informatik.uni-tuebingen.de>  Fri, 22 Aug 2003 21:03:34 +0200
+
+debmirror (20030822) unstable; urgency=low
+
+  * Reduced number of tries till locking fails. Now 2m instead of 12h
+  * warn if a lock is busy (Closes: #206710)
+
+ -- Goswin von Brederlow <brederlo@informatik.uni-tuebingen.de>  Fri, 22 Aug 2003 13:29:34 +0200
+
+debmirror (20030813) unstable; urgency=medium
+
+  * New maintainer.
+  * Made an Debian-native package
+  * postinst-should-not-set-usr-doc-link, postinst now empty, removed.
+  * added myself to copyright file, changed Copyright GPL to License GPL.
+  * added --max-batch=<number> option
+  * added arch=none option for source-only mirrors (closes: #154139)
+  * added my contact address to the man page (closes: #167010, #205094)
+  * remove backup file in debian/rules:clean
+
+ -- Goswin von Brederlow <brederlo@informatik.uni-tuebingen.de>  Wed, 13 Aug 2003 16:17:34 +0200
+
+debmirror (20020427-1) unstable; urgency=high
+
+  * New Release.
+  * Applied patch from Robert MyQueen. Great Kudos to him!
+    (Closes: Bug#144726, Bug#12998)
+  * urgency=high as requested because the predecessor fixes a grave bug
+    and #144726 could also be seen as a RC bug.
+
+ -- Joerg Wendland <joergland@debian.org>  Sat, 27 Apr 2002 19:59:34 +0200
+
+debmirror (20020424-1) unstable; urgency=medium
+
+  * New Release.
+  * Medium for this upload should close a bug tagged grave.
+  * Fix output when using --progress
+    (closes: Bug#127484)
+  * Add a great patch by Masato Taruishi, adding rsync support to debmirror.
+    (closes: Bug#127844)
+  * Use now LockFile::Simple to avoid installation of procmail only for
+    having a lockfile utility. It is tested to be compatible with programs
+    using lockfile.
+    (closes: Bug#128041)
+  * Use Compress::Zlib to decompress Package files and others.
+    (closes: Bug#132306)
+  * Add --timeout parameter. This should close Bug#130679 as it can be
+    set and defaults to 300 seconds instead of the Net::FTP default
+    of 120 seconds. This timeout is also used for the new rsync method.
+    (closes: Bug#130679, Bug#122199)
+    Don't even think about annoying me further with timeout problems.
+
+ -- Joerg Wendland <joergland@debian.org>  Wed, 24 Apr 2002 22:21:24 +0200
+
+debmirror (20011230-1) unstable; urgency=low
+
+  * New Release.
+  * Fixed typo in POD/manpage, thanks to Britton Leo Kerin. 
+    (closes: Bug#126859)
+  * Applied patch from Camille Dominique fixing download of Release files. 
+    (closes: Bug#126758)
+  * Added Depends: libdigest-md5-perl to support --md5sum switch.
+    (closes: unreported Bug, thanks to Maik Busch)
+  * Added patch from Masato Taruishi adding a --include=regex switch that
+    has the opposed effect as the already existing --exclude switch.
+    (closes: Bug#125973)
+
+ -- Joerg Wendland <joergland@debian.org>  Sun, 30 Dec 2001 13:57:19 +0100
+
+debmirror (20011016-1) unstable; urgency=low
+
+  * Initial Debian release
+
+ -- Joerg Wendland <joergland@debian.org>  Thu, 25 Oct 2001 17:12:13 +0200
