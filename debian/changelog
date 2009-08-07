@@ -5,6 +5,8 @@ debmirror (2009xxxx) UNRELEASED; urgency=low
   * Correct syntax of NEWS.Debian file.
   * Switch build system to debhelper.
   * Bump standards version to 3.8.2.
+  * Improve documentation on how to add an archive keyring for debmirror.
+    Thanks to Kees Cook for the patch. Closes: #451157.
 
  -- Frans Pop <fjp@debian.org>  Fri, 07 Aug 2009 19:24:01 +0200
 

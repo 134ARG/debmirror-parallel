@@ -347,11 +347,12 @@ Make a mirror using rsync. rsync server is ftp.debian.org::debian.
     debian keyring (in case of the debian archive) using:
 
       gpg --keyring /usr/share/keyrings/debian-archive-keyring.gpg --export \
-          | gpg --import
+          | gpg --no-default-keyring --keyring trustedkeys.gpg --import
 
     or download the key from a keyserver:
 
-      gpg --keyserver keyring.debian.org --recv-keys <key ID>
+      gpg --no-default-keyring --keyring trustedkeys.gpg \
+          --keyserver keyring.debian.org --recv-keys <key ID>
 
     The <key ID> can be found in the gpgv error message in debmirror:
     gpgv: Signature made Tue Jan 23 09:07:53 2007 CET using DSA key ID 2D230C5F
