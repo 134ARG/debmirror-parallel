@@ -30,6 +30,7 @@ binary-indep:
 	install -d -m 0755 $(DOCDIR)
 	install -d -m 0755 $(MANDIR)
 	pod2man debmirror | gzip -9 -c > $(MANDIR)/debmirror.1.gz
+	chmod 0644 $(MANDIR)/debmirror.1.gz
 	install -m 0644 debian/copyright $(DOCDIR)/copyright
 	install -m 0644 debian/changelog $(DOCDIR)/changelog
 	install -m 0644 debian/NEWS.Debian $(DOCDIR)/NEWS.Debian

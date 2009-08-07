@@ -66,7 +66,7 @@ Usage: $0 [--debug] [--progress] [--verbose] [--source|--nosource]
           [--limit-priority=regex] [--dry-run]
           [--proxy=http://user:pass\@url:port/] [--help]
           [--rsync-options=options] [--ignore-small-errors]
-          [--pdiff=mirror|use|none]
+          [--pdiff=use|mirror|none]
           mirrordir
 
 For details, see man page.
@@ -155,11 +155,11 @@ directory has a dists/ subdirectory.
 
 =item --dist=foo[,bar,..] -d foo
 
-Specify the distribution (woody, sarge, sid) of Debian to mirror. This
-switch may be used multiple times, and multiple distributions may be
-specified at once, separated by commas. Using the links (stable,
-testing, unstable) does not have the expected results but you may add
-those links manually. Defaults to mirroring sid.
+Specify the distribution (sarge, etch, lenny, sid) of Debian to
+mirror. This switch may be used multiple times, and multiple
+distributions may be specified at once, separated by commas. Using the
+links (stable, testing, unstable) does not have the expected results
+but you may add those links manually. Defaults to mirroring sid.
 
 =item --section=foo[,bar,..] -s foo
 
@@ -267,13 +267,15 @@ upstream mirror actually is broken. Specifying --ignore-small-errors
 causes debmirror to ignore missing or broken deb and source files but
 still be pedantic about checking meta files.
 
-=item --pdiff=mirror|use|none
+=item --pdiff=use|mirror|none
 
-If the Release file contains entries for pdiff files then it will
-mirror them and atempt to update the Packages files with them. This is
-the default 'mirror' behaviour. Specifying --pdiff=use will use the
-pdiff files to update the index files but will not keep them in the
-mirror. Specifying --pdiff=none will completly ignore pdiff files.
+If the Release file contains entries for pdiff files then debmirror
+will atempt to update the Packages and Sources files with them but
+will not include them in the mirror. This is the default 'use'
+behaviour and avoids having time consuming pdiff files for a fast
+local mirror. Specifying --pdiff=mirror will include the downloaded
+pdiff files in the mirror while specifying --pdiff=none will completly
+ignore pdiff files.
 
 =item --help
 
@@ -321,15 +323,8 @@ filesystem overhead (which adds 1-2GB for ext2/3).
 
 Simply make a mirror in /mirror/debian, using all defaults.
 
- debmirror /mirror/debian --ignore=non-US/
- debmirror /mirror/debian/non-US -h non-us.debian.org -r /debian-non-US \
-           -d sid/non-US -s main,contrib,non-free
-
-Make one full mirror, and supplement it with a mirror of non-US, in a
-directory inside.
-
  debmirror -a i386,sparc -s main -h ftp.kernel.org \
-           -d sid -d sarge /home/me/debian/mirror --nosource \
+           -d sid -d etch /home/me/debian/mirror --nosource \
            --progress
 
 Make a mirror of i386 and sparc binaries, main only, and include both unstable
@@ -341,24 +336,25 @@ Make a mirror using rsync. rsync server is ftp.debian.org::debian.
 
 =head1 FILES
 
-  ~/.gnupg/pubring.gpg
+  ~/.gnupg/trustedkeys.gpg
 
-    Debmirror uses gpg to verify Release and Release.gpg using the
-    default keying ~/.gnupg/pubring.gpg. This can be changed by
-    exporting GNUPGHOME resulting in $GNUPGHOME/pubring.gpg being used.
+    Debmirror uses gpgv to verify Release and Release.gpg using the
+    default keying ~/.gnupg/trustedkeys.gpg. This can be changed by
+    exporting GNUPGHOME resulting in $GNUPGHOME/trustedkeys.gpg being
+    used.
 
     To add the right key to this keyring you can import it from the
     debian keyring (in case of the debian archive) using:
 
-      gpg --keyring /usr/share/keyrings/debian-role-keys.gpg --export \
-          "Debian Archive Automatic Signing Key (2005)" | gpg --import
+      gpg --keyring /usr/share/keyrings/debian-archive-keyring.gpg --export \
+          | gpg --import
 
     or download the key from a keyserver:
 
       gpg --keyserver keyring.debian.org --recv-keys <key ID>
 
-    <key ID> for debian and 2005 is 4F368D5D and can be found in the
-    gpg error message from debmirror -v output.
+    The <key ID> can be found in the gpgv error message in debmirror:
+    gpgv: Signature made Tue Jan 23 09:07:53 2007 CET using DSA key ID 2D230C5F
 
 =cut
 
@@ -460,6 +456,20 @@ usage if $help;
 
 # This parameter is so important that it is the only required parameter.
 my $mirrordir=shift or usage("mirrordir not specified");
+
+# Check for patch binary if needed
+if (!($pdiff_mode eq "none")) {
+  if (system("patch --version 2>/dev/null >/dev/null")) {
+    say("Patch binary missing, falling back to --pdiff=none");
+    push (@errlog,"Patch binary missing, falling back to --pdiff=none\n");
+    $pdiff_mode = "none";
+  }
+  if (system("ed --version 2>/dev/null >/dev/null")) {
+    say("Ed binary missing, falling back to --pdiff=none");
+    push (@errlog,"Ed binary missing, falling back to --pdiff=none\n");
+    $pdiff_mode = "none";
+  }
+}
 
 # Post-process arrays. Allow commas to seperate values the user entered.
 # If the user entered nothing, provide defaults.
@@ -608,25 +618,33 @@ foreach my $dist (@dists) {
   $files{$tempdir."/"."dists/$dist/Release.gpg"}=1;
   # Check for gpg
   if (!$ignore_release_gpg) {
-    if (system("gpg --version >/dev/null 2>/dev/null")) {
-      say("gpg failed: --ignore-release-gpg or gpg binary missing?");
-      push (@errlog,"gpg failed: --ignore-release-gpg or gpg binary missing?\n");
+    if (system("gpgv --version >/dev/null 2>/dev/null")) {
+      say("gpgv failed: --ignore-release-gpg or gpgv binary missing?");
+      push (@errlog,"gpgv failed: --ignore-release-gpg or gpgv binary missing?\n");
       $num_errors++;
     }
     # Verify Release signature
-    my $GPG="gpg --no-tty -q";
-    if (!$verbose) {
-      $GPG = $GPG." >/dev/null 2>/dev/null";
-    }
-    if (!-f "$tempdir/dists/$dist/Release.gpg" || !-f "$tempdir/dists/$dist/Release" || system("$GPG --verify $tempdir/dists/$dist/Release.gpg $tempdir/dists/$dist/Release")) {
-      if ($verbose) {
-	say("Release signature does not verify.");
-	push (@errlog,"Release signature does not verify.\n");
-      } else {
-	system("gpg --no-tty -q --verify $tempdir/dists/$dist/Release.gpg $tempdir/dists/$dist/Release");
-	say("Release signature does not verify.");
-	push (@errlog,"Release signature does not verify.\n");
+    if (-f "$tempdir/dists/$dist/Release.gpg" || -f "$tempdir/dists/$dist/Release") {
+      my $gpgv_res="failed";
+      open GPGV, "gpgv 2>/dev/null --status-fd 1 $tempdir/dists/$dist/Release.gpg $tempdir/dists/$dist/Release|";
+      while (<GPGV>) {
+	$gpgv_res="valid" if /^\[GNUPG:\] VALIDSIG/;
       }
+      close GPGV;
+      if ($gpgv_res eq "failed" || $debug) {
+	system("gpgv --status-fd 1 $tempdir/dists/$dist/Release.gpg $tempdir/dists/$dist/Release");
+      }
+      if ($verbose && !$debug) {
+	system("gpgv --status-fd 1 $tempdir/dists/$dist/Release.gpg $tempdir/dists/$dist/Release >/dev/null");
+      }
+      if ($gpgv_res eq "failed") {
+	say("Release signature does not verify.");
+	push (@errlog,"Release signature does not verify.\n");
+	$num_errors++;
+      }
+    } else {
+      say("Release signature does not verify, file missing.");
+      push (@errlog,"Release signature does not verify.\n");
       $num_errors++;
     }
   }
@@ -976,6 +994,7 @@ DOWNLOAD: {
 	  }
 	  system ("rsync --timeout=$timeout $opt $remoteroot --include-from=$rsynctempfile --exclude='*' $mirrordir");
 	  close $fh;
+	  unlink $rsynctempfile;
 	  foreach my $dest (@result) {
 	    if (-f $dest) {
 	      if (!check_lists($dest)) {
@@ -1468,6 +1487,7 @@ sub fetch_and_apply_pdiffs {
   local (*INDEX, *LIST);
   my (%history_sha1, %history_size, %pdiff_sha1, %pdiff_size);
   my ($current_sha1, $current_size, $sha1, $size, $file, $digest, $ret);
+  my $t = $num_errors;
 
   # Parse DiffIndex file
   open(INDEX, "$tempdir/$subdir/$list.diff/Index") or die "$tempdir/$subdir/$list.diff/Index: $!";
@@ -1503,7 +1523,9 @@ sub fetch_and_apply_pdiffs {
       say("$subdir/$list.diff/$file.gz needs fetch");
       remote_get("$subdir/$list.diff/$file.gz");
 #FIXME: before download
-      $bytes_to_get += -s "$tempdir/$subdir/$list.diff/$file.gz";
+      if (-f "$tempdir/$subdir/$list.diff/$file.gz") {
+	$bytes_to_get += -s "$tempdir/$subdir/$list.diff/$file.gz";
+      }
       if (!check_pdiff("$tempdir/$subdir/$list.diff/$file", $pdiff_size{$file}, $pdiff_sha1{$file})) {
 	say("$subdir/$list.diff/$file.gz failed sha1sum check, removing");
 	push (@errlog,"$subdir/$list.diff/$file.gz failed sha1sum check, removing\n");
@@ -1518,6 +1540,7 @@ sub fetch_and_apply_pdiffs {
     $files{"$subdir/$list.diff/$file.gz"}=1 if ($pdiff_mode eq "mirror");
     $files{"$tempdir/$subdir/$list.diff/$file.gz"}=1;
   }
+  $num_errors = $t if ($ignore_small_errors);
   return unless ($ret);
 
   # Apply pdiff files

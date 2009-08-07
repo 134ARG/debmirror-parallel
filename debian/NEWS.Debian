@@ -1,4 +1,16 @@
-debmirror (20060907) unstable; urgency=normal
+debmirror (20070123)
+
+  * New gpgv support
+
+    The Release.gpg check has been rewritten to use gpgv, the same
+    method as used by apt and debian-installer. As a side effect the
+    keyring file has been changed to ~/.gnupg/trustedkeys.gpg.
+    Existing setups must copy their pubring.gpg to trustedkeys.gpg or
+    import the relevant keys there. This allows to only have the
+    Archive keys in trustedkeys.gpg while still having a pubring.gpg
+    for other use.
+
+debmirror (20060907)
 
   * Pdiff support
 
@@ -33,8 +45,8 @@ debmirror (20060907) unstable; urgency=normal
     file. There is no danger of loosing a branch when the Release file
     is corrupted or the upstream changes.
 
-debmirror (20050207) unstable; urgency=normal
 
+debmirror (20050207)
 
   * Release.gpg file and check is now mandatory unless ignored
 

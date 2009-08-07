@@ -1,9 +1,17 @@
-debmirror (20060907.1) unstable; urgency=medium
+debmirror (20070123) unstable; urgency=low
 
-  * NMU
-  * depend on libdigest-sha1-perl (closes: #386707)  
+  * Add dependency for libdigest-sha1-perl (ACK NMU) (Closes: #386707)
+  * Change manpage entry for --pdiff (Closes: #386697)
+  * Fix Release.gpg check to use gpgv (Closes: #400526)
+  * Fix use of uninitialized value in addition
+  * Count errors in pdiff files as small errors (Closes: #400054)
+  * Cleanup tempfiles (Closes: 399834)
+  * Fix manpage permissions with patch by (Closes: #399058)
+    "Dmitry E. Oboukhov" <dimka@avanto.org>
+  * Skip pdiff files if patch binary is missing (Closes: #401245)
+  * Skip pdiff files if ed binary is missing and recommend it (Closes: #397936)
 
- -- Rene Engelhard <rene@debian.org>  Sat, 16 Sep 2006 12:05:30 +0200
+ -- Goswin von Brederlow <brederlo@informatik.uni-tuebingen.de>  Tue, 23 Jan 2007 14:53:14 +0100
 
 debmirror (20060907) unstable; urgency=low
 
