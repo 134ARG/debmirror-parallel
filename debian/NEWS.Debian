@@ -1,4 +1,4 @@
-debmirror (20070123)
+debmirror (20070123) unstable; urgency=low
 
   * New gpgv support
 
@@ -10,7 +10,9 @@ debmirror (20070123)
     Archive keys in trustedkeys.gpg while still having a pubring.gpg
     for other use.
 
-debmirror (20060907)
+ -- Goswin von Brederlow <brederlo@informatik.uni-tuebingen.de>  Tue, 23 Jan 2007 14:53:14 +0100
+
+debmirror (20060907) unstable; urgency=low
 
   * Pdiff support
 
@@ -45,8 +47,9 @@ debmirror (20060907)
     file. There is no danger of loosing a branch when the Release file
     is corrupted or the upstream changes.
 
+ -- Goswin von Brederlow <brederlo@informatik.uni-tuebingen.de>  Thu,  7 Sep 2006 15:36:47 +0200
 
-debmirror (20050207)
+debmirror (20050207) unstable; urgency=low
 
   * Release.gpg file and check is now mandatory unless ignored
 
@@ -110,3 +113,5 @@ debmirror (20050207)
 
     Users of --cleanup might want to always use --ignore-small-errors
     to minimize the overall inconsistencies.
+
+ -- Goswin von Brederlow <brederlo@informatik.uni-tuebingen.de>  Mon,  7 Feb 2005 05:30:34 +0100
