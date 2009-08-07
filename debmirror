@@ -52,7 +52,7 @@ sub usage {
   warn join(" ", @_)."\n" if @_;
   warn <<EOF;
 Usage: $0 [--debug] [--progress] [--verbose] [--source|--nosource]
-          [--md5sums|--nomd5sums] [--passive] [--host=remotehost]
+          [--md5sums] [--passive] [--host=remotehost]
           [--user=remoteusername] [--method=ftp|hftp|http|rsync]
           [--timeout=seconds] [--root=directory]
           [--dist=foo[,bar,..] ...] [--section=foo[,bar,..] ...]
@@ -266,6 +266,40 @@ Display a usage summary.
 
 =back
 
+=head1 ARCHIVE SIZE
+
+Mirror size for a singe arch and binary only (in MiB):
+
+         | sarge | etch |  sid  |  all
+---------+-------+------+-------+-------
+main     | 8816  | 9126 | 10777 | 20577
+contrib  |  126  |  118 |   291 |   363
+non-free |  282  |  345 |   464 |   666
+d-i      |   44  |   28 |    31 |    78
+all      | 9187  | 9536 | 11476 | 21502
+
+Mirror size per arch (in MiB):
+
+         | sarge | etch |  sid  |  all
+---------+-------+------+-------+-------
+source   |  9339 | 9419 | 11495 | 17521
+all      |  4478 | 5047 |  6160 | 10459
+alpha    |  4256 | 3906 |  4732 |  9708
+amd64    |  3644 | 3635 |  4877 |  9152
+arm      |  3445 | 3193 |  3933 |  7845
+hppa     |  4112 | 3713 |  4541 |  9167
+i386     |  4422 | 3979 |  5005 | 10477
+ia64     |  4709 | 4489 |  5316 | 11043
+m68k     |  3372 | 3072 |  3664 |  7139
+mips     |  3631 | 3364 |  4099 |  8237
+mipsel   |  3560 | 3319 |  4049 |  8106
+powerpc  |  4208 | 3967 |  4742 |  9915
+s390     |  3673 | 3452 |  4144 |  8489
+sparc    |  3761 | 3585 |  4390 |  8893
+
+All numbers reflect the state of 2005 Dec 9th and do not include any
+filesystem overhead (which adds 1-2GB for ext2/3).
+
 =head1 EXAMPLES
 
  debmirror /mirror/debian
@@ -298,6 +332,19 @@ Make a mirror using rsync. rsync server is ftp.debian.org::debian.
     default keying ~/.gnupg/pubring.gpg. This can be changed by
     exporting GNUPGHOME resulting in $GNUPGHOME/pubring.gpg being used.
 
+    To add the right key to this keyring you can import it from the
+    debian keyring (in case of the debian archive) using:
+
+      gpg --keyring /usr/share/keyrings/debian-role-keys.gpg --export \
+          "Debian Archive Automatic Signing Key (2005)" | gpg --import
+
+    or download the key from a keyserver:
+
+      gpg --keyserver keyring.debian.org --recv-keys <key ID>
+
+    <key ID> for debian and 2005 is 4F368D5D and can be found in the
+    gpg error message from debmirror -v output.
+
 =cut
 
 use strict;
@@ -316,6 +363,7 @@ our ($ua, $proxy);
 our (@dists, @sections, @arches, @extra_dirs, @ignores, @excludes, @includes);
 our (@excludes_deb_section, @limit_priority);
 our $check_md5sums = 0;
+our $check_downloads = 0;
 our $cleanup=1;
 our $post_cleanup=0;
 our $do_source=1;
@@ -356,6 +404,7 @@ GetOptions('debug'        => \$debug,
 	   'verbose|v'    => \$verbose,
 	   'source!'      => \$do_source,
 	   'md5sums|m'    => \$check_md5sums,
+	   'nomd5sums'    => \$check_downloads,
 	   'passive!'     => \$passive,
 	   'host|h=s'     => \$host,
 	   'user|u=s'     => \$user,
@@ -466,10 +515,10 @@ sub init_connection {
   /^hftp$/  && do {
     # LWP stuff
     $ua = new LWP::UserAgent;
-    if ($ENV{ftp_proxy}) {
+    if ($proxy) {
+      $ua->proxy('ftp', $proxy);
+    } elsif ($ENV{ftp_proxy}) {
       $ua->proxy('ftp', $ENV{ftp_proxy});
-    } elsif ($proxy) {
-      $ua->proxy('ftp', $proxy) if ($proxy);
     } else {
       die("hftp method needs a proxy.");
     }
@@ -568,6 +617,57 @@ if ($num_errors != 0 && $ignore_release) {
   $num_errors = 0;
 }
 
+# Calculate expected downloads for meta files
+$bytes_to_get = $bytes_gotten;
+sub add_bytes {
+  my $name=shift;
+  $bytes_to_get +=  $file_lists_size{"$tempdir/$name"} if (exists $file_lists_size{"$tempdir/$name"});
+}
+foreach my $dist (@dists) {
+  foreach my $section (@sections) {
+    # no d-i in woody
+    next if ($section =~ /debian-installer/ && $dist eq "woody");
+    next if ($section =~ /debian-installer/ && $dist eq "experimental");
+    next if ($section =~ /debian-installer/ && $dist =~ /.*-proposed-updates/);
+    foreach my $arch (@arches) {
+      add_bytes("dists/$dist/$section/binary-$arch/Packages");
+      add_bytes("dists/$dist/$section/binary-$arch/Packages.gz");
+      add_bytes("dists/$dist/$section/binary-$arch/Packages.bz2");
+      add_bytes("dists/$dist/$section/binary-$arch/Release");
+    }
+    # d-i has no sources over there, sources are in main
+    next if ($section =~ /debian-installer/);
+    if ($do_source) {
+      add_bytes("dists/$dist/$section/source/Sources");
+      add_bytes("dists/$dist/$section/source/Sources.gz");
+      add_bytes("dists/$dist/$section/source/Sources.bz2");
+      add_bytes("dists/$dist/$section/source/Release");
+    }
+  }
+}
+foreach (@extra_dirs) {
+  add_bytes("$_/Packages");
+  add_bytes("$_/Packages.gz");
+  add_bytes("$_/Packages.bz2");
+  add_bytes("$_/Release");
+  if ($do_source) {
+    add_bytes("$_/Sources");
+    add_bytes("$_/Sources.gz");
+    add_bytes("$_/Sources.bz2");
+  }
+}
+if ($getcontents) {
+  foreach my $dist (@dists) {
+    foreach my $arch (@arches) {
+      next if $dist=~/experimental/;
+      next if $dist=~/.*-proposed-updates/;
+      next if $arch=~/source/;
+      add_bytes("dists/$dist/Contents-$arch.gz");
+    }
+  }
+}
+
+
 say("Get Packages and Sources files and other miscellany.");
 # Get Packages and Sources files and other miscellany.
 my (@package_files, @source_files);
@@ -584,24 +684,11 @@ foreach my $dist (@dists) {
     get_sources("dists/$dist/$section/source")
       unless $section =~ /debian-installer/;
   }
-  if ($getcontents) {
-    foreach my $arch (@arches) {
-      next if $dist=~/experimental/;
-      next if $dist=~/.*-proposed-updates/;
-      next if $arch=~/source/;
-      remote_get("dists/$dist/Contents-$arch.gz");
-      $files{"dists/$dist/Contents-$arch.gz"}=1;
-      $files{$tempdir."/"."dists/$dist/Contents-$arch.gz"}=1;
-    }
-  }
 }
 foreach (@extra_dirs) {
   get_packages($_);
   get_sources($_);
 }
-
-# close ftp connection to avoid timeouts, will reopen later
-if ($download_method eq 'ftp') { $ftp->quit; }
 
 # Sanity check. I once nuked a mirror because of this..
 if (@arches && ! @package_files) {
@@ -615,15 +702,31 @@ if ($do_source && ! @source_files) {
 
 if ($num_errors != 0) {
   print "Errors:\n ".join(" ",@errlog) if (@errlog);
-  die "Failed to download some Package, Sources, Contents or release files!\n";
+  die "Failed to download some Package, Sources or Eelease files!\n";
 }
 
 # Realy set dry-run option now if it was given. This delay is needed
 # for the ftp method.
 $dry_run = $dry_run_var;
 
+if ($getcontents) {
+  say("Get Contents files.");
+  foreach my $dist (@dists) {
+    foreach my $arch (@arches) {
+      next if $dist=~/experimental/;
+      next if $dist=~/.*-proposed-updates/;
+      next if $arch=~/source/;
+      remote_get("dists/$dist/Contents-$arch.gz");
+      $files{"dists/$dist/Contents-$arch.gz"}=1;
+      $files{$tempdir."/"."dists/$dist/Contents-$arch.gz"}=1;
+    }
+  }
+}
+
+# close ftp connection to avoid timeouts, will reopen later
+if ($download_method eq 'ftp') { $ftp->quit; }
+
 say("Parse Packages and Sources files and add to the file list everything therein.");
-# Parse Packages and Sources files and add to the file list everything therein.
 {
   local $/="\n\n";
   my ($filename, $size, $md5sum, $directory, $exclude, $include,
@@ -709,6 +812,7 @@ say("Parse Packages and Sources files and add to the file list everything therei
 	if(!(defined($include) && ($filename=~/$include/o))) {
 	  next if (defined($exclude) && $filename=~/$exclude/o);
 	}
+        next if (exists $files{$filename}); # multiple occurences
 	if (check_file($filename, $size, $md5sum)) {
 	  $files{$filename} = 1;
 	} else {
@@ -914,11 +1018,6 @@ foreach my $file (`find . -type f`) {
   }
   $res &= link($file, $mirrordir."/".$file) if (! $dry_run);
 }
-if ($res == 0) {
-  say("All done.");
-} else {
-  die("Failed to move some meta files.");
-}
 # Post mirror cleanup
 cleanup_unknown_files() if ($post_cleanup);
 
@@ -929,7 +1028,13 @@ if ($cleanup || $post_cleanup) {
   # makes directories.. Sort so they are removable in bottom-up
   # order.
   chdir($mirrordir) or die "chdir $mirrordir: $!";
-  system("find . -type d -depth ! -name . ! -name .. -print0 | xargs -0 rmdir 2>/dev/null") if (! $dry_run);
+  system("find . -depth -type d ! -name . ! -name .. -print0 | xargs -0 rmdir 2>/dev/null") if (! $dry_run);
+}
+
+if ($res == 0) {
+  say("All done.");
+} else {
+  die("Failed to move some meta files.");
 }
 
 exit;
@@ -1052,12 +1157,14 @@ sub http_get {
   my $oldautoflush = $|;
   $| = 1;
   my $file=shift;
+  my $percent = 0;
   my $url="http://${host}/${remoteroot}/${file}";
   my $ret=1;
+  $percent = sprintf("%3.0f",(($bytes_gotten/$bytes_to_get)*100)) unless($bytes_to_get == 0);
 
   print "$url => " if ($debug);
   if ($progress || $verbose) {
-    print "Getting: $file... ";
+    print "[$percent%] Getting: $file... ";
   }
   if (! $dry_run) {
     unlink($file) if (-f $file);
@@ -1074,6 +1181,10 @@ sub http_get {
   } elsif ($progress || $verbose) {
     print "ok\n";
   }
+  # Account for actual bytes gotten
+  my @stat = stat $file;
+  $bytes_gotten += $stat[7] if (@stat);
+
   $| = $oldautoflush;
   return $ret;
 }
@@ -1177,6 +1288,8 @@ sub get_packages {
 	push (@errlog,"$subdir/Packages.gz failed md5sum check\n");
 	$num_errors++;
       }
+    } else {
+      $bytes_gotten += $file_lists_size{"$tempdir/$subdir/Packages.gz"};
     }
   } elsif ($ignore_release) {
     say("Ignoring missing Release file for $subdir/Packages.gz");
@@ -1197,6 +1310,8 @@ sub get_packages {
 	push (@errlog,"$subdir/Packages failed md5sum check\n");
 	$num_errors++;
       }
+    } else {
+      $bytes_gotten += $file_lists_size{"$tempdir/$subdir/Packages"};
     }
   }
   if (exists $file_lists_size{"$tempdir/$subdir/Packages.bz2"}) {
@@ -1208,6 +1323,8 @@ sub get_packages {
 	push (@errlog,"$subdir/Packages.bz2 failed md5sum check, removing\n");
 	unlink "$tempdir/$subdir/Packages.bz2";
       }
+    } else {
+      $bytes_gotten += $file_lists_size{"$tempdir/$subdir/Packages.bz2"};
     }
   }
   if (exists $file_lists_size{"$tempdir/$subdir/Release"}) {
@@ -1219,6 +1336,8 @@ sub get_packages {
 	push (@errlog,"$subdir/Release failed md5sum check, removing\n");
 	unlink "$tempdir/$subdir/Release";
       }
+    } else {
+      $bytes_gotten += $file_lists_size{"$tempdir/$subdir/Release"};
     }
   }
   push @package_files, "$tempdir/$subdir/Packages.gz";
@@ -1251,6 +1370,8 @@ sub get_sources {
 	  push (@errlog,"$subdir/Sources.gz failed md5sum check\n");
 	  $num_errors++;
 	}
+      } else {
+	$bytes_gotten += $file_lists_size{"$tempdir/$subdir/Sources.gz"};
       }
     } elsif ($ignore_release) {
       say("Ignoring missing Release file for $subdir/Sources.gz");
@@ -1271,6 +1392,8 @@ sub get_sources {
 	  push (@errlog,"$subdir/Sources failed md5sum check, removing\n");
 	  unlink "$subdir/Sources";
 	}
+      } else {
+	$bytes_gotten += $file_lists_size{"$tempdir/$subdir/Sources"};
       }
     }
     if (exists $file_lists_size{"$tempdir/$subdir/Sources.bz2"}) {
@@ -1282,6 +1405,8 @@ sub get_sources {
 	  push (@errlog,"$subdir/Sources.bz2 failed md5sum check, removing\n");
 	  unlink "$subdir/Sources.bz2";
 	}
+      } else {
+	$bytes_gotten += $file_lists_size{"$tempdir/$subdir/Sources.bz2"};
       }
     }
     if (exists $file_lists_size{"$tempdir/$subdir/Release"}) {
@@ -1293,6 +1418,8 @@ sub get_sources {
 	  push (@errlog,"$subdir/Release failed md5sum check, removing\n");
 	  unlink "$tempdir/$subdir/Release";
 	}
+      } else {
+	$bytes_gotten += $file_lists_size{"$tempdir/$subdir/Release"};
       }
     }
     push @source_files, "$tempdir/$subdir/Sources.gz";

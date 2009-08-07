@@ -1,3 +1,20 @@
+debmirror (20051209) unstable; urgency=low
+
+  * Reorder find arguments (Closes: #316461)
+    Patch by Craig Sanders <cas@taz.net.au>
+  * Move Contents file fetching out of stage 1 to make them not
+    critical (Closes: #314282)
+  * Add % progress for http method (Closes: #328312)
+  * Add archive sizes to the manpage (Closes: #340423)
+  * Consider meta file sizes for % progress (Closes: #341910)
+  * Don't say 'All done' until really all is done (Closes: #319957)
+  * Remove obsolete --nomd5sum option (Closes: #321278)
+  * Prefer --proxy over ENV{ftp_proxy} for hftp (Closes: #334360)
+  * Add tip about gpg to the manpage (Closes: #316506)
+  * Don't check/count source files multiple times
+
+ -- Goswin von Brederlow <brederlo@informatik.uni-tuebingen.de>  Fri,  9 Dec 2005 18:31:21 +0100
+
 debmirror (20050207) unstable; urgency=low
 
   * Add NEWS.Debian (Closes: #289025)
