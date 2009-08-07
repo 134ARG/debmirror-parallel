@@ -1,7 +1,7 @@
 Source: debmirror
 Section: net
 Priority: extra
-Maintainer: Goswin von Brederlow <brederlo@informatik.uni-tuebingen.de>
+Maintainer: Frans Pop <fjp@debian.org>
 Standards-Version: 3.7.2.0
 
 Package: debmirror
