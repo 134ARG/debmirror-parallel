@@ -3,6 +3,7 @@ debmirror (2009xxxx) UNRELEASED; urgency=low
   * New maintainer, with thanks to Goswin for his work on previous releases.
   * Remove no longer needed prerm script.
   * Correct syntax of NEWS.Debian file.
+  * Switch build system to debhelper.
 
  -- Frans Pop <fjp@debian.org>  Fri, 07 Aug 2009 19:24:01 +0200
 
