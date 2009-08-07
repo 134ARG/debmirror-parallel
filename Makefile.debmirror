@@ -1,0 +1,62 @@
+#!/usr/bin/make -f
+#
+# Makefile.debmirror -- a make snippet to mirror a Debian archive with
+#                       debmirror
+#
+# This file simply defines the debmirror target and relies on certain
+# variables to be set, which control the mirroring. You should not need to
+# make changes to this file. Please see the comments in the other
+# Makefile.template as well.
+#
+# This file is (c) 2005 by martin f. krafft <madduck@debian.org> and has been
+# published under the terms of the Artistic Licence. Please see
+# http://www.opensource.org/licenses/artistic-license.php for
+# more information.
+#
+# Version: $Id: Makefile.debmirror 14 2005-02-21 12:59:45Z madduck $
+#
+# TODO:
+#   - trace file mirroring for HFTP method.
+#
+
+.PHONY: debmirror-%
+# defaults for variables. HOST must be passed in.
+debmirror-%: DISTS		?= woody,sarge,sid
+debmirror-%: SECTIONS ?= main,contrib,non-free,main/debian-installer
+debmirror-%: METHOD	  ?= http
+debmirror-%: ARCH		  ?= i386,ia64,arm,sparc,mips,mipsel,hppa,powerpc,m68k,alpha,s390
+debmirror-%: BASE		  ?= $(CURDIR)
+debmirror-%: RROOT		?= /debian
+debmirror-%: LROOT		?= $(RROOT)
+debmirror-%:
+# sanity checks
+	test -n "$(BASE)"
+	test -d $(BASE)
+	test -n "$(LROOT)"
+
+# mirror the trace files
+	$(MAKE) trace-$(METHOD) \
+	  HOST=$(HOST) RROOT=$(RROOT) TRACEDIR=$(BASE)/$(LROOT)/project/trace
+
+# let's go.
+	umask 022 && debmirror --host=$(HOST) --method=$(METHOD) \
+		--arch=$(ARCH) --dist=$(DISTS) --section=$(SECTIONS) \
+		--postcleanup --progress --verbose --ignore=project/trace/* $(OPTS) \
+		--root=/$(RROOT) $(BASE)/$(LROOT)
+
+# trace file mirroring for HTTP and FTP methods, using wget
+.PHONY: trace-http trace-ftp
+trace-http trace-ftp: GETTRACE = wget -q -m -nd -nH -np -k -R '*.gif'
+trace-http trace-ftp: METHOD = $(patsubst trace-%,%,$@)
+trace-http trace-ftp: 
+	rm -rf $(TRACEDIR)
+	mkdir -p $(TRACEDIR)
+	cd $(TRACEDIR) && $(GETTRACE) $(METHOD)://$(HOST)$(RROOT)/project/trace
+	rm -f $(TRACEDIR)/index.html*
+	chmod -R og+rX $(TRACEDIR)
+
+# trace file mirroring for rsync method
+.PHONY: trace-rsync
+trace-rsync:
+	mkdir -p $(TRACEDIR)
+	rsync -a --delete $(HOST)::$(RROOT)/ $(TRACEDIR)

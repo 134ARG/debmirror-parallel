@@ -53,11 +53,12 @@ sub usage {
   warn <<EOF;
 Usage: $0 [--debug] [--progress] [--verbose] [--source|--nosource]
           [--md5sums] [--passive] [--host=remotehost]
-          [--user=remoteusername] [--method=ftp|hftp|http|rsync]
+          [--user=remoteusername] [--passwd=remoteuserpassword]
+          [--method=ftp|hftp|http|rsync]
           [--timeout=seconds] [--root=directory]
           [--dist=foo[,bar,..] ...] [--section=foo[,bar,..] ...]
           [--arch=foo[,bar,..] ...] [--skippackages] [--getcontents]
-          [--cleanup|--nocleanup|--postcleanup] [--adddir=directory]
+          [--postcleanup|--cleanup|--nocleanup] [--adddir=directory]
           [--ignore=regex] [--exclude=regex] [--include=regex]
           [--exclude-deb-section=regex] [--max-batch=number]
           [--rsync-batch=number] [--ignore-missing-release]
@@ -65,6 +66,7 @@ Usage: $0 [--debug] [--progress] [--verbose] [--source|--nosource]
           [--limit-priority=regex] [--dry-run]
           [--proxy=http://user:pass\@url:port/] [--help]
           [--rsync-options=options] [--ignore-small-errors]
+          [--pdiff=mirror|use|none]
           mirrordir
 
 For details, see man page.
@@ -123,6 +125,11 @@ you are strongly encouraged to find a closer mirror.
 Specify the remote user name to use to log to the remote host. Helpful when
 dealing with brain damaged proxy servers. Defaults to anonymous.
 
+=item --passwd=remoteuserpassword
+
+Specify the remote user password to use to log into the remote ftp host.
+It is used with --user and defaults to anonymous@.
+
 =item --method=ftp|hftp|http|rsync -e
 
 Specify the method to download files. Currently, supported methods are
@@ -164,19 +171,19 @@ main,contrib,non-free,main/debian-installer.
 Specify the architectures to mirror. The default is --arch=i386.
 Specifying --arch=none will mirror no archs.
 
+=item --postcleanup
+
+Clean up the local mirror but only after mirroring is complete and
+only if there was no error. This is the default.
+
 =item --cleanup
 
 Do clean up any unknown files and directories on the local mirror (see
-step 2 above). On by default.
+step 2 above).
 
 =item --nocleanup
 
 Do not clean up the local mirror after mirroring is complete.
-
-=item --postcleanup
-
-Clean up the local mirror but only after mirroring is complete and
-only if there was no error.
 
 =item --ignore=regex
 
@@ -259,6 +266,14 @@ wrong during download and should be retried. But sometimes the
 upstream mirror actually is broken. Specifying --ignore-small-errors
 causes debmirror to ignore missing or broken deb and source files but
 still be pedantic about checking meta files.
+
+=item --pdiff=mirror|use|none
+
+If the Release file contains entries for pdiff files then it will
+mirror them and atempt to update the Packages files with them. This is
+the default 'mirror' behaviour. Specifying --pdiff=use will use the
+pdiff files to update the index files but will not keep them in the
+mirror. Specifying --pdiff=none will completly ignore pdiff files.
 
 =item --help
 
@@ -355,6 +370,7 @@ use File::Temp qw/ tempfile /;
 use LockFile::Simple;
 use Compress::Zlib;
 use Digest::MD5;
+use Digest::SHA1;
 use LWP::UserAgent;
 
 # Yeah, I use too many global variables in this program.
@@ -364,11 +380,13 @@ our (@dists, @sections, @arches, @extra_dirs, @ignores, @excludes, @includes);
 our (@excludes_deb_section, @limit_priority);
 our $check_md5sums = 0;
 our $check_downloads = 0;
-our $cleanup=1;
-our $post_cleanup=0;
+our $cleanup=0;
+our $post_cleanup=1;
+our $no_cleanup=0;
 our $do_source=1;
 our $host="ftp.debian.org";
 our $user="anonymous";
+our $passwd="anonymous@";
 our $remoteroot="/debian";
 our $download_method="ftp";
 our $timeout=300;
@@ -384,6 +402,7 @@ our $dry_run=0;
 our $dry_run_var=0;
 our $rsync_options="-aIL --partial";
 our $ignore_small_errors=0;
+our $pdiff_mode="use";
 my @errlog;
 my $HOME;
 ($HOME = $ENV{'HOME'}) or die "HOME not defined in environment!\n";
@@ -408,13 +427,15 @@ GetOptions('debug'        => \$debug,
 	   'passive!'     => \$passive,
 	   'host|h=s'     => \$host,
 	   'user|u=s'     => \$user,
+	   'passwd=s'     => \$passwd,
 	   'root|r=s'     => \$remoteroot,
 	   'dist|d=s'     => \@dists,
 	   'section|s=s'  => \@sections,
 	   'arch|a=s'     => \@arches,
 	   'adddir=s'     => \@extra_dirs,
-	   'cleanup!'     => \$cleanup,
-	   'postcleanup!' => \$post_cleanup,
+	   'cleanup'      => \$cleanup,
+	   'postcleanup'  => \$post_cleanup,
+	   'nocleanup'    => \$no_cleanup,
 	   'ignore=s'     => \@ignores,
 	   'exclude=s'    => \@excludes,
 	   'exclude-deb-section=s' => \@excludes_deb_section,
@@ -432,6 +453,7 @@ GetOptions('debug'        => \$debug,
 	   'proxy=s'      => \$proxy,
 	   'rsync-options=s' => \$rsync_options,
 	   'ignore-small-errors' => \$ignore_small_errors,
+	   'pdiff=s'      => \$pdiff_mode,
 	   'help'         => \$help,
 ) or usage;
 usage if $help;
@@ -448,10 +470,21 @@ my $mirrordir=shift or usage("mirrordir not specified");
 @arches=split(/,/,join(',',@arches));
 @arches=qw(i386) unless @arches;
 @arches=() if (join(',',@arches) eq "none");
+$cleanup=0 if ($no_cleanup);
+$post_cleanup=0 if ($no_cleanup);
+$post_cleanup=0 if ($cleanup);
 
 # Display configuration.
 $|=1 if $debug;
-say("Mirroring to $mirrordir from $download_method://$user:$host/$remoteroot/");
+if ($passwd eq "anonymous@") {
+  if ($download_method eq "http") {
+    say("Mirroring to $mirrordir from $download_method://$host/$remoteroot/");
+  } else {
+    say("Mirroring to $mirrordir from $download_method://$user\@$host/$remoteroot/");
+  }
+} else {
+  say("Mirroring to $mirrordir from $download_method://$user:XXX\@$host/$remoteroot/");
+}
 say("Arches: ".join(",", @arches));
 say("Dists: ".join(",", @dists));
 say("Sections: ".join(",", @sections));
@@ -466,6 +499,7 @@ if ($post_cleanup) {
 say("Proxy: $proxy.") if $proxy;
 say("Download at most $max_batch files.") if ($max_batch > 0);
 say("Download at most $rsync_batch files per rsync call.") if ($download_method eq "rsync");
+say("Pdiff mode: $pdiff_mode.");
 say("Dry run.") if $dry_run_var;
 
 my $md5;
@@ -526,7 +560,7 @@ sub init_connection {
   };
 
   /^http$/ && do {
-    # LWP stuff
+    # LWP stuff[
     $ua = new LWP::UserAgent;
     $ua->proxy('http', $ENV{http_proxy}) if ($ENV{http_proxy});
     $ua->proxy('http', $proxy) if ($proxy);
@@ -535,10 +569,10 @@ sub init_connection {
 
   /^ftp$/ && do {
     $ftp=Net::FTP->new($host, %opts) or die "$@\n";
-    $ftp->login($user) or die "login failed"; # anonymous
+    $ftp->login($user, $passwd) or die "login failed"; # anonymous
     $ftp->binary or die "could not set binary mode";
     $ftp->cwd($remoteroot) or die "cwd to $remoteroot failed";
-    $ftp->hash(*STDOUT,102400) if $progress;
+    $ftp->hash(\*STDOUT,102400) if $progress;
     return;
   };
 
@@ -559,7 +593,8 @@ if ($download_method eq "rsync") {
 };
 
 say("Get Release files.");
-# Get Release files
+# Get Release files without caching for http
+$ua->default_header( "Cache-Control" => "max-age=0" ) if ($ua);
 my (%file_lists_md5, %file_lists_size);
 foreach my $dist (@dists) {
   make_dir ("dists/$dist");
@@ -572,25 +607,28 @@ foreach my $dist (@dists) {
   $files{"dists/$dist/Release.gpg"}=1;
   $files{$tempdir."/"."dists/$dist/Release.gpg"}=1;
   # Check for gpg
-  if (!$ignore_release_gpg && system("gpg --version >/dev/null 2>/dev/null")) {
-    say("gpg failed: --ignore-release-gpg or gpg binary missing?");
-    push (@errlog,"gpg failed: --ignore-release-gpg or gpg binary missing?\n");
-    $num_errors++;
-  }
-  # Verify Release signature
-  my $GPG="gpg --no-tty -q";
-  if (!$verbose) {
-    $GPG = $GPG." >/dev/null 2>/dev/null";
-  }
-  if (!-f "$tempdir/dists/$dist/Release.gpg" || !-f "$tempdir/dists/$dist/Release" || system("$GPG --verify $tempdir/dists/$dist/Release.gpg $tempdir/dists/$dist/Release")) {
-    if ($verbose) {
-      say("Release signature does not verify.");
-      push (@errlog,"Release signature does not verify.\n");
-    } else {
-      say("Release signature does not verify, use -v to see the gpg error.");
-      push (@errlog,"Release signature does not verify, use -v to see the gpg error.\n");
+  if (!$ignore_release_gpg) {
+    if (system("gpg --version >/dev/null 2>/dev/null")) {
+      say("gpg failed: --ignore-release-gpg or gpg binary missing?");
+      push (@errlog,"gpg failed: --ignore-release-gpg or gpg binary missing?\n");
+      $num_errors++;
     }
-    $num_errors++;
+    # Verify Release signature
+    my $GPG="gpg --no-tty -q";
+    if (!$verbose) {
+      $GPG = $GPG." >/dev/null 2>/dev/null";
+    }
+    if (!-f "$tempdir/dists/$dist/Release.gpg" || !-f "$tempdir/dists/$dist/Release" || system("$GPG --verify $tempdir/dists/$dist/Release.gpg $tempdir/dists/$dist/Release")) {
+      if ($verbose) {
+	say("Release signature does not verify.");
+	push (@errlog,"Release signature does not verify.\n");
+      } else {
+	system("gpg --no-tty -q --verify $tempdir/dists/$dist/Release.gpg $tempdir/dists/$dist/Release");
+	say("Release signature does not verify.");
+	push (@errlog,"Release signature does not verify.\n");
+      }
+      $num_errors++;
+    }
   }
   $num_errors=$t if ($ignore_release_gpg);
 
@@ -617,6 +655,14 @@ if ($num_errors != 0 && $ignore_release) {
   $num_errors = 0;
 }
 
+if ($num_errors != 0) {
+  print "Errors:\n ".join(" ",@errlog) if (@errlog);
+  die "Failed to download some Release or Release.gpg files!\n";
+}
+
+# Enable caching again for http
+init_connection if ($ua);
+
 # Calculate expected downloads for meta files
 $bytes_to_get = $bytes_gotten;
 sub add_bytes {
@@ -625,23 +671,19 @@ sub add_bytes {
 }
 foreach my $dist (@dists) {
   foreach my $section (@sections) {
-    # no d-i in woody
-    next if ($section =~ /debian-installer/ && $dist eq "woody");
-    next if ($section =~ /debian-installer/ && $dist eq "experimental");
-    next if ($section =~ /debian-installer/ && $dist =~ /.*-proposed-updates/);
     foreach my $arch (@arches) {
       add_bytes("dists/$dist/$section/binary-$arch/Packages");
       add_bytes("dists/$dist/$section/binary-$arch/Packages.gz");
       add_bytes("dists/$dist/$section/binary-$arch/Packages.bz2");
       add_bytes("dists/$dist/$section/binary-$arch/Release");
+      add_bytes("dists/$dist/$section/binary-$arch/Packages.diff/Index") unless ($pdiff_mode eq "none");
     }
-    # d-i has no sources over there, sources are in main
-    next if ($section =~ /debian-installer/);
     if ($do_source) {
       add_bytes("dists/$dist/$section/source/Sources");
       add_bytes("dists/$dist/$section/source/Sources.gz");
       add_bytes("dists/$dist/$section/source/Sources.bz2");
       add_bytes("dists/$dist/$section/source/Release");
+      add_bytes("dists/$dist/$section/source/Sources.diff/Index") unless ($pdiff_mode eq "none");
     }
   }
 }
@@ -650,10 +692,12 @@ foreach (@extra_dirs) {
   add_bytes("$_/Packages.gz");
   add_bytes("$_/Packages.bz2");
   add_bytes("$_/Release");
+  add_bytes("$_/Packages.diff/Index");
   if ($do_source) {
     add_bytes("$_/Sources");
     add_bytes("$_/Sources.gz");
     add_bytes("$_/Sources.bz2");
+    add_bytes("$_/Sources.diff/Index");
   }
 }
 if ($getcontents) {
@@ -677,17 +721,17 @@ foreach my $dist (@dists) {
     next if ($section =~ /debian-installer/ && $dist eq "woody");
     next if ($section =~ /debian-installer/ && $dist eq "experimental");
     next if ($section =~ /debian-installer/ && $dist =~ /.*-proposed-updates/);
+    next if ($section =~ /debian-installer/ && $dist =~ /.*breezy-updates/ );
+    next if ($section =~ /debian-installer/ && $dist eq "breezy-security" );
     foreach my $arch (@arches) {
-      get_packages("dists/$dist/$section/binary-$arch");
+      get_index("dists/$dist/$section/binary-$arch", "Packages");
     }
-    # d-i has no sources over there, sources are in main
-    get_sources("dists/$dist/$section/source")
-      unless $section =~ /debian-installer/;
+    get_index("dists/$dist/$section/source", "Sources") if ($do_source);
   }
 }
 foreach (@extra_dirs) {
-  get_packages($_);
-  get_sources($_);
+  get_packages($_, "Packages");
+  get_sources($_, "Sources") if ($do_source);
 }
 
 # Sanity check. I once nuked a mirror because of this..
@@ -702,7 +746,7 @@ if ($do_source && ! @source_files) {
 
 if ($num_errors != 0) {
   print "Errors:\n ".join(" ",@errlog) if (@errlog);
-  die "Failed to download some Package, Sources or Eelease files!\n";
+  die "Failed to download some Package, Sources or Release files!\n";
 }
 
 # Realy set dry-run option now if it was given. This delay is needed
@@ -742,6 +786,7 @@ say("Parse Packages and Sources files and add to the file list everything therei
     "(".join("|", @limit_priority).")" if @limit_priority;
   $include =  "(".join("|", @includes).")" if @includes;
   foreach my $file (@package_files) {
+    next if (!-f $file);
     my $gunzf = gzopen($file, "rb") or die "$file: $!";
     my $line;
     my $res;
@@ -784,6 +829,7 @@ say("Parse Packages and Sources files and add to the file list everything therei
     $gunzf->gzclose();
   }
   foreach my $file (@source_files) {
+    next if (!-f $file);
     my $gunzf = gzopen($file, "rb") or die "$file: $!";
     my $line;
     my $res;
@@ -941,7 +987,7 @@ DOWNLOAD: {
 	      $num_errors++;
 	    }
 	  }
-	  @result = "";
+	  @result = ();
 	}
 	if ($max_batch > 0 && ++$i >= $max_batch) {
 	  print "Batch limit exceeded, mirror run will be partial\n";
@@ -1007,11 +1053,15 @@ my $res=0;
 foreach my $file (`find . -type f`) {
   chomp $file;
   $file=~s:^\./::;
+  # this skips pdiff files if unwanted
+  next if (!exists $files{$file});
   print("Moving $file\n") if ($debug);
   if ($mirrordir."/".$file) {
     $res &= unlink($mirrordir."/".$file) if (! $dry_run);
   }
   if (! $dry_run) {
+    "$file" =~ m,(^.*)/,;
+    make_dir("$mirrordir/$1");
     if (!link($file, $mirrordir."/".$file)) {
       $res &= system("cp $file $mirrordir/$file");
     }
@@ -1059,6 +1109,24 @@ sub check_file {
   return 0;
 }
 
+# Check uncompressed pdiff content against sha1sum from Index file.
+sub check_pdiff {
+  my ($filename, $size, $sha1) = @_;
+  my $digest = Digest::SHA1->new;
+  my $ret = 0;
+
+  if (-f "$filename.gz") {
+    system_redirect_io("gzip -d", "$filename.gz", "$filename");
+    if ($size == -s $filename) {
+      open HANDLE, $filename or die "$filename: $!";
+      $digest->addfile(*HANDLE);
+      $ret = ($sha1 eq $digest->hexdigest);
+    }
+    unlink ($filename);
+  }
+  return $ret;
+}
+
 # Check file against md5sum and size from the Release file.
 # It will return true if the md5sum matches.
 sub check_lists {
@@ -1077,6 +1145,8 @@ sub check_lists {
 sub remote_get {
   my $file=shift;
   my $res;
+say("skipping $file") if ($skippackages);
+  return 1 if ($skippackages);
   chdir($tempdir) or die "unable to chdir($tempdir): $!\n";
  METHOD: {
     $_ = $download_method;
@@ -1270,61 +1340,95 @@ sub system_redirect_io {
   system("$command <$fromfile >$tofile");
 }
 
-# Get Packages file in the passed subdirectory.
-sub get_packages {
+# Get Index file in the passed subdirectory.
+sub get_index {
   my $subdir=shift;
+  my $file=shift;
   make_dir($subdir);
   make_dir("$tempdir/$subdir");
 
-  if (exists $file_lists_size{"$tempdir/$subdir/Packages.gz"}) {
-    if (!check_lists ("$tempdir/$subdir/Packages.gz")) {
-      say("$subdir/Packages.gz needs fetch");
-      remote_get("$subdir/Packages.gz");
-      if (check_lists ("$tempdir/$subdir/Packages.gz")) {
-	system_redirect_io("gunzip", "$tempdir/$subdir/Packages.gz", "$tempdir/$subdir/Packages");
-	system_redirect_io("bzip2", "$tempdir/$subdir/Packages", "$tempdir/$subdir/Packages.bz2");
+  if (!($pdiff_mode eq "none") && exists $file_lists_size{"$tempdir/$subdir/$file.diff/Index"}) {
+    if (!check_lists ("$tempdir/$subdir/$file.diff/Index")) {
+      make_dir("$tempdir/$subdir/$file.diff");
+      say("$subdir/$file.diff/Index needs fetch");
+      remote_get("$subdir/$file.diff/Index");
+      if (!check_lists ("$tempdir/$subdir/$file.diff/Index")) {
+	say("$subdir/$file.diff/Index failed md5sum check, removing");
+	push (@errlog,"$subdir/$file.diff/Index failed md5sum check, removing\n");
+	unlink "$tempdir/$subdir/$file.diff/Index";
       } else {
-	say("$subdir/Packages.gz failed md5sum check");
-	push (@errlog,"$subdir/Packages.gz failed md5sum check\n");
+	fetch_and_apply_pdiffs($subdir, $file);
+	if (check_lists ("$tempdir/$subdir/$file")) {
+	  system_redirect_io("gzip -9 -n", "$tempdir/$subdir/$file", "$tempdir/$subdir/$file.gz");
+	  system_redirect_io("bzip2", "$tempdir/$subdir/$file", "$tempdir/$subdir/$file.bz2");
+	}
+      }
+    } else {
+      $bytes_gotten += $file_lists_size{"$tempdir/$subdir/$file.diff/Index"};
+      fetch_and_apply_pdiffs($subdir, "$file");
+      if (check_lists ("$tempdir/$subdir/$file")) {
+	system_redirect_io("gzip -9 -n", "$tempdir/$subdir/$file", "$tempdir/$subdir/$file.gz");
+	system_redirect_io("bzip2", "$tempdir/$subdir/$file", "$tempdir/$subdir/$file.bz2");
+      }
+    }
+    $files{"$subdir/$file.diff/Index"}=1 if ($pdiff_mode eq "mirror");
+    $files{"$tempdir/$subdir/$file.diff/Index"}=1;
+  }
+
+  if (exists $file_lists_size{"$tempdir/$subdir/$file.gz"}) {
+    if (!check_lists ("$tempdir/$subdir/$file.gz")) {
+      say("$subdir/$file.gz needs fetch");
+      remote_get("$subdir/$file.gz");
+      if (check_lists ("$tempdir/$subdir/$file.gz")) {
+	system_redirect_io("gzip -d", "$tempdir/$subdir/$file.gz", "$tempdir/$subdir/$file");
+	system_redirect_io("bzip2", "$tempdir/$subdir/$file", "$tempdir/$subdir/$file.bz2");
+      } else {
+	say("$subdir/$file.gz failed md5sum check");
+	push (@errlog,"$subdir/$file.gz failed md5sum check\n");
 	$num_errors++;
       }
     } else {
-      $bytes_gotten += $file_lists_size{"$tempdir/$subdir/Packages.gz"};
+      $bytes_gotten += $file_lists_size{"$tempdir/$subdir/$file.gz"};
     }
   } elsif ($ignore_release) {
-    say("Ignoring missing Release file for $subdir/Packages.gz");
-    push (@errlog,"Ignoring missing Release file for $subdir/Packages.gz\n");
-    say("$subdir/Packages.gz needs fetch");
-    remote_get("$subdir/Packages.gz");
+    say("Ignoring missing Release file for $subdir/$file.gz");
+    push (@errlog,"Ignoring missing Release file for $subdir/$file.gz\n");
+    say("$subdir/$file.gz needs fetch");
+    remote_get("$subdir/$file.gz");
   } else {
-    die "Won't mirror without $subdir/Packages.gz signature in Release";
+    if (-f "$subdir/$file.gz") {
+      say("$subdir/$file.gz exists locally but not in Release");
+      die "Won't mirror without $subdir/$file.gz signature in Release";
+    } else {
+      say("$subdir/$file.gz does not exist locally or in Release, skipping.") if ($debug);
+    }
   }
-  if (exists $file_lists_size{"$tempdir/$subdir/Packages"}) {
-    if (!check_lists ("$tempdir/$subdir/Packages")) {
-      say("$subdir/Packages needs fetch");
-      remote_get("$subdir/Packages");
-      if (check_lists ("$tempdir/$subdir/Packages")) {
-	system_redirect_io("bzip2", "$tempdir/$subdir/Packages", "$tempdir/$subdir/Packages.bz2");
+  if (exists $file_lists_size{"$tempdir/$subdir/$file"}) {
+    if (!check_lists ("$tempdir/$subdir/$file")) {
+      say("$subdir/$file needs fetch");
+      remote_get("$subdir/$file");
+      if (check_lists ("$tempdir/$subdir/$file")) {
+	system_redirect_io("bzip2", "$tempdir/$subdir/$file", "$tempdir/$subdir/$file.bz2");
       } else {
-	say("$subdir/Packages failed md5sum check");
-	push (@errlog,"$subdir/Packages failed md5sum check\n");
+	say("$subdir/$file failed md5sum check");
+	push (@errlog,"$subdir/$file failed md5sum check\n");
 	$num_errors++;
       }
     } else {
-      $bytes_gotten += $file_lists_size{"$tempdir/$subdir/Packages"};
+      $bytes_gotten += $file_lists_size{"$tempdir/$subdir/$file"};
     }
   }
-  if (exists $file_lists_size{"$tempdir/$subdir/Packages.bz2"}) {
-    if (!check_lists ("$tempdir/$subdir/Packages.bz2")) {
-      say("$subdir/Packages.bz2 needs fetch");
-      remote_get("$subdir/Packages.bz2");
-      if (!check_lists ("$tempdir/$subdir/Packages.bz2")) {
-	say("$subdir/Packages.bz2 failed md5sum check, removing");
-	push (@errlog,"$subdir/Packages.bz2 failed md5sum check, removing\n");
-	unlink "$tempdir/$subdir/Packages.bz2";
+  if (exists $file_lists_size{"$tempdir/$subdir/$file.bz2"}) {
+    if (!check_lists ("$tempdir/$subdir/$file.bz2")) {
+      say("$subdir/$file.bz2 needs fetch");
+      remote_get("$subdir/$file.bz2");
+      if (!check_lists ("$tempdir/$subdir/$file.bz2")) {
+	say("$subdir/$file.bz2 failed md5sum check, removing");
+	push (@errlog,"$subdir/$file.bz2 failed md5sum check, removing\n");
+	unlink "$tempdir/$subdir/$file.bz2";
       }
     } else {
-      $bytes_gotten += $file_lists_size{"$tempdir/$subdir/Packages.bz2"};
+      $bytes_gotten += $file_lists_size{"$tempdir/$subdir/$file.bz2"};
     }
   }
   if (exists $file_lists_size{"$tempdir/$subdir/Release"}) {
@@ -1340,97 +1444,106 @@ sub get_packages {
       $bytes_gotten += $file_lists_size{"$tempdir/$subdir/Release"};
     }
   }
-  push @package_files, "$tempdir/$subdir/Packages.gz";
-  $files{"$subdir/Packages.gz"}=1;
-  $files{"$subdir/Packages.bz2"}=1;
-  $files{"$subdir/Packages"}=1;
+  if ($file eq "Packages") {
+    push @package_files, "$tempdir/$subdir/$file.gz";
+  } else {
+    if ($file eq "Sources") {
+      push @source_files, "$tempdir/$subdir/$file.gz";
+    } else {
+      die "get_index called with unknown type $file\n";
+    }
+  }
+  $files{"$subdir/$file.gz"}=1;
+  $files{"$subdir/$file.bz2"}=1;
+  $files{"$subdir/$file"}=1;
   $files{"$subdir/Release"}=1;
-  $files{"$tempdir/$subdir/Packages.gz"}=1;
-  $files{"$tempdir/$subdir/Packages.bz2"}=1;
-  $files{"$tempdir/$subdir/Packages"}=1;
+  $files{"$tempdir/$subdir/$file.gz"}=1;
+  $files{"$tempdir/$subdir/$file.bz2"}=1;
+  $files{"$tempdir/$subdir/$file"}=1;
   $files{"$tempdir/$subdir/Release"}=1;
 }
 
-# Get Sources file
-sub get_sources {
-  my $subdir=shift;
+sub fetch_and_apply_pdiffs {
+  my ($subdir, $list) = @_;
+  local (*INDEX, *LIST);
+  my (%history_sha1, %history_size, %pdiff_sha1, %pdiff_size);
+  my ($current_sha1, $current_size, $sha1, $size, $file, $digest, $ret);
 
-  if ($do_source) {
-    make_dir($subdir);
-    make_dir($tempdir."/".$subdir);
-    if (exists $file_lists_size{"$tempdir/$subdir/Sources.gz"}) {
-      if (!check_lists ("$tempdir/$subdir/Sources.gz")) {
-	say("$subdir/Sources.gz needs fetch");
-	remote_get("$subdir/Sources.gz");
-	if (check_lists ("$tempdir/$subdir/Sources.gz")) {
-	  system_redirect_io("gunzip", "$tempdir/$subdir/Sources.gz", "$tempdir/$subdir/Sources");
-	  system_redirect_io("bzip2", "$tempdir/$subdir/Sources", "$tempdir/$subdir/Sources.bz2");
-	} else {
-	  say("$subdir/Sources.gz failed md5sum check");
-	  push (@errlog,"$subdir/Sources.gz failed md5sum check\n");
-	  $num_errors++;
-	}
-      } else {
-	$bytes_gotten += $file_lists_size{"$tempdir/$subdir/Sources.gz"};
+  # Parse DiffIndex file
+  open(INDEX, "$tempdir/$subdir/$list.diff/Index") or die "$tempdir/$subdir/$list.diff/Index: $!";
+  $_ = <INDEX>;
+  while (defined($_)) {
+    if (m/^SHA1-Current:/m) {
+      ($current_sha1, $current_size) = m/^SHA1-Current:\s+([A-Za-z0-9]+)\s+(\d+)/m;
+      $_ = <INDEX>;
+    }
+    elsif (m/^SHA1-History:/m) {
+      while (defined($_ = <INDEX>)) {
+	last if (!m/^\s/m);
+	($sha1, $size, $file) = m/^\s+([A-Za-z0-9]+)\s+(\d+)\s+(.*)/m;
+	$history_sha1{$file} = $sha1;
+	$history_size{$file} = $size;
       }
-    } elsif ($ignore_release) {
-      say("Ignoring missing Release file for $subdir/Sources.gz");
-      push (@errlog,"Ignoring missing Release file for $subdir/Sources.gz\n");
-      say("$subdir/Sources.gz needs fetch");
-      remote_get("$subdir/Sources.gz");
+    }
+    elsif (m/^SHA1-Patches:/m) {
+      while (defined($_ = <INDEX>)) {
+	last if (!m/^\s/m);
+	($sha1, $size, $file) = m/^\s+([A-Za-z0-9]+)\s+(\d+)\s+(.*)/m;
+	$pdiff_sha1{$file} = $sha1;
+	$pdiff_size{$file} = $size;
+      }
+    }
+  }
+  close(INDEX);
+
+  # Download pdiff files as necessary
+  $ret = 1;
+  foreach $file (sort keys %pdiff_sha1) {
+    if (!check_pdiff("$tempdir/$subdir/$list.diff/$file", $pdiff_size{$file}, $pdiff_sha1{$file})) {
+      say("$subdir/$list.diff/$file.gz needs fetch");
+      remote_get("$subdir/$list.diff/$file.gz");
+#FIXME: before download
+      $bytes_to_get += -s "$tempdir/$subdir/$list.diff/$file.gz";
+      if (!check_pdiff("$tempdir/$subdir/$list.diff/$file", $pdiff_size{$file}, $pdiff_sha1{$file})) {
+	say("$subdir/$list.diff/$file.gz failed sha1sum check, removing");
+	push (@errlog,"$subdir/$list.diff/$file.gz failed sha1sum check, removing\n");
+	unlink "$tempdir/$subdir/$list.diff/$file.gz";
+	$ret = 0;
+      }
     } else {
-      die "Won't mirror without $subdir/Sources.gz signature in Release";
+#FIXME: before download
+      $bytes_to_get += -s "$tempdir/$subdir/$list.diff/$file.gz";
+      $bytes_gotten += -s "$tempdir/$subdir/$list.diff/$file.gz";
     }
-    if (exists $file_lists_size{"$tempdir/$subdir/Sources"}) {
-      if (!check_lists ("$tempdir/$subdir/Sources")) {
-	say("$subdir/Sources needs fetch");
-	remote_get("$subdir/Sources");
-	if (check_lists ("$tempdir/$subdir/Sources")) {
-	  system_redirect_io("bzip2", "$tempdir/$subdir/Sources", "$tempdir/$subdir/Sources.bz2");
-	} else {
-	  say("$subdir/Sources failed md5sum check, removing");
-	  push (@errlog,"$subdir/Sources failed md5sum check, removing\n");
-	  unlink "$subdir/Sources";
-	}
-      } else {
-	$bytes_gotten += $file_lists_size{"$tempdir/$subdir/Sources"};
-      }
+    $files{"$subdir/$list.diff/$file.gz"}=1 if ($pdiff_mode eq "mirror");
+    $files{"$tempdir/$subdir/$list.diff/$file.gz"}=1;
+  }
+  return unless ($ret);
+
+  # Apply pdiff files
+  open(LIST, "$tempdir/$subdir/$list") or return;
+  $digest = Digest::SHA1->new;
+  $digest->addfile(*LIST);
+  $sha1 = $digest->hexdigest;
+  $size = -s "$tempdir/$subdir/$list";
+  foreach $file (sort keys %history_sha1) {
+    next unless ($sha1 eq $history_sha1{$file} && $size eq $history_size{$file});
+    if (system("gzip -d < \"$tempdir/$subdir/$list.diff/$file.gz\" | patch --ed \"$tempdir/$subdir/$list\"")) {
+      say("Patch $file failed, will fetch $subdir/$list file");
+      unlink "$tempdir/$subdir/$list";
+      return;
     }
-    if (exists $file_lists_size{"$tempdir/$subdir/Sources.bz2"}) {
-      if (!check_lists ("$tempdir/$subdir/Sources.bz2")) {
-	say("Sources.bz2 needs fetch");
-	remote_get("$subdir/Sources.bz2");
-	if (!check_lists ("$tempdir/$subdir/Sources.bz2")) {
-	  say("$subdir/Sources.bz2 failed md5sum check, removing");
-	  push (@errlog,"$subdir/Sources.bz2 failed md5sum check, removing\n");
-	  unlink "$subdir/Sources.bz2";
-	}
-      } else {
-	$bytes_gotten += $file_lists_size{"$tempdir/$subdir/Sources.bz2"};
-      }
-    }
-    if (exists $file_lists_size{"$tempdir/$subdir/Release"}) {
-      if (!check_lists ("$tempdir/$subdir/Release")) {
-	say("$subdir/Release needs fetch");
-	remote_get("$subdir/Release");
-	if (!check_lists ("$tempdir/$subdir/Release")) {
-	  say("$subdir/Release failed md5sum check, removing");
-	  push (@errlog,"$subdir/Release failed md5sum check, removing\n");
-	  unlink "$tempdir/$subdir/Release";
-	}
-      } else {
-	$bytes_gotten += $file_lists_size{"$tempdir/$subdir/Release"};
-      }
-    }
-    push @source_files, "$tempdir/$subdir/Sources.gz";
-    $files{"$subdir/Sources.gz"}=1;
-    $files{"$subdir/Sources"}=1;
-    $files{"$subdir/Sources.bz2"}=1;
-    $files{"$subdir/Release"}=1;
-    $files{"$tempdir/$subdir/Sources.gz"}=1;
-    $files{"$tempdir/$subdir/Sources"}=1;
-    $files{"$tempdir/$subdir/Sources.bz2"}=1;
-    $files{"$tempdir/$subdir/Release"}=1;
+    open(LIST, "$tempdir/$subdir/$list") or return;
+    $digest = Digest::SHA1->new;
+    $digest->addfile(*LIST);
+    $sha1 = $digest->hexdigest;
+    $size = -s "$tempdir/$subdir/$list";
+    say("$subdir/$list patched with $subdir/$list.diff/$file.gz");
+  }
+  if (!($sha1 eq $current_sha1 && $size eq $current_size)) {
+    say("$subdir/$list failed sha1sum check, removing");
+    push (@errlog,"$subdir/$list failed sha1sum check, removing\n");
+    unlink "$tempdir/$subdir/$list";
   }
 }
 

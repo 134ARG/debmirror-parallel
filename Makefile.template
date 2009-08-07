@@ -1,0 +1,44 @@
+#!/usr/bin/make -f
+#
+# Makefile.template -- a make template for mirroring Debian archives with
+#                      debmirror
+#
+# Please see the comments in Makefile.debmirror as well. Each mirror needs
+# a target with a unique name of the form "debmirror-*". The HOST variable
+# must be set. All other variables take defaults defined in
+# Makefile.debmirror, and may be overridden.
+#
+# This file is (c) 2005 by martin f. krafft <madduck@debian.org> and has been
+# published under the terms of the Artistic Licence. Please see
+# http://www.opensource.org/licenses/artistic-license.php for
+# more information.
+#
+# Version: $Id: Makefile.template 14 2005-02-21 12:59:45Z madduck $
+#
+
+# convenience target, listing all defined mirror targets.
+#.PHONY: mirror
+#mirror: debmirror-debian debmirror-debian-volatile debmirror-debian-amd64-pure64
+
+include ../Makefile.debmirror
+
+# example: mirroring debian to ./debian with rsync
+# 
+#debmirror-debian: HOST   = debian.ethz.ch
+#debmirror-debian: METHOD = rsync
+
+# example: mirroring debian-volatile to ./debian-volatile with FTP
+# 
+#debmirror-debian-volatile: HOST     = volatile.debian.net
+#debmirror-debian-volatile: METHOD   = ftp
+#debmirror-debian-volatile: DISTS    = woody/volatile,sarge/volatile
+#debmirror-debian-volatile: SECTIONS = main,contrib,non-free
+#debmirror-debian-volatile: RROOT    = /debian-volatile
+#debmirror-debian-volatile: OPTS     = --ignore-release-gpg
+
+# example: mirroring debian-amd64/pure64 to ./debian-pure64 with HTTP (default)
+#
+#debmirror-debian-amd64-pure64: HOST  = debian-amd64.alioth.debian.org
+#debmirror-debian-amd64-pure64: ARCH  = amd64
+#debmirror-debian-amd64-pure64: DISTS = sarge,sid
+#debmirror-debian-amd64-pure64: RROOT = /debian-pure64

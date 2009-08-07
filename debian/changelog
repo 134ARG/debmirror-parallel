@@ -1,3 +1,24 @@
+debmirror (20060907) unstable; urgency=low
+
+  * Merge pdiff patch by Peter Colberg <peterco@gmx.net> (Closes: #366855)
+  * Add --pdiff-mode option
+  * Add rsync patch by Peter Colberg <peterco@gmx.net> (Closes: #299342)
+  * Disable caching for Release and Release.gpg (Closes: #376495)
+  * Default to --postcleanup (Closes: #295423)
+  * Print ftp hashes to stdout (Closes: #349856)
+    (Patch by Bastian Kleineidam <calvin@debian.org>)
+  * Fix typo found by Luca Bruno <luca.br@uno.it> (Closes: #362561)
+  * Implement ftp authentication with user/passwd (Closes: #360453)
+    (Patch by Peter Baumann <waste.manager@gmx.de>)
+  * Skip Index files that don't exist locally nor in Release
+    Obsoletes other ideas from the BTS (Closes: #369061, #360451, #382271)
+  * Fail immediately if the signature cannot be verified (Closes: #316528)
+  * Show gpg error message on failure (Closes: #316529)
+  * Skip gpg test if --ignore-release-gpg is specified (Closes: #322714)
+  * Re-add --skippackages (Closes: #294974)
+
+ -- Goswin von Brederlow <brederlo@informatik.uni-tuebingen.de>  Thu,  7 Sep 2006 15:36:47 +0200
+
 debmirror (20051209) unstable; urgency=low
 
   * Reorder find arguments (Closes: #316461)

@@ -2,12 +2,12 @@ Source: debmirror
 Section: net
 Priority: extra
 Maintainer: Goswin von Brederlow <brederlo@informatik.uni-tuebingen.de>
-Standards-Version: 3.6.1.0
+Standards-Version: 3.7.2.0
 
 Package: debmirror
 Architecture: all
 Depends: libnet-perl, libdigest-md5-perl, liblockfile-simple-perl, rsync, libcompress-zlib-perl, bzip2, libwww-perl
-Recommends: gnupg
+Recommends: gnupg, patch
 Description: Debian partial mirror script, with ftp and package pool support
  This program downloads and maintains a partial local Debian mirror.
  It can mirror any combination of architectures, distributions and
