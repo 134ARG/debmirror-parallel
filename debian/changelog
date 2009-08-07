@@ -1,3 +1,10 @@
+debmirror (20060907.1) unstable; urgency=medium
+
+  * NMU
+  * depend on libdigest-sha1-perl (closes: #386707)  
+
+ -- Rene Engelhard <rene@debian.org>  Sat, 16 Sep 2006 12:05:30 +0200
+
 debmirror (20060907) unstable; urgency=low
 
   * Merge pdiff patch by Peter Colberg <peterco@gmx.net> (Closes: #366855)

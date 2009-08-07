@@ -6,7 +6,7 @@ Standards-Version: 3.7.2.0
 
 Package: debmirror
 Architecture: all
-Depends: libnet-perl, libdigest-md5-perl, liblockfile-simple-perl, rsync, libcompress-zlib-perl, bzip2, libwww-perl
+Depends: libnet-perl, libdigest-md5-perl, libdigest-sha1-perl, liblockfile-simple-perl, rsync, libcompress-zlib-perl, bzip2, libwww-perl
 Recommends: gnupg, patch
 Description: Debian partial mirror script, with ftp and package pool support
  This program downloads and maintains a partial local Debian mirror.
