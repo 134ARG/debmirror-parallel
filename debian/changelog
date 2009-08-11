@@ -1,4 +1,4 @@
-debmirror (2009xxxx) UNRELEASED; urgency=low
+debmirror (20090807) unstable; urgency=low
 
   * New maintainer, with thanks to Goswin for his work on previous releases.
   * Remove no longer needed prerm script.
