@@ -780,7 +780,13 @@ if ($getcontents) {
       next if $dist=~/experimental/;
       next if $dist=~/.*-proposed-updates/;
       next if $arch=~/source/;
-      remote_get("dists/$dist/Contents-$arch.gz");
+      if (!check_lists ("$tempdir/dists/$dist/Contents-$arch.gz")) {
+	remote_get("dists/$dist/Contents-$arch.gz");
+	if (!check_lists ("$tempdir/dists/$dist/Contents-$arch.gz")) {
+	  say("dists/$dist/Contents-$arch.gz failed md5sum check, removing");
+	  unlink "$tempdir/dists/$dist/Contents-$arch.gz";
+	}
+      }
       $files{"dists/$dist/Contents-$arch.gz"}=1;
       $files{$tempdir."/"."dists/$dist/Contents-$arch.gz"}=1;
     }
