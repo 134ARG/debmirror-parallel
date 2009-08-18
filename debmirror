@@ -1490,7 +1490,8 @@ sub get_index {
   }
   $files{"$subdir/$file.gz"}=1;
   $files{"$subdir/$file.bz2"}=1;
-  $files{"$subdir/$file"}=1;
+  # Uncompressed files are no longer kept on the mirrors
+  #$files{"$subdir/$file"}=1;
   $files{"$subdir/Release"}=1;
   $files{"$tempdir/$subdir/$file.gz"}=1;
   $files{"$tempdir/$subdir/$file.bz2"}=1;
