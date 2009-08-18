@@ -223,7 +223,7 @@ removed soon.
 
 =item --getcontents
 
-Download Contents.arch.gz files.
+Additionally download Contents.arch.gz files.
 
 =item --max-batch=number
 
