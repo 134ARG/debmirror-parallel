@@ -791,7 +791,6 @@ if ($download_method eq 'ftp') { $ftp->quit; }
 
 say("Parse Packages and Sources files and add to the file list everything therein.");
 {
-  local $/="\n\n";
   my ($filename, $size, $md5sum, $directory, $exclude, $include,
       $architecture, $exclude_deb_section, $limit_priority, $deb_section,
       $deb_priority);
@@ -812,13 +811,14 @@ say("Parse Packages and Sources files and add to the file list everything therei
     my $loop = 1;
     while ($loop) {
       my $buf = "";
-      while(($res = $gunzf->gzreadline($line) > 0)
+      while((($res = $gunzf->gzreadline($line)) > 0)
 	    && !($line =~ /^$/)) {
 	$buf = $buf . $line;
       }
-      if ($res <= 0) {
+      die "$file: $!" if ($res < 0);
+      if ($res == 0) {
 	$loop = 0;
-	next;
+	next if ($buf eq "");
       }
       $_ = $buf;
       ($filename)=m/^Filename:\s+(.*)/im;
@@ -855,13 +855,14 @@ say("Parse Packages and Sources files and add to the file list everything therei
     my $loop = 1;
     while ($loop) {
       my $buf = "";
-      while(($res = $gunzf->gzreadline($line) > 0)
+      while((($res = $gunzf->gzreadline($line)) > 0)
 	    && !($line =~ /^$/)) {
 	$buf = $buf . $line;
       }
-      if ($res <= 0) {
+      die "$file: $!" if ($res < 0);
+      if ($res == 0) {
 	$loop = 0;
-	next;
+	next if ($buf eq "");
       }
       $_ = $buf;
       ($directory) = m/^Directory:\s+(.*)/im;
