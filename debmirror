@@ -415,43 +415,43 @@ require "$HOME/.debmirror.conf" if -r "$HOME/.debmirror.conf";
 my %files;
 
 my $help;
-GetOptions('debug'        => \$debug,
-	   'progress|p'   => \$progress,
-	   'verbose|v'    => \$verbose,
-	   'source!'      => \$do_source,
-	   'md5sums|m'    => \$check_md5sums,
-	   'nomd5sums'    => \$check_downloads,
-	   'passive!'     => \$passive,
-	   'host|h=s'     => \$host,
-	   'user|u=s'     => \$user,
-	   'passwd=s'     => \$passwd,
-	   'root|r=s'     => \$remoteroot,
-	   'dist|d=s'     => \@dists,
-	   'section|s=s'  => \@sections,
-	   'arch|a=s'     => \@arches,
-	   'adddir=s'     => \@extra_dirs,
-	   'cleanup'      => \$cleanup,
-	   'postcleanup'  => \$post_cleanup,
-	   'nocleanup'    => \$no_cleanup,
-	   'ignore=s'     => \@ignores,
-	   'exclude=s'    => \@excludes,
-	   'exclude-deb-section=s' => \@excludes_deb_section,
-	   'limit-priority=s' => \@limit_priority,
-	   'include=s'    => \@includes,
-	   'skippackages' => \$skippackages,
-	   'getcontents'  => \$getcontents,
-	   'method|e=s'   => \$download_method,
-	   'timeout|t=s'  => \$timeout,
-	   'max-batch=s'  => \$max_batch,
-	   'rsync-batch=s'  => \$rsync_batch,
+GetOptions('debug'                  => \$debug,
+	   'progress|p'             => \$progress,
+	   'verbose|v'              => \$verbose,
+	   'source!'                => \$do_source,
+	   'md5sums|m'              => \$check_md5sums,
+	   'nomd5sums'              => \$check_downloads,
+	   'passive!'               => \$passive,
+	   'host|h=s'               => \$host,
+	   'user|u=s'               => \$user,
+	   'passwd=s'               => \$passwd,
+	   'root|r=s'               => \$remoteroot,
+	   'dist|d=s'               => \@dists,
+	   'section|s=s'            => \@sections,
+	   'arch|a=s'               => \@arches,
+	   'adddir=s'               => \@extra_dirs,
+	   'cleanup'                => \$cleanup,
+	   'postcleanup'            => \$post_cleanup,
+	   'nocleanup'              => \$no_cleanup,
+	   'ignore=s'               => \@ignores,
+	   'exclude=s'              => \@excludes,
+	   'exclude-deb-section=s'  => \@excludes_deb_section,
+	   'limit-priority=s'       => \@limit_priority,
+	   'include=s'              => \@includes,
+	   'skippackages'           => \$skippackages,
+	   'getcontents'            => \$getcontents,
+	   'method|e=s'             => \$download_method,
+	   'timeout|t=s'            => \$timeout,
+	   'max-batch=s'            => \$max_batch,
+	   'rsync-batch=s'          => \$rsync_batch,
 	   'ignore-missing-release' => \$ignore_release,
-	   'ignore-release-gpg' => \$ignore_release_gpg,
-	   'dry-run'      => \$dry_run_var,
-	   'proxy=s'      => \$proxy,
-	   'rsync-options=s' => \$rsync_options,
-	   'ignore-small-errors' => \$ignore_small_errors,
-	   'pdiff=s'      => \$pdiff_mode,
-	   'help'         => \$help,
+	   'ignore-release-gpg'     => \$ignore_release_gpg,
+	   'dry-run'                => \$dry_run_var,
+	   'proxy=s'                => \$proxy,
+	   'rsync-options=s'        => \$rsync_options,
+	   'ignore-small-errors'    => \$ignore_small_errors,
+	   'pdiff=s'                => \$pdiff_mode,
+	   'help'                   => \$help,
 ) or usage;
 usage if $help;
 
@@ -518,8 +518,8 @@ $md5=Digest::MD5->new;
 
 # Set up mirror directory and resolve $mirrordir to a full path for
 # locking and rsync
-make_dir($mirrordir) if ( ! -d $mirrordir);
-die "You need write permissions on $mirrordir" if (!-w $mirrordir);
+make_dir($mirrordir) if (! -d $mirrordir);
+die "You need write permissions on $mirrordir" if (! -w $mirrordir);
 chdir($mirrordir) or die "chdir $mirrordir: $!";
 $mirrordir = cwd();
 
@@ -544,8 +544,8 @@ $files{$tracefile}=1;
 
 # Create tempdir if missing
 my $tempdir=".temp";
-make_dir($tempdir) if ( ! -d $tempdir);
-die "You need write permissions on $tempdir" if (!-w $tempdir);
+make_dir($tempdir) if (! -d $tempdir);
+die "You need write permissions on $tempdir" if (! -w $tempdir);
 
 # Start up ftp.
 my $ftp;
@@ -798,12 +798,12 @@ say("Parse Packages and Sources files and add to the file list everything therei
 
   my %arches = map { $_ => 1 } (@arches, "all");
 
-  $exclude =  "(".join("|", @excludes).")" if @excludes;
+  $exclude = "(".join("|", @excludes).")" if @excludes;
   $exclude_deb_section =
     "(".join("|", @excludes_deb_section).")" if @excludes_deb_section;
   $limit_priority =
     "(".join("|", @limit_priority).")" if @limit_priority;
-  $include =  "(".join("|", @includes).")" if @includes;
+  $include = "(".join("|", @includes).")" if @includes;
   foreach my $file (@package_files) {
     next if (!-f $file);
     my $gunzf = gzopen($file, "rb") or die "$file: $!";
@@ -877,7 +877,7 @@ say("Parse Packages and Sources files and add to the file list everything therei
 	if(!(defined($include) && ($filename=~/$include/o))) {
 	  next if (defined($exclude) && $filename=~/$exclude/o);
 	}
-        next if (exists $files{$filename}); # multiple occurrences
+	next if (exists $files{$filename}); # multiple occurrences
 	if (check_file($filename, $size, $md5sum)) {
 	  $files{$filename} = 1;
 	} else {
@@ -901,6 +901,7 @@ DOWNLOAD: {
   init_connection;
   $_ = $download_method;
 
+  # hftp (ftp using http mirror) method
   /^hftp$/ && do {
     # LWP stuff
     my $dirname;
@@ -921,6 +922,7 @@ DOWNLOAD: {
     last DOWNLOAD;
   };
 
+  # hyyp method
   /^http$/ && do {
     # LWP stuff
     my $dirname;
@@ -941,7 +943,7 @@ DOWNLOAD: {
     last DOWNLOAD;
   };
 
-  # Ftp method
+  # ftp method
   /^ftp$/ && do {
     my $dirname;
     my $i=0;
@@ -961,7 +963,7 @@ DOWNLOAD: {
     last DOWNLOAD;
   };
 
-  # Rsync method
+  # rsync method
   /^rsync$/ && do {
     my $opt=$rsync_options;
     my $fh;
@@ -1165,11 +1167,13 @@ sub check_lists {
 sub remote_get {
   my $file=shift;
   my $res;
-say("skipping $file") if ($skippackages);
+  say("skipping $file") if ($skippackages);
   return 1 if ($skippackages);
   chdir($tempdir) or die "unable to chdir($tempdir): $!\n";
- METHOD: {
+
+  METHOD: {
     $_ = $download_method;
+
     /^hftp$/ && do {
       $res=hftp_get($file);
       $res=$res && check_lists($file);
@@ -1198,7 +1202,7 @@ say("skipping $file") if ($skippackages);
     };
 
     /^rsync$/ && do {
-say("remote_get rsync $file");
+      say("remote_get rsync $file");
       $res=rsync_get($file);
       $res=$res && check_lists($file);
       if (!$res) {
@@ -1207,6 +1211,7 @@ say("remote_get rsync $file");
       }
     };
   }
+
   chdir($mirrordir) or die "unable to chdir($mirrordir): $!\n";
   return $res;
 }
@@ -1608,7 +1613,7 @@ sub cleanup_unknown_files {
     unless (exists $files{$file} or (defined($ignore) && $file=~/$ignore/o)) {
       say("deleting $file") if ($verbose);
       if (! $dry_run) {
-       unlink $file or die "unlink $file: $!";
+	unlink $file or die "unlink $file: $!";
       }
     }
   }
