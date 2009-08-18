@@ -500,17 +500,17 @@ say("Arches: ".join(",", @arches));
 say("Dists: ".join(",", @dists));
 say("Sections: ".join(",", @sections));
 say("Including source.") if $do_source;
-say("Passive mode on.") if $passive;
+say("Pdiff mode: $pdiff_mode");
 say("Checking md5sums.") if $check_md5sums;
+say("Passive mode on.") if $passive;
+say("Proxy: $proxy") if $proxy;
+say("Download at most $max_batch files.") if ($max_batch > 0);
+say("Download at most $rsync_batch files per rsync call.") if ($download_method eq "rsync");
 if ($post_cleanup) {
   say("Will clean up AFTER mirroring.");
 } else {
   say("Will NOT clean up.") unless $cleanup;
 }
-say("Proxy: $proxy.") if $proxy;
-say("Download at most $max_batch files.") if ($max_batch > 0);
-say("Download at most $rsync_batch files per rsync call.") if ($download_method eq "rsync");
-say("Pdiff mode: $pdiff_mode.");
 say("Dry run.") if $dry_run_var;
 
 my $md5;
