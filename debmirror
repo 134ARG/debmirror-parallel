@@ -794,6 +794,7 @@ say("Parse Packages and Sources files and add to the file list everything therei
   my ($filename, $size, $md5sum, $directory, $exclude, $include,
       $architecture, $exclude_deb_section, $limit_priority, $deb_section,
       $deb_priority);
+  my $empty_mirror = 1;
 
   my %arches = map { $_ => 1 } (@arches, "all");
 
@@ -844,6 +845,7 @@ say("Parse Packages and Sources files and add to the file list everything therei
 	$file_lists_size{$filename} = $size;
 	$bytes_to_get += $size;
       }
+      $empty_mirror = 0;
     }
     $gunzf->gzclose();
   }
@@ -888,8 +890,15 @@ say("Parse Packages and Sources files and add to the file list everything therei
 	  $bytes_to_get += $size;
 	}
       }
+      $empty_mirror = 0;
     }
     $gunzf->gzclose();
+  }
+
+  # Sanity check to avoid completely nuking a mirror.
+  if ($empty_mirror) {
+    print "Errors:\n ".join(" ",@errlog) if (@errlog);
+    die "No packages after parsing Packages and Sources files!\n";
   }
 }
 

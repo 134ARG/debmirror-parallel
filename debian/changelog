@@ -3,6 +3,8 @@ debmirror (2009xxxx) UNRELEASED; urgency=low
   * Set more accurate versioned build dependency on debhelper.
   * Apply patch from Kees Cook to make parsing of Packages/Sources files a bit
     less fragile. Closes: #451021.
+  * Add sanity check after parsing Packages/Sources files to avoid completely
+    deleting a mirror in case of unexpected errors (#451021, #435663).
 
  -- Frans Pop <fjp@debian.org>  Tue, 11 Aug 2009 14:38:27 +0200
 
