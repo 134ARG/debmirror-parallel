@@ -270,11 +270,11 @@ still be pedantic about checking meta files.
 =item --pdiff=use|mirror|none
 
 If the Release file contains entries for pdiff files then debmirror
-will atempt to update the Packages and Sources files with them but
+will attempt to update the Packages and Sources files with them but
 will not include them in the mirror. This is the default 'use'
-behaviour and avoids having time consuming pdiff files for a fast
+behavior and avoids having time consuming pdiff files for a fast
 local mirror. Specifying --pdiff=mirror will include the downloaded
-pdiff files in the mirror while specifying --pdiff=none will completly
+pdiff files in the mirror while specifying --pdiff=none will completely
 ignore pdiff files.
 
 =item --help
@@ -472,7 +472,7 @@ if (!($pdiff_mode eq "none")) {
   }
 }
 
-# Post-process arrays. Allow commas to seperate values the user entered.
+# Post-process arrays. Allow commas to separate values the user entered.
 # If the user entered nothing, provide defaults.
 @dists=split(/,/,join(',',@dists));
 @dists=qw(sid) unless @dists;
@@ -768,7 +768,7 @@ if ($num_errors != 0) {
   die "Failed to download some Package, Sources or Release files!\n";
 }
 
-# Realy set dry-run option now if it was given. This delay is needed
+# Really set dry-run option now if it was given. This delay is needed
 # for the ftp method.
 $dry_run = $dry_run_var;
 
@@ -833,7 +833,7 @@ say("Parse Packages and Sources files and add to the file list everything therei
 	next if (defined($limit_priority) && defined($deb_priority)
 		 && ! ($deb_priority=~/$limit_priority/o));
       }
-      next if (exists $files{$filename}); # multiple occurences
+      next if (exists $files{$filename}); # multiple occurrences
       ($size)=m/^Size:\s+(\d+)/im;
       ($md5sum)=m/^MD5sum:\s+([A-Za-z0-9]+)/im;
       if (check_file($filename, $size, $md5sum)) {
@@ -877,7 +877,7 @@ say("Parse Packages and Sources files and add to the file list everything therei
 	if(!(defined($include) && ($filename=~/$include/o))) {
 	  next if (defined($exclude) && $filename=~/$exclude/o);
 	}
-        next if (exists $files{$filename}); # multiple occurences
+        next if (exists $files{$filename}); # multiple occurrences
 	if (check_file($filename, $size, $md5sum)) {
 	  $files{$filename} = 1;
 	} else {
@@ -892,7 +892,7 @@ say("Parse Packages and Sources files and add to the file list everything therei
   }
 }
 
-# Pre mirror cleanup
+# Pre-mirror cleanup
 cleanup_unknown_files() if ($cleanup && ! $post_cleanup);
 
 say("Download all files that we need to get (".int(1+$bytes_to_get/1024/1024)." MiB).");
@@ -1242,7 +1242,7 @@ sub hftp_get {
   return $ret;
 }
 
-# Get a file via hftp, first displaying its filename if progress is on.
+# Get a file via http, first displaying its filename if progress is on.
 sub http_get {
   my $oldautoflush = $|;
   $| = 1;
