@@ -269,13 +269,14 @@ still be pedantic about checking meta files.
 
 =item --pdiff=use|mirror|none
 
-If the Release file contains entries for pdiff files then debmirror
-will attempt to update the Packages and Sources files with them but
-will not include them in the mirror. This is the default 'use'
-behavior and avoids having time consuming pdiff files for a fast
-local mirror. Specifying --pdiff=mirror will include the downloaded
-pdiff files in the mirror while specifying --pdiff=none will completely
-ignore pdiff files.
+If --pdiff=use is specified and the Release file contains entries for
+pdiff files, then debmirror will attempt to use them to update the
+Packages and Sources files (can reduce download size of meta files),
+but will not include them in the mirror. This is the default behavior
+and avoids having time consuming pdiff files for a fast local mirror.
+Specifying --pdiff=mirror does the same as 'use', but will also include
+the downloaded pdiff files in the local mirror. Specify --pdiff=none to
+completely ignore pdiff files.
 
 =item --help
 
