@@ -302,7 +302,7 @@ onwards.
 
 Total archive size (binary + source) per section:
 
-(in MiB) |  etch |      lenny       |     squeeze      |       sid       |    all
+ (in MiB)|  etch |      lenny       |     squeeze      |       sid       |    all
 ---------+-------+------------------+------------------+-----------------+-------
 main     | 79844 | 119617 (+114304) | 144855 (+109368) | 158548 (+52139) | 355343
 contrib  |   448 |   1379 (+  1264) |   1222 (+   339) |   1284 (+  129) |   2163
@@ -313,7 +313,7 @@ total    | 82342 | 126633 (+120678) | 152012 (+113136) | 166215 (+53973) | 36979
 
 Archive size per section for a single architecture (i386) without source: 
 
-(in MiB) |  etch |      lenny       |     squeeze      |       sid       |   all
+ (in MiB)|  etch |      lenny       |     squeeze      |       sid       |   all
 ---------+-------+------------------+------------------+-----------------+-------
 main     | 12985 |  18634 (+ 17833) |  22448 (+ 17507) |  24435 (+ 7340) |  55638
 contrib  |   112 |    341 (+   306) |    285 (+    62) |    289 (+   18) |    499
@@ -325,7 +325,7 @@ total    | 13707 |  20882 (+ 19851) |  24934 (+ 18876) |  27093 (+ 7803) |  6021
 Archive size per architecture (source and arch=all packages are shown
 separately):
 
-(in MiB) |  etch |     lenny        |     squeeze      |       sid       |    all
+ (in MiB)|  etch |     lenny        |     squeeze      |       sid       |    all
 ---------+-------+------------------+------------------+-----------------+-------
 source   | 13261 |  19291 (+ 15911) |  22466 (+ 13117) |  23935 (+ 3923) |  46122
 all      |  7906 |  12496 (+ 11626) |  14799 (+ 11120) |  16046 (+ 2780) |  33429
