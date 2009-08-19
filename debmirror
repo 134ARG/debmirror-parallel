@@ -155,7 +155,7 @@ directory has a dists/ subdirectory.
 
 =item --dist=foo[,bar,..] -d foo
 
-Specify the distribution (sarge, etch, lenny, sid) of Debian to
+Specify the distribution (etch, lenny, squeeze, sid) of Debian to
 mirror. This switch may be used multiple times, and multiple
 distributions may be specified at once, separated by commas. Using the
 links (stable, testing, unstable) does not have the expected results
