@@ -1,5 +1,6 @@
-debmirror (2009xxxx) UNRELEASED; urgency=low
+debmirror (1:1.0) UNRELEASED; urgency=low
 
+  * Switch to more common versioning scheme; requires an epoch.
   * Set more accurate versioned build dependency on debhelper.
   * Apply patch from Kees Cook to make parsing of Packages/Sources files a bit
     less fragile. Closes: #451021.

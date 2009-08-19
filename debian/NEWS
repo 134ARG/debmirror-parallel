@@ -1,4 +1,4 @@
-debmirror (2009xxxx) UNRELEASED; urgency=low
+debmirror (1:1.0) unstable; urgency=low
 
   * In line with official Debian mirrors, debmirror will no longer
     include uncompressed Packages and Sources files on the local mirror.
