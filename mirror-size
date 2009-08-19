@@ -1,0 +1,204 @@
+#!/usr/bin/perl -w
+
+# This script can be used on a mirror (or e.g. merkel.debian.org)
+# to produce an overview of the size of the archive. The numbers only
+# include the size of packages and source files; it does not include the
+# size of files containing meta data, nor of various separate directories.
+
+# Copyright (c) 2009 Frans Pop <fjp@debian.org>
+
+use strict;
+use Cwd;
+use Getopt::Long;
+use File::Temp qw/ tempfile /;
+use Compress::Zlib;
+
+our @arches=("source","all","i386","amd64","alpha","arm","armel","hppa","ia64","m68k","mips","mipsel","powerpc","s390","sparc","kfreebsd-i386","kfreebsd-amd64");
+our @sects=("main","contrib","non-free","main/debian-installer");
+our @suites=("oldstable","stable","testing","unstable");
+our %dists;
+our (@source_files, @package_files);
+our (%files, %sizes, %total);
+
+our $root="/srv/ftp.debian.org/ftp/dists";
+chdir($root) or die "chdir $root: $!";
+
+foreach my $suite (@suites) {
+  next unless -f "$root/$suite/Release";
+  if (open RELEASE, "<$root/$suite/Release") {
+    while (<RELEASE>) {
+      if (/^Codename:/) {
+	($dists{$suite}) = m/^Codename:\s+(.*)/i;
+	last;
+      }
+    }
+    close RELEASE;
+  }
+
+  foreach my $sect (@sects) {
+    next unless -d "$root/$suite/$sect";
+    print("Processing $suite $sect\n");
+    foreach my $arch (@arches) {
+      my $file;
+      if ($arch eq "source") {
+	$file = "source/Sources.gz";
+	next unless -f "$root/$suite/$sect/$file";
+	parse_sources($file, $suite, $sect);
+      } else {
+	$file = "binary-$arch/Packages.gz";
+	next unless -f "$root/$suite/$sect/$file";
+	parse_packages($file, $suite, $sect, $arch);
+      }
+    }
+  }
+}
+
+print("(in MiB)\t");
+foreach my $suite (@suites) {
+  next unless exists $dists{$suite};
+  print("\t$dists{$suite}");
+}
+print("\tall\n");
+foreach my $sect (@sects) {
+  next unless exists $sizes{all}{$sect};
+  if ($sect eq "main/debian-installer") {
+    print("main/d-i");
+  } else {
+    print("$sect");
+  }
+  foreach my $suite (@suites) {
+    next unless exists $dists{$suite};
+    if (exists $sizes{$suite}{$sect}) {
+      $total{$suite} += $sizes{$suite}{$sect};
+      print("\t".int((1 + $sizes{$suite}{$sect}) /1024/1024));
+      if (exists $sizes{"d$suite"}{$sect}) {
+        $total{"d$suite"} += $sizes{"d$suite"}{$sect} 
+        print(" (+".int((1 + $sizes{"d$suite"}{$sect}) /1024/1024).")");
+      }
+    } else {
+      print("\t");
+    }
+  }
+  print("\t".int((1 + $sizes{all}{$sect}) /1024/1024)."\n");
+  $total{all} += $sizes{all}{$sect};
+}
+print("total");
+foreach my $suite (@suites) {
+  next unless exists $dists{$suite};
+  print("\t".int((1 + $total{$suite}) /1024/1024));
+  print(" (+".int((1 + $total{"d$suite"}) /1024/1024).")") if exists $total{"d$suite"};
+}
+print("\t".int((1 + $total{all}) /1024/1024)."\n");
+
+print("\n");
+print("(in MiB)\t");
+foreach my $suite (@suites) {
+  next unless exists $dists{$suite};
+  print("\t$dists{$suite}");
+}
+print("\tall\n");
+foreach my $arch (@arches) {
+  next unless exists $sizes{all}{$arch};
+  print("$arch");
+  foreach my $suite (@suites) {
+    next unless exists $dists{$suite};
+    if (exists $sizes{$suite}{$arch}) {
+      print("\t".int((1 + $sizes{$suite}{$arch}) /1024/1024));
+      print(" (+".int((1 + $sizes{"d$suite"}{$arch}) /1024/1024).")") if exists $sizes{"d$suite"}{$arch};
+    } else {
+      print("\t");
+    }
+  }
+  print("\t".int((1 + $sizes{all}{$arch}) /1024/1024)."\n");
+}
+
+sub parse_packages {
+  my ($file, $suite, $sect, $arch) = @_;
+  my ($line, $res, $size, $filename, $architecture);
+  my $gunzf = gzopen("$root/$suite/$sect/$file", "rb") or die "$file: $!";
+  my $loop = 1;
+  while ($loop) {
+    my $buf = "";
+    while((($res = $gunzf->gzreadline($line)) > 0)
+	  && !($line =~ /^$/)) {
+      $buf = $buf . $line;
+    }
+    die "$file: $!" if ($res < 0);
+    if ($res == 0) {
+      $loop = 0;
+      next if ($buf eq "");
+    }
+    $_ = $buf;
+    ($filename)=m/^Filename:\s+(.*)/im;
+    $filename=~s:/+:/:; # remove redundant slashes in paths
+    ($architecture)=m/^Architecture:\s+(.*)/im;
+    ($size)=m/^Size:\s+(\d+)/im;
+
+    if (! exists $files{"$filename"}{"$suite"}) {
+      $sizes{"$suite"}{"$sect"} += $size;
+      $sizes{"$suite"}{"$architecture"} += $size;
+      if (($suite eq "stable" && exists $dists{oldstable} &&
+	   ! exists $files{"$filename"}{"oldstable"}) ||
+	  ($suite eq "testing" && exists $dists{stable} &&
+	   ! exists $files{"$filename"}{"stable"}) ||
+	  ($suite eq "unstable" && exists $dists{testing} &&
+	   ! exists $files{"$filename"}{"testing"})) {
+	$sizes{"d$suite"}{"$sect"} += $size;
+	$sizes{"d$suite"}{"$architecture"} += $size;
+      }
+    }
+    if (! exists $files{"$filename"}{x}) {
+      $sizes{all}{"$sect"} += $size;
+      $sizes{all}{"$architecture"} += $size;
+    }
+    $files{"$filename"}{x} = 1;
+    $files{"$filename"}{"$suite"} = 1;
+  }
+  $gunzf->gzclose();
+}
+sub parse_sources {
+  my ($file, $suite, $sect) = @_;
+  my ($line, $res, $size, $directory, $filename, $md5sum);
+  my $gunzf = gzopen("$root/$suite/$sect/$file", "rb") or die "$file: $!";
+  my $loop = 1;
+  while ($loop) {
+    my $buf = "";
+    while((($res = $gunzf->gzreadline($line)) > 0)
+	  && !($line =~ /^$/)) {
+      $buf = $buf . $line;
+    }
+    die "$file: $!" if ($res < 0);
+    if ($res == 0) {
+      $loop = 0;
+      next if ($buf eq "");
+    }
+    $_ = $buf;
+    ($directory) = m/^Directory:\s+(.*)/im;
+    while (m/^ ([A-Za-z0-9]{32} .*)/mg) {
+      ($md5sum, $size, $filename)=split(' ', $1, 3);
+      $filename="$directory/$filename";
+      $filename=~s:/+:/:; # remove redundant slashes in paths
+
+      if (! exists $files{"$filename"}{"$suite"}) {
+	$sizes{"$suite"}{"$sect"} += $size;
+	$sizes{"$suite"}{source} += $size;
+	if (($suite eq "stable" && exists $dists{oldstable} &&
+	     ! exists $files{"$filename"}{"oldstable"}) ||
+	    ($suite eq "testing" && exists $dists{stable} &&
+	     ! exists $files{"$filename"}{"stable"}) ||
+	    ($suite eq "unstable" && exists $dists{testing} &&
+	     ! exists $files{"$filename"}{"testing"})) {
+	  $sizes{"d$suite"}{"$sect"} += $size;
+	  $sizes{"d$suite"}{source} += $size;
+	}
+      }
+      if (! exists $files{"$filename"}{x}) {
+	$sizes{all}{"$sect"} += $size;
+	$sizes{all}{source} += $size;
+      }
+      $files{"$filename"}{x} = 1;
+      $files{"$filename"}{$suite} = 1;
+    }
+  }
+  $gunzf->gzclose();
+}
