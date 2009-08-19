@@ -57,7 +57,7 @@ foreach my $suite (@suites) {
 print(" (in MiB)\t");
 foreach my $suite (@suites) {
   next unless exists $dists{$suite};
-  print("\t$dists{$suite}");
+  print("\t".$dists{$suite});
 }
 print("\tall\n");
 foreach my $sect (@sects) {
@@ -95,7 +95,7 @@ print("\n");
 print(" (in MiB)\t");
 foreach my $suite (@suites) {
   next unless exists $dists{$suite};
-  print("\t$dists{$suite}");
+  print("\t".$dists{$suite});
 }
 print("\tall\n");
 foreach my $arch (@arches) {
@@ -193,7 +193,7 @@ sub parse_sources {
 	  $sizes{"d$suite"}{source} += $size;
 	}
       }
-      if (! exists $files{"$filename"}{x}) {
+      if (! exists $files{$filename}{x}) {
 	$sizes{all}{$sect} += $size;
 	$sizes{all}{source} += $size;
       }
