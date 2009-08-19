@@ -54,7 +54,7 @@ foreach my $suite (@suites) {
   }
 }
 
-print("(in MiB)\t");
+print(" (in MiB)\t");
 foreach my $suite (@suites) {
   next unless exists $dists{$suite};
   print("\t$dists{$suite}");
@@ -92,7 +92,7 @@ foreach my $suite (@suites) {
 print("\t".int((1 + $total{all}) /1024/1024)."\n");
 
 print("\n");
-print("(in MiB)\t");
+print(" (in MiB)\t");
 foreach my $suite (@suites) {
   next unless exists $dists{$suite};
   print("\t$dists{$suite}");
