@@ -1,9 +1,10 @@
 #!/usr/bin/perl -w
 
-# This script can be used on a mirror (or e.g. merkel.debian.org)
-# to produce an overview of the size of the archive. The numbers only
-# include the size of packages and source files; it does not include the
-# size of files containing meta data, nor of various separate directories.
+# This script can be used on a mirror (or e.g. merkel.debian.org) to
+# produce an overview of the size of the archive. The numbers reflect
+# the "raw" size of the archive: the size of packages and source files.
+# It does not include the size of files containing meta data, nor of
+# various separate directories.
 
 # Copyright (c) 2009 Frans Pop <fjp@debian.org>
 
@@ -72,7 +73,7 @@ foreach my $sect (@sects) {
       $total{$suite} += $sizes{$suite}{$sect};
       print("\t".int((1 + $sizes{$suite}{$sect}) /1024/1024));
       if (exists $sizes{"d$suite"}{$sect}) {
-        $total{"d$suite"} += $sizes{"d$suite"}{$sect} 
+        $total{"d$suite"} += $sizes{"d$suite"}{$sect};
         print(" (+".int((1 + $sizes{"d$suite"}{$sect}) /1024/1024).")");
       }
     } else {
@@ -129,30 +130,30 @@ sub parse_packages {
       next if ($buf eq "");
     }
     $_ = $buf;
-    ($filename)=m/^Filename:\s+(.*)/im;
-    $filename=~s:/+:/:; # remove redundant slashes in paths
-    ($architecture)=m/^Architecture:\s+(.*)/im;
-    ($size)=m/^Size:\s+(\d+)/im;
+    ($filename) = m/^Filename:\s+(.*)/im;
+    $filename =~ s:/+:/:; # remove redundant slashes in paths
+    ($architecture) = m/^Architecture:\s+(.*)/im;
+    ($size) = m/^Size:\s+(\d+)/im;
 
-    if (! exists $files{"$filename"}{"$suite"}) {
-      $sizes{"$suite"}{"$sect"} += $size;
-      $sizes{"$suite"}{"$architecture"} += $size;
+    if (! exists $files{$filename}{$suite}) {
+      $sizes{$suite}{$sect} += $size;
+      $sizes{$suite}{$architecture} += $size;
       if (($suite eq "stable" && exists $dists{oldstable} &&
-	   ! exists $files{"$filename"}{"oldstable"}) ||
+	   ! exists $files{$filename}{oldstable}) ||
 	  ($suite eq "testing" && exists $dists{stable} &&
-	   ! exists $files{"$filename"}{"stable"}) ||
+	   ! exists $files{$filename}{stable}) ||
 	  ($suite eq "unstable" && exists $dists{testing} &&
-	   ! exists $files{"$filename"}{"testing"})) {
-	$sizes{"d$suite"}{"$sect"} += $size;
-	$sizes{"d$suite"}{"$architecture"} += $size;
+	   ! exists $files{$filename}{testing})) {
+	$sizes{"d$suite"}{$sect} += $size;
+	$sizes{"d$suite"}{$architecture} += $size;
       }
     }
-    if (! exists $files{"$filename"}{x}) {
-      $sizes{all}{"$sect"} += $size;
-      $sizes{all}{"$architecture"} += $size;
+    if (! exists $files{$filename}{x}) {
+      $sizes{all}{$sect} += $size;
+      $sizes{all}{$architecture} += $size;
     }
-    $files{"$filename"}{x} = 1;
-    $files{"$filename"}{"$suite"} = 1;
+    $files{$filename}{x} = 1;
+    $files{$filename}{$suite} = 1;
   }
   $gunzf->gzclose();
 }
@@ -176,28 +177,28 @@ sub parse_sources {
     ($directory) = m/^Directory:\s+(.*)/im;
     while (m/^ ([A-Za-z0-9]{32} .*)/mg) {
       ($md5sum, $size, $filename)=split(' ', $1, 3);
-      $filename="$directory/$filename";
-      $filename=~s:/+:/:; # remove redundant slashes in paths
+      $filename = "$directory/$filename";
+      $filename = ~s:/+:/:; # remove redundant slashes in paths
 
-      if (! exists $files{"$filename"}{"$suite"}) {
-	$sizes{"$suite"}{"$sect"} += $size;
-	$sizes{"$suite"}{source} += $size;
+      if (! exists $files{$filename}{$suite}) {
+	$sizes{$suite}{$sect} += $size;
+	$sizes{$suite}{source} += $size;
 	if (($suite eq "stable" && exists $dists{oldstable} &&
-	     ! exists $files{"$filename"}{"oldstable"}) ||
+	     ! exists $files{$filename}{oldstable}) ||
 	    ($suite eq "testing" && exists $dists{stable} &&
-	     ! exists $files{"$filename"}{"stable"}) ||
+	     ! exists $files{$filename}{stable}) ||
 	    ($suite eq "unstable" && exists $dists{testing} &&
-	     ! exists $files{"$filename"}{"testing"})) {
-	  $sizes{"d$suite"}{"$sect"} += $size;
+	     ! exists $files{$filename}{testing})) {
+	  $sizes{"d$suite"}{$sect} += $size;
 	  $sizes{"d$suite"}{source} += $size;
 	}
       }
       if (! exists $files{"$filename"}{x}) {
-	$sizes{all}{"$sect"} += $size;
+	$sizes{all}{$sect} += $size;
 	$sizes{all}{source} += $size;
       }
-      $files{"$filename"}{x} = 1;
-      $files{"$filename"}{$suite} = 1;
+      $files{$filename}{x} = 1;
+      $files{$filename}{$suite} = 1;
     }
   }
   $gunzf->gzclose();
