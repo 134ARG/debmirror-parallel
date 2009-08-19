@@ -832,6 +832,7 @@ say("Parse Packages and Sources files and add to the file list everything therei
       }
       $_ = $buf;
       ($filename)=m/^Filename:\s+(.*)/im;
+      $filename=~s:/+:/:;	# remove redundant slashes in paths
       ($deb_section)=m/^Section:\s+(.*)/im;
       ($deb_priority)=m/^Priority:\s+(.*)/im;
       ($architecture)=m/^Architecture:\s+(.*)/im;
