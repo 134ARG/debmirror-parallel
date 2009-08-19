@@ -286,37 +286,69 @@ Display a usage summary.
 
 =head1 ARCHIVE SIZE
 
-Mirror size for a singe arch and binary only (in MiB):
+The tables below give an indication of the space needed to mirror the
+archive. They are particularly useful if you wish to set up a partial
+mirror. Only the size of source and binary packages is included.
+You have to allow for around 1-4 GB of meta data (in dists/<dist>) per
+suite (depending in your settings) [1]. Plus whatever space is needed
+for extra directories (e.g. tools, doc) you wish to mirror.
 
-         | sarge | etch |  sid  |  all
----------+-------+------+-------+-------
-main     | 8816  | 9126 | 10777 | 20577
-contrib  |  126  |  118 |   291 |   363
-non-free |  282  |  345 |   464 |   666
-d-i      |   44  |   28 |    31 |    78
-all      | 9187  | 9536 | 11476 | 21502
+The tables also show how much additional space is required if you add
+a release on top of its predecessor. Note that the additional space
+needed for testing and (to a lesser extend) unstable varies during the
+development cycle of a release. The additional space needed for testing
+is zero immediately after a stable release and grows from that time
+onwards.
 
-Mirror size per arch (in MiB):
+Total archive size (binary + source) per section:
 
-         | sarge | etch |  sid  |  all
----------+-------+------+-------+-------
-source   |  9339 | 9419 | 11495 | 17521
-all      |  4478 | 5047 |  6160 | 10459
-alpha    |  4256 | 3906 |  4732 |  9708
-amd64    |  3644 | 3635 |  4877 |  9152
-arm      |  3445 | 3193 |  3933 |  7845
-hppa     |  4112 | 3713 |  4541 |  9167
-i386     |  4422 | 3979 |  5005 | 10477
-ia64     |  4709 | 4489 |  5316 | 11043
-m68k     |  3372 | 3072 |  3664 |  7139
-mips     |  3631 | 3364 |  4099 |  8237
-mipsel   |  3560 | 3319 |  4049 |  8106
-powerpc  |  4208 | 3967 |  4742 |  9915
-s390     |  3673 | 3452 |  4144 |  8489
-sparc    |  3761 | 3585 |  4390 |  8893
+(in MiB) |  etch |      lenny       |     squeeze      |       sid       |    all
+---------+-------+------------------+------------------+-----------------+-------
+main     | 79844 | 119617 (+114304) | 144855 (+109368) | 158548 (+52139) | 355343
+contrib  |   448 |   1379 (+  1264) |   1222 (+   339) |   1284 (+  129) |   2163
+non-free |  1752 |   5274 (+  4749) |   5570 (+  3256) |   6028 (+ 1471) |  11226
+main/d-i |   297 |    360 (+   359) |    363 (+   171) |    353 (+  232) |   1061
+---------+-------+------------------+------------------+-----------------+-------
+total    | 82342 | 126633 (+120678) | 152012 (+113136) | 166215 (+53973) | 369795
 
-All numbers reflect the state of 2005 Dec 9th and do not include any
-filesystem overhead (which adds 1-2GB for ext2/3).
+Archive size per section for a single architecture (i386) without source: 
+
+(in MiB) |  etch |      lenny       |     squeeze      |       sid       |   all
+---------+-------+------------------+------------------+-----------------+-------
+main     | 12985 |  18634 (+ 17833) |  22448 (+ 17507) |  24435 (+ 7340) |  55638
+contrib  |   112 |    341 (+   306) |    285 (+    62) |    289 (+   18) |    499
+non-free |   584 |   1869 (+  1676) |   2161 (+  1294) |   2327 (+  416) |   3971
+main/d-i |    23 |     37 (+    36) |     38 (+    13) |     40 (+   29) |    103
+---------+-------+------------------+------------------+-----------------+-------
+total    | 13707 |  20882 (+ 19851) |  24934 (+ 18876) |  27093 (+ 7803) |  60213
+
+Archive size per architecture (source and arch=all packages are shown
+separately):
+
+(in MiB) |  etch |     lenny        |     squeeze      |       sid       |    all
+---------+-------+------------------+------------------+-----------------+-------
+source   | 13261 |  19291 (+ 15911) |  22466 (+ 13117) |  23935 (+ 3923) |  46122
+all      |  7906 |  12496 (+ 11626) |  14799 (+ 11120) |  16046 (+ 2780) |  33429
+i386     |  5801 |   8385 (+  8225) |  10135 (+  7757) |  11047 (+ 5024) |  26784
+amd64    |  5656 |   8555 (+  8419) |  10359 (+  7879) |  11236 (+ 5124) |  27057
+alpha    |  5853 |   7976 (+  7814) |   9643 (+  7309) |  10309 (+ 3900) |  24855
+arm      |  5122 |   7087 (+  6942) |                  |                 |  12064
+armel    |       |   7179 (+  7179) |   8697 (+  6707) |   9101 (+ 3348) |  17214
+hppa     |  5545 |   7619 (+  7463) |   9220 (+  6872) |   9878 (+ 3312) |  23172
+ia64     |  6478 |   9257 (+  9076) |  11020 (+  8205) |  11681 (+ 4056) |  27790
+mips     |  5356 |   7679 (+  7517) |   9353 (+  7092) |   9775 (+ 2433) |  22379
+mipsel   |  5225 |   7541 (+  7389) |   9166 (+  6940) |   9506 (+ 2742) |  22276
+powerpc  |  5788 |   8247 (+  8094) |  10047 (+  7586) |  10813 (+ 4267) |  25716
+s390     |  5100 |   7562 (+  7410) |   8932 (+  6694) |   9557 (+ 3563) |  22750
+sparc    |  5245 |   7752 (+  7606) |   9551 (+  7235) |  10086 (+ 3307) |  23372
+kfreebsd-i386                       |   4232 (+  4232) |   6655 (+ 3200) |   7432
+kfreebsd-amd64                      |   4386 (+  4386) |   6582 (+ 2987) |   7374
+
+All numbers reflect the state of te archive per 19 Sept 2009.
+
+[1] Note that debmirror keeps an extra copy of all meta data. This is
+necessary to guarantee that the local mirror stays consistent while
+debmirror is running.
 
 =head1 EXAMPLES
 
