@@ -66,7 +66,8 @@ Usage: $0 [--debug] [--progress] [--verbose] [--source|--nosource]
           [--limit-priority=regex] [--dry-run]
           [--proxy=http://user:pass\@url:port/] [--help]
           [--rsync-options=options] [--ignore-small-errors]
-          [--pdiff=use|mirror|none] [--allow-dist-rename]
+          [--pdiff=use|mirror|none] [--omit-suite-symlinks]
+          [--allow-dist-rename]
           mirrordir
 
 For details, see man page.
@@ -278,6 +279,13 @@ Specifying --pdiff=mirror does the same as 'use', but will also include
 the downloaded pdiff files in the local mirror. Specify --pdiff=none to
 completely ignore pdiff files.
 
+=item --omit-suite-symlinks
+
+With this option set, debmirror will not create the 'suite->codename'
+symlink. This is needed for example when mirroring archived Debian
+releases as they will all have either 'stable' or 'oldstable' as
+suite in their Release files.
+
 =item --allow-dist-rename
 
 The directory name for a dist should be equal to its Codename and not to
@@ -449,6 +457,7 @@ our $dry_run_var=0;
 our $rsync_options="-aIL --partial";
 our $ignore_small_errors=0;
 our $pdiff_mode="use";
+our $omit_suite_symlinks=0;
 our $allow_dist_rename=0;
 my @errlog;
 my $HOME;
@@ -505,6 +514,7 @@ GetOptions('debug'                  => \$debug,
 	   'rsync-options=s'        => \$rsync_options,
 	   'ignore-small-errors'    => \$ignore_small_errors,
 	   'pdiff=s'                => \$pdiff_mode,
+           'omit-suite-symlinks'    => \$omit_suite_symlinks,
 	   'allow-dist-rename'      => \$allow_dist_rename,
 	   'help'                   => \$help,
 ) or usage;
@@ -1211,6 +1221,35 @@ foreach my $file (`find . -type f`) {
     }
   }
   $res &= link($file, $mirrordir."/".$file) if (! $dry_run);
+}
+chdir($mirrordir) or die "chdir $mirrordir: $!";
+# Update suite->codename symlinks
+if (! $omit_suite_symlinks && ! $dry_run) {
+  my %suites;
+  opendir (DIR, 'dists') or die "Can't open dists/: $!\n";
+  foreach my $file (grep (!/^\.\.?$/, readdir (DIR))) {
+    if (-l "dists/$file") {
+      my $cur = readlink("dists/$file") or die "Error reading symlink dists/$file: $!";
+      if (exists $dists{$cur} &&
+	  ($file eq $dists{$cur} || $file eq "stable-$dists{$cur}")) {
+        $suites{$file} = "ok";
+      } else {
+	unlink("dists/$file") or die "Failed to remove symlink dists/$file: $!";
+      }
+    }
+  }
+  closedir (DIR);
+
+  foreach my $dist (keys %dists) {
+    next if (! $dists{$dist});
+    my $suite = $dists{$dist};
+    if (! exists $suites{$suite}) {
+      symlink("$dist", "dists/$suite") or die "Failed to create symlink dists/$suite: $!";
+    }
+    if ($suite eq "proposed-updates"&& !exists $suites{"stable-$suite"}) {
+      symlink("$dist", "dists/stable-$suite") or die "Failed to create symlink dists/stable-$suite: $!";
+    }
+  }
 }
 # Post mirror cleanup
 cleanup_unknown_files() if ($post_cleanup);
