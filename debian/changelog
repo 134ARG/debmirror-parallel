@@ -13,6 +13,7 @@ debmirror (1:1.0) UNRELEASED; urgency=low
   * Various improvements of the man page for:
     - the --getcontents switch; with thanks to Slaven Rezic; closes: #524967
     - example commands; with thanks to Karl Goetz; closes: #491326
+    - debmirror.conf configuration file and example
   * Don't fetch Contents files if they are already up-to-date (#436027).
   * Remove reduntant slashes in paths from Package files. Closes: #471946.
     Thanks to Raphael Hertzog for the patch.

@@ -354,7 +354,8 @@ debmirror is running.
 
  debmirror /mirror/debian
 
-Simply make a mirror in /mirror/debian, using all defaults.
+Simply make a mirror in /mirror/debian, using all defaults (or the settings
+defined in debmirror.conf).
 
  debmirror -a i386,sparc -d sid -d etch -s main --nosource \
            -h ftp.nl.debian.org --progress $HOME/debian/mirror
@@ -367,6 +368,13 @@ and testing versions of Debian. Download from ftp.kernel.org.
 Make a mirror using rsync. rsync server is ftp.debian.org::debian.
 
 =head1 FILES
+
+  /etc/debmirror.conf
+  ~/.debmirror.conf
+
+    Debmirror will look for the presence of these files and load them
+    in the indicated order if they exist.
+    See the example in /usr/share/doc/debmirror/examples for syntax.
 
   ~/.gnupg/trustedkeys.gpg
 
