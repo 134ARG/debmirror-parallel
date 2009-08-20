@@ -413,7 +413,7 @@ use LWP::UserAgent;
 # Yeah, I use too many global variables in this program.
 our ($debug, $progress, $verbose, $passive, $skippackages, $getcontents);
 our ($ua, $proxy);
-our (@dists, @sections, @arches, @extra_dirs, @ignores, @excludes, @includes);
+our (@rdists, @sections, @arches, @extra_dirs, @ignores, @excludes, @includes);
 our (@excludes_deb_section, @limit_priority);
 our $check_md5sums = 0;
 our $check_downloads = 0;
@@ -448,6 +448,10 @@ my $HOME;
 require "/etc/debmirror.conf" if -r "/etc/debmirror.conf";
 require "$HOME/.debmirror.conf" if -r "$HOME/.debmirror.conf";
 
+# This hash contains the releases to mirror. The codename is the key and
+# the value is the name of the suite.
+my %dists=();
+
 # This hash holds all the files we know about, If the hash key is false,
 # the file already exists in the mirror (or is locally created) and does not
 # need to be downloaded, if it is true the file needs to be downloaded.
@@ -466,7 +470,7 @@ GetOptions('debug'                  => \$debug,
 	   'user|u=s'               => \$user,
 	   'passwd=s'               => \$passwd,
 	   'root|r=s'               => \$remoteroot,
-	   'dist|d=s'               => \@dists,
+	   'dist|d=s'               => \@rdists,
 	   'section|s=s'            => \@sections,
 	   'arch|a=s'               => \@arches,
 	   'adddir=s'               => \@extra_dirs,
@@ -514,8 +518,8 @@ if (!($pdiff_mode eq "none")) {
 
 # Post-process arrays. Allow commas to separate values the user entered.
 # If the user entered nothing, provide defaults.
-@dists=split(/,/,join(',',@dists));
-@dists=qw(sid) unless @dists;
+@rdists=split(/,/,join(',',@rdists));
+@rdists=qw(sid) unless @rdists;
 @sections=split(/,/,join(',',@sections));
 @sections=qw(main contrib non-free main/debian-installer) unless @sections;
 @arches=split(/,/,join(',',@arches));
@@ -537,7 +541,7 @@ if ($passwd eq "anonymous@") {
   say("Mirroring to $mirrordir from $download_method://$user:XXX\@$host/$remoteroot/");
 }
 say("Arches: ".join(",", @arches));
-say("Dists: ".join(",", @dists));
+say("Dists: ".join(",", @rdists));
 say("Sections: ".join(",", @sections));
 say("Including source.") if $do_source;
 say("Pdiff mode: $pdiff_mode");
@@ -647,16 +651,13 @@ say("Get Release files.");
 # Get Release files without caching for http
 $ua->default_header( "Cache-Control" => "max-age=0" ) if ($ua);
 my (%file_lists_md5, %file_lists_size);
-foreach my $dist (@dists) {
-  make_dir ("dists/$dist");
-  make_dir ("$tempdir/dists/$dist");
-  remote_get("dists/$dist/Release");
-  $files{"dists/$dist/Release"}=1;
-  $files{$tempdir."/"."dists/$dist/Release"}=1;
+foreach my $dist (@rdists) {
+  my ($codename, $suite);
+  my $tdir="$tempdir/.tmp/dists/$dist";
+  make_dir ("$tdir");
+  remote_get("dists/$dist/Release", "$tempdir/.tmp");
   my $t = $num_errors;
-  remote_get("dists/$dist/Release.gpg");
-  $files{"dists/$dist/Release.gpg"}=1;
-  $files{$tempdir."/"."dists/$dist/Release.gpg"}=1;
+  remote_get("dists/$dist/Release.gpg", "$tempdir/.tmp");
   # Check for gpg
   if (!$ignore_release_gpg) {
     if (system("gpgv --version >/dev/null 2>/dev/null")) {
@@ -665,18 +666,18 @@ foreach my $dist (@dists) {
       $num_errors++;
     }
     # Verify Release signature
-    if (-f "$tempdir/dists/$dist/Release.gpg" || -f "$tempdir/dists/$dist/Release") {
+    if (-f "$tdir/Release.gpg" || -f "$tdir/Release") {
       my $gpgv_res="failed";
-      open GPGV, "gpgv 2>/dev/null --status-fd 1 $tempdir/dists/$dist/Release.gpg $tempdir/dists/$dist/Release|";
+      open GPGV, "gpgv 2>/dev/null --status-fd 1 $tdir/Release.gpg $tdir/Release|";
       while (<GPGV>) {
 	$gpgv_res="valid" if /^\[GNUPG:\] VALIDSIG/;
       }
       close GPGV;
       if ($gpgv_res eq "failed" || $debug) {
-	system("gpgv --status-fd 1 $tempdir/dists/$dist/Release.gpg $tempdir/dists/$dist/Release");
+	system("gpgv --status-fd 1 $tdir/Release.gpg $tdir/Release");
       }
       if ($verbose && !$debug) {
-	system("gpgv --status-fd 1 $tempdir/dists/$dist/Release.gpg $tempdir/dists/$dist/Release >/dev/null");
+	system("gpgv --status-fd 1 $tdir/Release.gpg $tdir/Release >/dev/null");
       }
       if ($gpgv_res eq "failed") {
 	say("Release signature does not verify.");
@@ -691,6 +692,46 @@ foreach my $dist (@dists) {
   }
   $num_errors=$t if ($ignore_release_gpg);
 
+  my $buf;
+  if (open RELEASE, "<$tdir/Release") {
+    while (<RELEASE>) {
+      last if /^MD5Sum:/;
+      $buf = $buf . $_;
+    }
+    close RELEASE;
+  }
+  $_ = $buf;
+  ($codename) = m/^Codename:\s+(.*)/im;
+  ($suite) = m/^Suite:\s+(.*)/im;
+  if ($codename) {
+    if ($dist ne $codename && $dist ne $suite) {
+      say("Broken Release file: neither Codename nor Suite matches $dist.");
+      push (@errlog,"Broken Release file: neither Codename nor Suite matches $dist.\n");
+      $num_errors++;
+      next;
+    }
+  } elsif ($suite) {
+    say("Release file does not contain Codename; using Suite ($suite).");
+    $codename = $suite;
+  } else {
+    say("Release file contains neither Codename nor Suite; using $dist.");
+    $codename = $dist;
+  }
+  die("Duplicate Codename $codename.\n") if exists $dists{$codename};
+  $suite = "" if (! $suite);
+  $dists{$codename} = "$suite";
+
+  make_dir ("dists/$codename");
+  make_dir ("$tempdir/dists/$codename");
+  rename("$tdir/Release", "$tempdir/dists/$codename/Release") or die "Error while moving $tdir/Release: $!\n";
+  rename("$tdir/Release.gpg", "$tempdir/dists/$codename/Release.gpg") or die "Error while moving $tdir/Release.gpg: $!\n";
+  $files{"dists/$codename/Release"}=1;
+  $files{$tempdir."/"."dists/$codename/Release"}=1;
+  $files{"dists/$codename/Release.gpg"}=1;
+  $files{$tempdir."/"."dists/$codename/Release.gpg"}=1;
+}
+
+foreach my $dist (keys %dists) {
   # Parse the Release
   if (open RELEASE, "<$tempdir/dists/$dist/Release") {
     while (<RELEASE>) {
@@ -728,7 +769,7 @@ sub add_bytes {
   my $name=shift;
   $bytes_to_get +=  $file_lists_size{"$tempdir/$name"} if (exists $file_lists_size{"$tempdir/$name"});
 }
-foreach my $dist (@dists) {
+foreach my $dist (keys %dists) {
   foreach my $section (@sections) {
     foreach my $arch (@arches) {
       add_bytes("dists/$dist/$section/binary-$arch/Packages");
@@ -760,7 +801,7 @@ foreach (@extra_dirs) {
   }
 }
 if ($getcontents) {
-  foreach my $dist (@dists) {
+  foreach my $dist (keys %dists) {
     foreach my $arch (@arches) {
       next if $dist=~/experimental/;
       next if $dist=~/.*-proposed-updates/;
@@ -776,7 +817,7 @@ if ($getcontents) {
 say("Get Packages and Sources files and other miscellany.");
 # Get Packages and Sources files and other miscellany.
 my (@package_files, @source_files);
-foreach my $dist (@dists) {
+foreach my $dist (keys %dists) {
   foreach my $section (@sections) {
     # no d-i in woody
     next if ($section =~ /debian-installer/ && $dist eq "woody");
@@ -816,7 +857,7 @@ $dry_run = $dry_run_var;
 
 if ($getcontents) {
   say("Get Contents files.");
-  foreach my $dist (@dists) {
+  foreach my $dist (keys %dists) {
     foreach my $arch (@arches) {
       next if $dist=~/experimental/;
       next if $dist=~/.*-proposed-updates/;
@@ -1226,10 +1267,12 @@ sub check_lists {
 
 sub remote_get {
   my $file=shift;
+  my $tdir=shift;
   my $res;
   say("skipping $file") if ($skippackages);
   return 1 if ($skippackages);
-  chdir($tempdir) or die "unable to chdir($tempdir): $!\n";
+  $tdir=$tempdir unless $tdir;
+  chdir($tdir) or die "unable to chdir($tdir): $!\n";
 
   METHOD: {
     $_ = $download_method;
