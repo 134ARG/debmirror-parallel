@@ -66,7 +66,7 @@ Usage: $0 [--debug] [--progress] [--verbose] [--source|--nosource]
           [--limit-priority=regex] [--dry-run]
           [--proxy=http://user:pass\@url:port/] [--help]
           [--rsync-options=options] [--ignore-small-errors]
-          [--pdiff=use|mirror|none]
+          [--pdiff=use|mirror|none] [--allow-dist-rename]
           mirrordir
 
 For details, see man page.
@@ -278,6 +278,15 @@ Specifying --pdiff=mirror does the same as 'use', but will also include
 the downloaded pdiff files in the local mirror. Specify --pdiff=none to
 completely ignore pdiff files.
 
+=item --allow-dist-rename
+
+The directory name for a dist should be equal to its Codename and not to
+a Suite. If the local mirror currently has directories named after Suites.
+debmirror can rename them automatically.
+An existing symlink 'codename->suite' will be removed, but debmirror will
+automatically create a new symlink 'suite->codename' (immediately after
+moving meta files in place). This conversion should only be needed once.
+
 =item --help
 
 Display a usage summary.
@@ -440,6 +449,7 @@ our $dry_run_var=0;
 our $rsync_options="-aIL --partial";
 our $ignore_small_errors=0;
 our $pdiff_mode="use";
+our $allow_dist_rename=0;
 my @errlog;
 my $HOME;
 ($HOME = $ENV{'HOME'}) or die "HOME not defined in environment!\n";
@@ -495,6 +505,7 @@ GetOptions('debug'                  => \$debug,
 	   'rsync-options=s'        => \$rsync_options,
 	   'ignore-small-errors'    => \$ignore_small_errors,
 	   'pdiff=s'                => \$pdiff_mode,
+	   'allow-dist-rename'      => \$allow_dist_rename,
 	   'help'                   => \$help,
 ) or usage;
 usage if $help;
@@ -720,6 +731,16 @@ foreach my $dist (@rdists) {
   die("Duplicate Codename $codename.\n") if exists $dists{$codename};
   $suite = "" if (! $suite);
   $dists{$codename} = "$suite";
+
+  # This should be a one-time conversion only
+  if ($suite) {
+    if (-d "$tempdir/dists/$suite" && !-l "$tempdir/dists/$suite") {
+      rename_distdir("$tempdir/dists", $codename, $suite);
+    }
+    if (-d "dists/$suite" && !-l "dists/$suite") {
+      rename_distdir("dists", $codename, $suite);
+    }
+  }
 
   make_dir ("dists/$codename");
   make_dir ("$tempdir/dists/$codename");
@@ -1721,6 +1742,26 @@ sub cleanup_unknown_files {
       }
     }
   }
+}
+
+sub rename_distdir {
+  my ($dir, $codename, $suite) = @_;
+  say("The directory for a dist should be its codename, not a suite.");
+  if (!$allow_dist_rename) {
+    say("Use --allow-dist-rename to have debmirror do the conversion automatically.");
+    exit 1;
+  }
+  say("Starting conversion - renaming '$dir/$suite' to '$dir/$codename':");
+  if (-l "$dir/$codename") {
+    say("  removing symlink '$dir/$codename'; a new symlink for the suite will be created later");
+    unlink "$dir/$codename";
+  }
+  if (-d "$dir/$codename") {
+    say("  directory '$dir/$codename' already exists; aborting conversion");
+    exit 1;
+  }
+  rename("$dir/$suite", "$dir/$codename");
+  say("  conversion completed successfully");
 }
 
 sub say {
