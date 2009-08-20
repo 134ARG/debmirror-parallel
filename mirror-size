@@ -14,9 +14,9 @@ use Getopt::Long;
 use File::Temp qw/ tempfile /;
 use Compress::Zlib;
 
-our @arches=("source","all","i386","amd64","alpha","arm","armel","hppa","ia64","m68k","mips","mipsel","powerpc","s390","sparc","kfreebsd-i386","kfreebsd-amd64");
-our @sects=("main","contrib","non-free","main/debian-installer");
-our @suites=("oldstable","stable","testing","unstable");
+our @arches= qw(source all i386 amd64 alpha arm armel hppa ia64 m68k mips mipsel powerpc s390 sparc kfreebsd-i386 kfreebsd-amd64);
+our @sects= qw(main contrib non-free main/debian-installer);
+our @suites= qw(oldstable stable testing unstable);
 our %dists;
 our (@source_files, @package_files);
 our (%files, %sizes, %total);
