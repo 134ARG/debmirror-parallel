@@ -10,8 +10,9 @@ debmirror (1:1.0) UNRELEASED; urgency=low
     them on the local mirror either.
   * Apply patch from A. Mennucc for more efficient removal of empty
     directories. Closes: #453091.
-  * Improve man page for --getcontents switch. Closes: #524967.
-    Thanks to Slaven Rezic for the suggestion.
+  * Various improvements of the man page for:
+    - the --getcontents switch; with thanks to Slaven Rezic; closes: #524967
+    - example commands; with thanks to Karl Goetz; closes: #491326
   * Don't fetch Contents files if they are already up-to-date (#436027).
   * Remove reduntant slashes in paths from Package files. Closes: #471946.
     Thanks to Raphael Hertzog for the patch.

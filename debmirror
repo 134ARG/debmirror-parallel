@@ -356,14 +356,13 @@ debmirror is running.
 
 Simply make a mirror in /mirror/debian, using all defaults.
 
- debmirror -a i386,sparc -s main -h ftp.kernel.org \
-           -d sid -d etch /home/me/debian/mirror --nosource \
-           --progress
+ debmirror -a i386,sparc -d sid -d etch -s main --nosource \
+           -h ftp.nl.debian.org --progress $HOME/debian/mirror
 
 Make a mirror of i386 and sparc binaries, main only, and include both unstable
 and testing versions of Debian. Download from ftp.kernel.org.
 
- debmirror -e rsync -r :debian /home/me/debian/mirror
+ debmirror -e rsync -r :debian $HOME/debian/mirror
 
 Make a mirror using rsync. rsync server is ftp.debian.org::debian.
 
