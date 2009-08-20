@@ -3,7 +3,7 @@ Section: net
 Priority: extra
 Maintainer: Frans Pop <fjp@debian.org>
 Build-Depends: debhelper (>= 7.0.50)
-Standards-Version: 3.8.2
+Standards-Version: 3.8.3
 Vcs-Svn: svn://svn.debian.org/debmirror/trunk/
 
 Package: debmirror
