@@ -1814,8 +1814,11 @@ sub debug {
 =head1 COPYRIGHT
 
 This program is copyright 2001 by Joey Hess <joeyh@debian.org>, under
-the terms of the GNU GPL, copyright 2003 by Goswin von Brederlow
-<brederlo@informatik.uni-tuebingen.de>.
+the terms of the GNU GPL (either version 2 of the licence or, at your
+option, any later version), copyright 2001-2002 by Joerg Wendland
+<joergland@debian.org>, copyright 2003-2007 by Goswin von Brederlow
+<brederlo@informatik.uni-tuebingen.de> and copyright 2009 by
+Frans Pop <fjp@debian.org>.
 
 The author disclaims any responsibility for any mangling of your system,
 unexpected bandwidth usage bills, meltdown of the Debian mirror network, 
@@ -1823,9 +1826,13 @@ etc, that this script may cause. See NO WARRANTY section of GPL.
 
 =head1 AUTHOR
 
-Current: Goswin von Brederlow <brederlo@informatik.uni-tuebingen.de>
-Previous authors: Joey Hess <joeyh@debian.org>
-                  Joerg Wendland <joergland@debian.org>
+Current maintainer: Frans Pop <fjp@debian.org>
+
+Previous authors:
+
+   Joey Hess <joeyh@debian.org> (original author)
+   Joerg Wendland <joergland@debian.org>
+   Goswin von Brederlow <brederlo@informatik.uni-tuebingen.de>
 
 =head1 MOTTO
 

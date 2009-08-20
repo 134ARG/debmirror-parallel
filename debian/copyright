@@ -1,10 +1,20 @@
 This package was put together by Joerg Wendland <joergland@debian.org>
 on Thu Oct 25 17:12:13 CEST 2001
 
-The upstream author was Joey Hess <joeyh@debian.org>, the script
-itself was maintained by Joerg Wendland <joergland@debian.org> and
-later by Goswin von Brederlow <brederlo@informatik.uni-tuebingen.de>
-for some time, and is now maintained by Frans Pop <fjp@debian.org>.
+The original author of the script is Joey Hess <joeyh@debian.org>.
+Later the script itself was maintained for some time by Joerg Wendland
+<joergland@debian.org> and by Goswin von Brederlow
+<brederlo@informatik.uni-tuebingen.de>.
+It is currently being maintained by Frans Pop <fjp@debian.org>.
 
-License: The debmirror script is licensed under the terms of the GNU
-         General Public License (see /usr/share/common-licenses/GPL).
+Copyright:
+    Copyright 2001      Joey Hess <joeyh@debian.org>
+    Copyright 2001-2002 Joerg Wendland <joergland@debian.org>
+    Copyright 2003-2007 Goswin von Brederlow <brederlo@informatik.uni-tuebingen.de>
+    Copyright 2009      Frans Pop <fjp@debian.org>
+
+License:
+    The debmirror script is licensed under the terms of the GNU
+    General Public License, either version 2 of licence (see
+    /usr/share/common-licenses/GPL-2) or (at your option) any later
+    version.
