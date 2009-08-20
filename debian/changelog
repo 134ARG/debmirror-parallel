@@ -3,7 +3,7 @@ debmirror (1:1.0) unstable; urgency=low
   * Switch to more common versioning scheme; requires an epoch.
   * Clarify version of GPL (version 2 or later).
   * Update periods of activity for various maintainers of the script both
-    in the perl script and in the debian/copyright file.
+    in the perl script and in the debian/copyright file. Closes: #542061.
   * Set more accurate versioned build dependency on debhelper.
   * Apply patch from Kees Cook to make parsing of Packages/Sources files a bit
     less fragile. Closes: #451021.
