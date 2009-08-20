@@ -23,7 +23,7 @@ debmirror (1:1.0) unstable; urgency=low
     debmirror to automatically do the conversion for you. This should
     only need to be done once.
 
- -- Frans Pop <fjp@debian.org>  Thu, 20 Aug 2009 10:09:46 +0200
+ -- Frans Pop <fjp@debian.org>  Thu, 20 Aug 2009 19:44:02 +0200
 
 debmirror (20070123) unstable; urgency=low
 
