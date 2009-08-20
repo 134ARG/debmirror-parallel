@@ -7,16 +7,19 @@ debmirror (1:1.0) unstable; urgency=low
     mirror. The only exception is when the remote mirror itself does
     not contain a gzipped Packages/Sources file.
 
-  * Automatic creation and update of codename->suite symlinks
+  * Automatic creation and update of suite->codename symlinks
 
     Debmirror will now extract the correct codename and suite from
     the Release file and use those for the local mirror. The directory
-    name of a release will always be the codename, and a symlink will
+    name for a release will always be the codename, and a symlink will
     be created for the suite. This means it no longer makes any
     difference whether you pass --dists=<codename> or --dists=<suite>.
 
+    A new option --omit-suite-symlinks allows to skip creation of the
+    symlinks (e.g. when mirroring archived releases).
+
     Your local mirror will need to be converted if it currently uses
-    suites as directories. Use the --omit-suite-symlinks to allow
+    suites as directories. Use the --allow-dist-rename option to allow
     debmirror to automatically do the conversion for you. This should
     only need to be done once.
 
