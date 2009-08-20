@@ -1,9 +1,11 @@
 debmirror (1:1.0) unstable; urgency=low
 
-  * In line with official Debian mirrors, debmirror will no longer
-    include uncompressed Packages and Sources files on the local mirror.
-    The only exception is when the remote mirror itself does not contain
-    a gzipped Packages/Sources file.
+  * Uncompressed Packages/Sources files
+
+    In line with official Debian mirrors, debmirror will no longer
+    include uncompressed Packages and Sources files on the local
+    mirror. The only exception is when the remote mirror itself does
+    not contain a gzipped Packages/Sources file.
 
   * Automatic creation and update of codename->suite symlinks
 
