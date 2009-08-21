@@ -5,6 +5,7 @@ Maintainer: Frans Pop <fjp@debian.org>
 Build-Depends: debhelper (>= 7.0.50)
 Standards-Version: 3.8.3
 Vcs-Svn: svn://svn.debian.org/debmirror/trunk/
+Vcs-Browser: http://svn.debian.org/wsvn/debmirror/trunk/
 
 Package: debmirror
 Architecture: all
