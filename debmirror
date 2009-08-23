@@ -809,7 +809,8 @@ foreach my $dist (keys %dists) {
       add_bytes("dists/$dist/$section/binary-$arch/Release");
       add_bytes("dists/$dist/$section/binary-$arch/Packages.diff/Index") unless ($pdiff_mode eq "none");
     }
-    if ($do_source) {
+    # d-i does not have separate source sections
+    if ($do_source && $section !~ /debian-installer/) {
       add_bytes("dists/$dist/$section/source/Sources");
       add_bytes("dists/$dist/$section/source/Sources.gz");
       add_bytes("dists/$dist/$section/source/Sources.bz2");
@@ -859,7 +860,10 @@ foreach my $dist (keys %dists) {
     foreach my $arch (@arches) {
       get_index("dists/$dist/$section/binary-$arch", "Packages");
     }
-    get_index("dists/$dist/$section/source", "Sources") if ($do_source);
+    # d-i does not have separate source sections
+    if ($do_source && $section !~ /debian-installer/) {
+      get_index("dists/$dist/$section/source", "Sources");
+    }
   }
 }
 foreach (@extra_dirs) {

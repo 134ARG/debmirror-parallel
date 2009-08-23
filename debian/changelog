@@ -1,3 +1,11 @@
+debmirror (1:1.0.1) UNRELEASED; urgency=low
+
+  * Skip debian-installer sections for source packages. D-I only has binary
+    packages; the source is included in the regular sections. Closes: #542826.
+    Based on a patch from Ernesto Hernández-Novich, with thanks.
+
+ -- Frans Pop <fjp@debian.org>  Sat, 22 Aug 2009 00:09:18 +0200
+
 debmirror (1:1.0) unstable; urgency=low
 
   * Switch to more common versioning scheme; requires an epoch.
