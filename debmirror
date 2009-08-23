@@ -739,7 +739,8 @@ foreach my $dist (@rdists) {
     $codename = $dist;
   }
   die("Duplicate Codename $codename.\n") if exists $dists{$codename};
-  $suite = "" if (! $suite);
+  # For experimental the suite is the same as the codename
+  $suite = "" if (! $suite || $suite eq $codename);
   $dists{$codename} = "$suite";
 
   # This should be a one-time conversion only
