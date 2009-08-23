@@ -1,4 +1,4 @@
-debmirror (1:1.0.1) UNRELEASED; urgency=low
+debmirror (1:1.0.1) unstable; urgency=low
 
   * Skip debian-installer sections for source packages. D-I only has binary
     packages; the source is included in the regular sections. Closes: #542826.
@@ -6,7 +6,7 @@ debmirror (1:1.0.1) UNRELEASED; urgency=low
   * Allow for the fact that for experimental the suite and codename are
     identical. Thanks to Craig Sanders. Closes: #542929.
 
- -- Frans Pop <fjp@debian.org>  Sat, 22 Aug 2009 00:09:18 +0200
+ -- Frans Pop <fjp@debian.org>  Sun, 23 Aug 2009 07:05:24 +0200
 
 debmirror (1:1.0) unstable; urgency=low
 
