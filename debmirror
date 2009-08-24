@@ -900,10 +900,6 @@ if ($getcontents) {
       next if $arch=~/source/;
       if (!check_lists ("$tempdir/dists/$dist/Contents-$arch.gz")) {
 	remote_get("dists/$dist/Contents-$arch.gz");
-	if (!check_lists ("$tempdir/dists/$dist/Contents-$arch.gz")) {
-	  say("dists/$dist/Contents-$arch.gz failed md5sum check, removing");
-	  unlink "$tempdir/dists/$dist/Contents-$arch.gz";
-	}
       }
       $files{"dists/$dist/Contents-$arch.gz"}=1;
       $files{$tempdir."/"."dists/$dist/Contents-$arch.gz"}=1;
@@ -1544,11 +1540,8 @@ sub get_index {
     if (!check_lists ("$tempdir/$subdir/$file.diff/Index")) {
       make_dir("$tempdir/$subdir/$file.diff");
       say("$subdir/$file.diff/Index needs fetch");
-      remote_get("$subdir/$file.diff/Index");
-      if (!check_lists ("$tempdir/$subdir/$file.diff/Index")) {
-	say("$subdir/$file.diff/Index failed md5sum check, removing");
+      if (!remote_get("$subdir/$file.diff/Index")) {
 	push (@errlog,"$subdir/$file.diff/Index failed md5sum check, removing\n");
-	unlink "$tempdir/$subdir/$file.diff/Index";
       } else {
 	fetch_and_apply_pdiffs($subdir, $file);
 	if (check_lists ("$tempdir/$subdir/$file")) {
@@ -1571,12 +1564,10 @@ sub get_index {
   if (exists $file_lists_size{"$tempdir/$subdir/$file.gz"}) {
     if (!check_lists ("$tempdir/$subdir/$file.gz")) {
       say("$subdir/$file.gz needs fetch");
-      remote_get("$subdir/$file.gz");
-      if (check_lists ("$tempdir/$subdir/$file.gz")) {
+      if (remote_get("$subdir/$file.gz")) {
 	system_redirect_io("gzip -d", "$tempdir/$subdir/$file.gz", "$tempdir/$subdir/$file");
 	system_redirect_io("bzip2", "$tempdir/$subdir/$file", "$tempdir/$subdir/$file.bz2");
       } else {
-	say("$subdir/$file.gz failed md5sum check");
 	push (@errlog,"$subdir/$file.gz failed md5sum check\n");
 	$num_errors++;
       }
@@ -1599,11 +1590,9 @@ sub get_index {
   if (exists $file_lists_size{"$tempdir/$subdir/$file"}) {
     if (!check_lists ("$tempdir/$subdir/$file")) {
       say("$subdir/$file needs fetch");
-      remote_get("$subdir/$file");
-      if (check_lists ("$tempdir/$subdir/$file")) {
+      if (remote_get("$subdir/$file")) {
 	system_redirect_io("bzip2", "$tempdir/$subdir/$file", "$tempdir/$subdir/$file.bz2");
       } else {
-	say("$subdir/$file failed md5sum check");
 	push (@errlog,"$subdir/$file failed md5sum check\n");
 	$num_errors++;
       }
@@ -1614,11 +1603,8 @@ sub get_index {
   if (exists $file_lists_size{"$tempdir/$subdir/$file.bz2"}) {
     if (!check_lists ("$tempdir/$subdir/$file.bz2")) {
       say("$subdir/$file.bz2 needs fetch");
-      remote_get("$subdir/$file.bz2");
-      if (!check_lists ("$tempdir/$subdir/$file.bz2")) {
-	say("$subdir/$file.bz2 failed md5sum check, removing");
+      if (!remote_get("$subdir/$file.bz2")) {
 	push (@errlog,"$subdir/$file.bz2 failed md5sum check, removing\n");
-	unlink "$tempdir/$subdir/$file.bz2";
       }
     } else {
       $bytes_gotten += $file_lists_size{"$tempdir/$subdir/$file.bz2"};
@@ -1627,11 +1613,8 @@ sub get_index {
   if (exists $file_lists_size{"$tempdir/$subdir/Release"}) {
     if (!check_lists ("$tempdir/$subdir/Release")) {
       say("$subdir/Release needs fetch");
-      remote_get("$subdir/Release");
-      if (!check_lists ("$tempdir/$subdir/Release")) {
-	say("$subdir/Release failed md5sum check, removing");
+      if (!remote_get("$subdir/Release")) {
 	push (@errlog,"$subdir/Release failed md5sum check, removing\n");
-	unlink "$tempdir/$subdir/Release";
       }
     } else {
       $bytes_gotten += $file_lists_size{"$tempdir/$subdir/Release"};
