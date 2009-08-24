@@ -1059,7 +1059,7 @@ DOWNLOAD: {
     last DOWNLOAD;
   };
 
-  # hyyp method
+  # http method
   /^http$/ && do {
     # LWP stuff
     my $dirname;
