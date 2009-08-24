@@ -40,7 +40,7 @@ removed.
 
 The Packages and Sources files are scanned, to build up a list of all the
 files they refer to. A few other miscellaneous files are added to the list.
-Then the program makes sure that each file in the list is present on the 
+Then the program makes sure that each file in the list is present on the
 local mirror and is up-to-date, using file size (and optionally md5sum) checks.
 Any necessary files are downloaded.
 
@@ -82,7 +82,7 @@ EOF
 =item mirrordir
 
 This required parameter specifies where the local mirror directory is. If the
-directory does not exist, it will be created. Be careful; telling this 
+directory does not exist, it will be created. Be careful; telling this
 program that your home directory is the mirrordir is guaranteed to replace
 your home directory with a Debian mirror!
 
@@ -328,7 +328,7 @@ main/d-i |   297 |    360 (+   359) |    363 (+   171) |    353 (+  232) |   106
 ---------+-------+------------------+------------------+-----------------+-------
 total    | 82342 | 126633 (+120678) | 152012 (+113136) | 166215 (+53973) | 369795
 
-Archive size per section for a single architecture (i386) without source: 
+Archive size per section for a single architecture (i386) without source:
 
  (in MiB)|  etch |      lenny       |     squeeze      |       sid       |   all
 ---------+-------+------------------+------------------+-----------------+-------
@@ -514,7 +514,7 @@ GetOptions('debug'                  => \$debug,
 	   'rsync-options=s'        => \$rsync_options,
 	   'ignore-small-errors'    => \$ignore_small_errors,
 	   'pdiff=s'                => \$pdiff_mode,
-           'omit-suite-symlinks'    => \$omit_suite_symlinks,
+	   'omit-suite-symlinks'    => \$omit_suite_symlinks,
 	   'allow-dist-rename'      => \$allow_dist_rename,
 	   'help'                   => \$help,
 ) or usage;
@@ -1237,7 +1237,7 @@ if (! $omit_suite_symlinks && ! $dry_run) {
       my $cur = readlink("dists/$file") or die "Error reading symlink dists/$file: $!";
       if (exists $dists{$cur} &&
 	  ($file eq $dists{$cur} || $file eq "stable-$dists{$cur}")) {
-        $suites{$file} = "ok";
+	$suites{$file} = "ok";
       } else {
 	unlink("dists/$file") or die "Failed to remove symlink dists/$file: $!";
       }
@@ -1825,7 +1825,7 @@ option, any later version), copyright 2001-2002 by Joerg Wendland
 <goswin-v-b@web.de> and copyright 2009 by Frans Pop <fjp@debian.org>.
 
 The author disclaims any responsibility for any mangling of your system,
-unexpected bandwidth usage bills, meltdown of the Debian mirror network, 
+unexpected bandwidth usage bills, meltdown of the Debian mirror network,
 etc, that this script may cause. See NO WARRANTY section of GPL.
 
 =head1 AUTHOR
