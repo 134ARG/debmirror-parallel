@@ -361,7 +361,7 @@ sparc    |  5245 |   7752 (+  7606) |   9551 (+  7235) |  10086 (+ 3307) |  2337
 kfreebsd-i386                       |   4232 (+  4232) |   6655 (+ 3200) |   7432
 kfreebsd-amd64                      |   4386 (+  4386) |   6582 (+ 2987) |   7374
 
-All numbers reflect the state of te archive per 19 Sept 2009.
+All numbers reflect the state of te archive per 19 Aug 2009.
 
 [1] Note that debmirror keeps an extra copy of all meta data. This is
 necessary to guarantee that the local mirror stays consistent while
