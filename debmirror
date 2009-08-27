@@ -1049,7 +1049,7 @@ say("Parse Packages and Sources files and add to the file list everything therei
 # Pre-mirror cleanup
 cleanup_unknown_files() if ($cleanup && ! $post_cleanup);
 
-say("Download all files that we need to get (".print_dl_size($bytes_to_get).").");
+say("Download all files that we need to get (".print_dl_size($bytes_to_get - $bytes_meta).").");
 # Download all files that we need to get.
 DOWNLOAD: {
   init_connection;
