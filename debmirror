@@ -1439,6 +1439,7 @@ sub hftp_get {
     $ret = $ua->mirror($url, $file);
     print $ret->status_line . "\n" if ($debug);
     if ($ret->is_error) {
+      $files{$file} = -1;
       warn "$file failed " . $ret->status_line . "\n" if ($progress or $verbose);
       push (@errlog,"Download of $file failed: ".$ret->status_line);
       $num_errors++;
@@ -1472,6 +1473,7 @@ sub http_get {
     $ret = $ua->mirror($url, $file);
     print $ret->status_line . "\n" if ($debug);
     if ($ret->is_error) {
+      $files{$file} = -1;
       warn "$file failed " . $ret->status_line . "\n" if ($progress or $verbose);
       push (@errlog,"Download of $file failed: ".$ret->status_line);
       $num_errors++;
@@ -1526,9 +1528,8 @@ sub ftp_get {
       my $mtime=$ftp->mdtm($file);
       utime($mtime, $mtime, $file) if defined $mtime;
     } else {
-      if ($progress or $verbose) {
-	warn " failed:".$ftp->message;
-      }
+      $files{$file} = -1;
+      warn " failed:".$ftp->message if ($progress or $verbose);
       push (@errlog,"Download of $file failed: ".$ftp->message);
       $num_errors++;
     }
@@ -1554,6 +1555,7 @@ sub rsync_get {
   if ($? == 0 && -f $file) {
     return 1;
   } else {
+    $files{$file} = -1;
     push (@errlog,"Download of $file failed\n");
     $num_errors++;
     return 0;
