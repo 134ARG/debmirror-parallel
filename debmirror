@@ -1917,12 +1917,24 @@ sub save_state_cache {
     }
   }
   # Add state cache meta data
+  my $now = time();
   $files{cache_version} = $files_cache_version;
   $files{cache_expiration_time} = $state_cache_exptime ?
-    $state_cache_exptime : (time() + $state_cache_days * 24 * 60 * 60);
+    $state_cache_exptime : ($now + $state_cache_days * 24 * 60 * 60);
   if (! nstore(\%files, $cache_file)) {
     say("Failed to save state cache.");
     unlink $cache_file if -f $cache_file;
+  } else {
+    my $expires = int(($state_cache_exptime - $now) / (60 * 60)); # hours
+    if ($expires > 0) {
+      my $days = int($expires / 24);
+      my $hours = int($expires - ($days * 24));
+      say("State cache will expire in " .
+	  ($days ? "$days day(s)" : ($hours ? "" : "the next hour")) .
+	  ($hours ? ($days ? " and " : "") . "$hours hour(s)" : "") . ".");
+    } else {
+      say("State cache expired during this run.");
+    }
   }
 }
 
