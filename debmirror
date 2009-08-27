@@ -1758,8 +1758,7 @@ sub rename_distdir {
   my ($dir, $codename, $suite) = @_;
   say("The directory for a dist should be its codename, not a suite.");
   if (!$allow_dist_rename) {
-    say("Use --allow-dist-rename to have debmirror do the conversion automatically.");
-    exit 1;
+    die("Use --allow-dist-rename to have debmirror do the conversion automatically.\n");
   }
   say("Starting conversion - renaming '$dir/$suite' to '$dir/$codename':");
   if (-l "$dir/$codename") {
@@ -1767,8 +1766,7 @@ sub rename_distdir {
     unlink "$dir/$codename";
   }
   if (-d "$dir/$codename") {
-    say("  directory '$dir/$codename' already exists; aborting conversion");
-    exit 1;
+    die("Directory '$dir/$codename' already exists; aborting conversion.\n");
   }
   rename("$dir/$suite", "$dir/$codename");
   say("  conversion completed successfully");
