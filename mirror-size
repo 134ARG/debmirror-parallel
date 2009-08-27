@@ -19,13 +19,15 @@ our @sects= qw(main contrib non-free main/debian-installer);
 our @suites= qw(oldstable stable testing unstable);
 our %dists;
 our (@source_files, @package_files);
-our (%files, %sizes, %total);
+our (%files, %sizes, %total, %width);
 
 our $root="/srv/ftp.debian.org/ftp/dists";
 chdir($root) or die "chdir $root: $!";
 
 my ($tfh, $tfile) = tempfile();
 END { unlink $tfile if $tfile }
+
+### Collect the data
 
 foreach my $suite (@suites) {
   next unless -f "$root/$suite/Release";
@@ -57,63 +59,86 @@ foreach my $suite (@suites) {
   }
 }
 
-print(" (in MiB)\t");
+### Print the tables
+
 foreach my $suite (@suites) {
   next unless exists $dists{$suite};
-  print("\t".$dists{$suite});
+  $width{$suite} = exists $sizes{"d$suite"} ? 16 : 6;
 }
-print("\tall\n");
+
+printf("%10s ", "(in MiB)");
+foreach my $suite (@suites) {
+  next unless exists $dists{$suite};
+  printf("| %$width{$suite}s ", $dists{$suite});
+}
+printf("| %6s\n", "all");
+print_ruler();
 foreach my $sect (@sects) {
   next unless exists $sizes{all}{$sect};
   if ($sect eq "main/debian-installer") {
-    print("main/d-i");
+    printf("%-10s", "main/d-i");
   } else {
-    print("$sect");
+    printf("%-10s", $sect);
   }
   foreach my $suite (@suites) {
     next unless exists $dists{$suite};
     if (exists $sizes{$suite}{$sect}) {
       $total{$suite} += $sizes{$suite}{$sect};
-      print("\t".int((1 + $sizes{$suite}{$sect}) /1024/1024));
+      printf(" | %6i", int((1 + $sizes{$suite}{$sect}) /1024/1024));
       if (exists $sizes{"d$suite"}{$sect}) {
         $total{"d$suite"} += $sizes{"d$suite"}{$sect};
-        print(" (+".int((1 + $sizes{"d$suite"}{$sect}) /1024/1024).")");
+        printf(" (+%6i)", int((1 + $sizes{"d$suite"}{$sect}) /1024/1024));
       }
     } else {
-      print("\t");
+      print(" | " . (" " x $width{$suite}));
     }
   }
-  print("\t".int((1 + $sizes{all}{$sect}) /1024/1024)."\n");
+  printf(" | %6i\n", int((1 + $sizes{all}{$sect}) /1024/1024));
   $total{all} += $sizes{all}{$sect};
 }
-print("total");
+print_ruler();
+printf("%-9s ", "total");
 foreach my $suite (@suites) {
   next unless exists $dists{$suite};
-  print("\t".int((1 + $total{$suite}) /1024/1024));
-  print(" (+".int((1 + $total{"d$suite"}) /1024/1024).")") if exists $total{"d$suite"};
+  printf(" | %6i", int((1 + $total{$suite}) /1024/1024));
+  printf(" (+%6i)", int((1 + $total{"d$suite"}) /1024/1024)) if exists $total{"d$suite"};
 }
-print("\t".int((1 + $total{all}) /1024/1024)."\n");
+printf(" | %6i", int((1 + $total{all}) /1024/1024)."\n");
 
-print("\n");
-print(" (in MiB)\t");
+print("\n\n");
+printf("%10s ", "(in MiB)");
 foreach my $suite (@suites) {
   next unless exists $dists{$suite};
-  print("\t".$dists{$suite});
+  printf("| %$width{$suite}s ", $dists{$suite});
 }
-print("\tall\n");
+printf("| %6s\n", "all");
+print_ruler();
 foreach my $arch (@arches) {
   next unless exists $sizes{all}{$arch};
-  print("$arch");
+  my $parch = $arch;
+  $parch =~ s/kfree/k/;
+  printf("%-10s", $parch);
   foreach my $suite (@suites) {
     next unless exists $dists{$suite};
     if (exists $sizes{$suite}{$arch}) {
-      print("\t".int((1 + $sizes{$suite}{$arch}) /1024/1024));
-      print(" (+".int((1 + $sizes{"d$suite"}{$arch}) /1024/1024).")") if exists $sizes{"d$suite"}{$arch};
+      printf(" | %6i", int((1 + $sizes{$suite}{$arch}) /1024/1024));
+      printf(" (+%6i)", int((1 + $sizes{"d$suite"}{$arch}) /1024/1024)) if exists $sizes{"d$suite"}{$arch};
     } else {
-      print("\t");
+      printf(" | " . (" " x $width{$suite}));
     }
   }
-  print("\t".int((1 + $sizes{all}{$arch}) /1024/1024)."\n");
+  printf(" | %6i\n", int((1 + $sizes{all}{$arch}) /1024/1024));
+}
+
+### Functions
+
+sub print_ruler {
+  print("-" x 11);
+  foreach my $suite (@suites) {
+    next unless exists $dists{$suite};
+    print("|" . "-" x ($width{$suite} + 2));
+  }
+  print("|" . "-" x 7 . "\n");
 }
 
 sub parse_packages {
