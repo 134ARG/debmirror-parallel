@@ -1377,11 +1377,13 @@ sub add_bytes_gotten {
 }
 
 # Pass this function a filename, a file size (bytes), and a md5sum (hex).
-# It will return true if the md5sum matches.
+# Size is always checked; checking the md5sum is optional. However, if
+# a value of -1 is passed for size, a check of the md5sum is forced.
+# It will return true if the tests show the file matches.
 sub check_file {
   my ($filename, $size, $md5sum)=@_;
-  if (-f $filename and $size == -s _) {
-    if ($check_md5sums) {
+  if (-f $filename and ($size == -s _ || $size == -1)) {
+    if ($check_md5sums || $size == -1) {
       open HANDLE, $filename or
 	die "$filename: $!";
       $md5->addfile(*HANDLE);
