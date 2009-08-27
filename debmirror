@@ -460,6 +460,7 @@ our $cleanup=0;
 our $post_cleanup=1;
 our $no_cleanup=0;
 our $do_source=1;
+our $do_di_images=1;
 our $host="ftp.debian.org";
 our $user="anonymous";
 our $passwd="anonymous@";
@@ -505,6 +506,10 @@ my %dists=();
 # Values -1 and 2 can occur in the state cache; see $files_cache_version
 # below! Filenames should be relative to $mirrordir.
 my %files;
+
+# Separate hash for files belonging to Debian Installer images.
+# This data is not cached.
+my %di_files;
 
 ## State cache meta-data
 my $use_cache = 0;
@@ -576,6 +581,11 @@ if (!($pdiff_mode eq "none")) {
 
 # Backwards compatibility: remote root dir no longer needs prefix
 $remoteroot =~ s%^[:/]%%;
+
+# D-I images only supported over http
+if ($do_di_images && $download_method ne "http") {
+  die("Mirroring Debian Installer images is currently only supported over http.");
+}
 
 # Post-process arrays. Allow commas to separate values the user entered.
 # If the user entered nothing, provide defaults.
@@ -899,6 +909,8 @@ foreach (@extra_dirs) {
   }
 }
 
+# Get and parse MD5SUMS files for D-I images.
+di_add_files() if $do_di_images;
 
 say("Get Packages and Sources files and other miscellany.");
 # Get Packages and Sources files and other miscellany.
@@ -1291,6 +1303,7 @@ foreach my $file (`find . -type f`) {
   }
 }
 chdir($mirrordir) or die "chdir $mirrordir: $!";
+
 # Update suite->codename symlinks
 if (! $omit_suite_symlinks && ! $dry_run) {
   my %suites;
@@ -1319,6 +1332,9 @@ if (! $omit_suite_symlinks && ! $dry_run) {
     }
   }
 }
+
+# Download D-I images.
+di_get_files() if $do_di_images;
 
 # Write out trace file.
 if (! $dry_run) {
@@ -1863,6 +1879,7 @@ sub cleanup_unknown_files {
   if ($use_cache) {
     say(": using cache.");
     foreach my $file (sort keys %files) {
+      next if ($do_di_images && $file =~ m:/installer-\w+/current/images/:);
       if ($files{$file} == 2 && -f $file) {
 	say("deleting $file") if ($verbose);
 	if (! $dry_run) {
@@ -1879,6 +1896,7 @@ sub cleanup_unknown_files {
     foreach my $file (`find . -type f`) {
       chomp $file;
       $file=~s:^\./::;
+      next if ($do_di_images && $file =~ m:/installer-\w+/current/images/:);
       unless ((exists $files{$file} && $files{$file} != 2) or
 	      (defined($ignore) && $file=~/$ignore/o)) {
 	say("deleting $file") if ($verbose);
@@ -1888,6 +1906,129 @@ sub cleanup_unknown_files {
       }
     }
   }
+  # Clean up obsolete files of D-I images.
+  di_cleanup() if $do_di_images;
+}
+
+# FIXME: does not work
+sub get_http_size {
+  my $file = shift;
+  my $url = "http://${host}/${remoteroot}/${file}";
+  my ($type, $size);
+  ($type, $size) = $ua->head($url);
+  say("$url -- $size");
+  return $size;
+}
+
+sub di_add_files {
+  my $tdir = "$tempdir/d-i";
+
+  foreach my $dist (keys %dists) {
+    foreach my $arch (@arches) {
+      next if $arch =~ /kfreebsd-/;
+
+      my $image_dir = "dists/$dist/main/installer-$arch/current/images";
+      make_dir ("$tdir/$image_dir");
+      if (!remote_get("$image_dir/MD5SUMS", $tdir)) {
+	say("Failed to download $image_dir/MD5SUMS; skipping.");
+	return;
+      }
+      if (-f "$tdir/$image_dir/MD5SUMS") {
+	$bytes_to_get += -s _; # As we did not have the size earlier
+      }
+
+      local $/;
+      undef $/; # Read whole file
+      open(FILE, "<", "$tdir/$image_dir/MD5SUMS") or die "$tdir/$image_dir/MD5SUMS: $!";
+      $_ = <FILE>;
+      while (m/^([A-Za-z0-9]{32}  .*)/mg) {
+	my ($md5sum, $filename);
+	($md5sum, $filename)=split(' ', $1, 3);
+	$filename =~ s:^\./::;
+	$di_files{$image_dir}{$filename}{md5sum} = $md5sum;
+	#$di_files{$image_dir}{$filename}{size} = get_http_size("$image_dir/$filename");
+
+	# Check against the version currently on the mirror
+	if (check_file("$image_dir/$filename", -1, $md5sum)) {
+	  $di_files{$image_dir}{$filename}{status} = 1;
+	} else {
+	  $di_files{$image_dir}{$filename}{status} = 0;
+	}
+      }
+      close(FILE);
+    }
+  }
+}
+
+sub di_get_files {
+  say("Getting Debian Installer images.");
+  my $tdir = "$tempdir/d-i";
+  my $lres = 1;
+
+  foreach my $image_dir (sort keys %di_files) {
+    foreach my $file (sort keys %{ $di_files{$image_dir} }) {
+      # Fetch images into a temporary location
+      $file =~ m:(^.*)/:;
+      make_dir ("$tdir/$image_dir/$1") if $1;
+      if (! $di_files{$image_dir}{$file}{status}) {
+	if (!remote_get("$image_dir/$file", $tdir) ||
+            !check_file("$tdir/$image_dir/$file", -1, $di_files{$image_dir}{$file}{md5sum})) {
+	  $lres = 0;
+	  last if (! $dry_run);
+	}
+	if (-f "$tdir/$image_dir/$file") {
+	  $bytes_to_get += -s _; # As we did not have the size in add_di_files()
+	}
+      }
+    }
+
+    # Move images in place on mirror
+    if ($lres && ! $dry_run) {
+      foreach my $file (sort keys %{ $di_files{$image_dir} }) {
+	if (! $di_files{$image_dir}{$file}{status}) {
+	  $file =~ m:(^.*)/:;
+	  make_dir ("$image_dir/$1") if $1;
+	  if (-f "$image_dir/$file") {
+	    unlink "$image_dir/$file";
+	  }
+	  link("$tdir/$image_dir/$file", "$image_dir/$file");
+        }
+      }
+      # Move the MD5SUMS file in place on mirror
+      link("$tdir/$image_dir/MD5SUMS", "$image_dir/MD5SUMS");
+    } elsif (! $dry_run) {
+      say("Failed to download some files in $image_dir; not updating images.");
+    }
+  }
+}
+
+sub di_cleanup {
+  # Clean up obsolete files
+  foreach my $image_dir (`find dists/ -type d -name images`) {
+    next unless $image_dir =~ m:/installer-\w+/current/images$:;
+    chomp $image_dir;
+    chdir("$image_dir") or die "unable to chdir($image_dir): $!\n";
+    foreach my $file (`find . -type f`) {
+      chomp $file;
+      $file=~s:^\./::;
+      if (! exists $di_files{$image_dir} || ! exists $di_files{$image_dir}{$file}) {
+	next if (exists $di_files{$image_dir} && $file eq "MD5SUMS");
+	say("deleting $image_dir/$file") if ($verbose);
+	if (! $dry_run) {
+	  unlink "$file" or die "unlink $image_dir/$file: $!\n";
+	}
+      }
+    }
+    chdir("$mirrordir") or die "unable to chdir($tempdir): $!\n";
+  }
+  # Clean up temporary D-I files (silently)
+  chdir("$tempdir/d-i") or die "unable to chdir($tempdir/d-i): $!\n";
+  foreach my $file (`find . -type f`) {
+    chomp $file;
+    $file=~s:^\./::;
+    unlink "$file" or die "unlink $tempdir/d-i/$file: $!\n";
+  }
+  chdir("$mirrordir") or die "unable to chdir($mirrordir): $!\n";
 }
 
 sub rename_distdir {
