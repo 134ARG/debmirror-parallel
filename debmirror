@@ -676,9 +676,9 @@ foreach my $dist (@rdists) {
   my ($codename, $suite);
   my $tdir="$tempdir/.tmp/dists/$dist";
   make_dir ("$tdir");
-  remote_get("dists/$dist/Release", "$tempdir/.tmp");
+  next unless remote_get("dists/$dist/Release", "$tempdir/.tmp");
   my $t = $num_errors;
-  remote_get("dists/$dist/Release.gpg", "$tempdir/.tmp");
+  next unless remote_get("dists/$dist/Release.gpg", "$tempdir/.tmp");
   # Check for gpg
   if (!$ignore_release_gpg) {
     if (system("gpgv --version >/dev/null 2>/dev/null")) {
