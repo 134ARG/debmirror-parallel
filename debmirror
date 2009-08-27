@@ -453,6 +453,7 @@ our ($debug, $progress, $verbose, $passive, $skippackages, $getcontents);
 our ($ua, $proxy);
 our (@rdists, @sections, @arches, @extra_dirs, @ignores, @excludes, @includes);
 our (@excludes_deb_section, @limit_priority);
+our (@di_dists, @di_arches);
 our $state_cache_days = 0;
 our $check_md5sums = 0;
 our $check_downloads = 0;
@@ -460,7 +461,6 @@ our $cleanup=0;
 our $post_cleanup=1;
 our $no_cleanup=0;
 our $do_source=1;
-our $do_di_images=1;
 our $host="ftp.debian.org";
 our $user="anonymous";
 our $passwd="anonymous@";
@@ -534,6 +534,8 @@ GetOptions('debug'                  => \$debug,
 	   'section|s=s'            => \@sections,
 	   'arch|a=s'               => \@arches,
 	   'adddir=s'               => \@extra_dirs,
+	   'di-dist=s'              => \@di_dists,
+	   'di-arch=s'              => \@di_arches,
 	   'cleanup'                => \$cleanup,
 	   'postcleanup'            => \$post_cleanup,
 	   'nocleanup'              => \$no_cleanup,
@@ -583,7 +585,7 @@ if (!($pdiff_mode eq "none")) {
 $remoteroot =~ s%^[:/]%%;
 
 # D-I images only supported over http
-if ($do_di_images && $download_method ne "http") {
+if (@di_dists && $download_method ne "http") {
   die("Mirroring Debian Installer images is currently only supported over http.");
 }
 
@@ -596,6 +598,15 @@ if ($do_di_images && $download_method ne "http") {
 @arches=split(/,/,join(',',@arches));
 @arches=qw(i386) unless @arches;
 @arches=() if (join(',',@arches) eq "none");
+@di_dists=split(/,/,join(',',@di_dists));
+@di_arches=split(/,/,join(',',@di_arches));
+if (@di_dists) {
+  @di_dists = @rdists if ($di_dists[0] eq "dists");
+  @di_arches = @arches if (!@di_arches || $di_arches[0] eq "arches");
+} elsif (@di_arches) {
+  @di_dists = @rdists if (!@di_dists);
+  @di_arches = @arches if ($di_arches[0] eq "arches");
+}
 $cleanup=0 if ($no_cleanup);
 $post_cleanup=0 if ($no_cleanup);
 $post_cleanup=0 if ($cleanup);
@@ -615,6 +626,8 @@ say("Arches: ".join(",", @arches));
 say("Dists: ".join(",", @rdists));
 say("Sections: ".join(",", @sections));
 say("Including source.") if $do_source;
+say("D-I arches: ".join(",", @di_arches));
+say("D-I dists: ".join(",", @di_dists));
 say("Pdiff mode: $pdiff_mode");
 say("Checking md5sums.") if $check_md5sums;
 say("Passive mode on.") if $passive;
@@ -910,7 +923,7 @@ foreach (@extra_dirs) {
 }
 
 # Get and parse MD5SUMS files for D-I images.
-di_add_files() if $do_di_images;
+di_add_files() if @di_dists;
 
 say("Get Packages and Sources files and other miscellany.");
 # Get Packages and Sources files and other miscellany.
@@ -1334,7 +1347,7 @@ if (! $omit_suite_symlinks && ! $dry_run) {
 }
 
 # Download D-I images.
-di_get_files() if $do_di_images;
+di_get_files() if @di_dists;
 
 # Write out trace file.
 if (! $dry_run) {
@@ -1879,7 +1892,7 @@ sub cleanup_unknown_files {
   if ($use_cache) {
     say(": using cache.");
     foreach my $file (sort keys %files) {
-      next if ($do_di_images && $file =~ m:/installer-\w+/current/images/:);
+      next if (@di_dists && $file =~ m:installer-\w+/current/images/:);
       if ($files{$file} == 2 && -f $file) {
 	say("deleting $file") if ($verbose);
 	if (! $dry_run) {
@@ -1896,7 +1909,7 @@ sub cleanup_unknown_files {
     foreach my $file (`find . -type f`) {
       chomp $file;
       $file=~s:^\./::;
-      next if ($do_di_images && $file =~ m:/installer-\w+/current/images/:);
+      next if (@di_dists && $file =~ m:installer-\w+/current/images/:);
       unless ((exists $files{$file} && $files{$file} != 2) or
 	      (defined($ignore) && $file=~/$ignore/o)) {
 	say("deleting $file") if ($verbose);
@@ -1907,7 +1920,7 @@ sub cleanup_unknown_files {
     }
   }
   # Clean up obsolete files of D-I images.
-  di_cleanup() if $do_di_images;
+  di_cleanup() if @di_dists;
 }
 
 # FIXME: does not work
@@ -1923,8 +1936,8 @@ sub get_http_size {
 sub di_add_files {
   my $tdir = "$tempdir/d-i";
 
-  foreach my $dist (keys %dists) {
-    foreach my $arch (@arches) {
+  foreach my $dist (@di_dists) {
+    foreach my $arch (@di_arches) {
       next if $arch =~ /kfreebsd-/;
 
       my $image_dir = "dists/$dist/main/installer-$arch/current/images";
