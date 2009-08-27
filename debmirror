@@ -1315,7 +1315,6 @@ sub remote_get {
   my $file=shift;
   my $tdir=shift;
   my $res;
-  say("skipping $file") if ($skippackages);
   return 1 if ($skippackages);
   $tdir=$tempdir unless $tdir;
   chdir($tdir) or die "unable to chdir($tdir): $!\n";
@@ -1351,7 +1350,6 @@ sub remote_get {
     };
 
     /^rsync$/ && do {
-      say("remote_get rsync $file");
       $res=rsync_get($file);
       $res=$res && check_lists($file);
       if (!$res) {
