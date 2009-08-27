@@ -1035,7 +1035,7 @@ say("Parse Packages and Sources files and add to the file list everything therei
 # Pre-mirror cleanup
 cleanup_unknown_files() if ($cleanup && ! $post_cleanup);
 
-say("Download all files that we need to get (".int(1+$bytes_to_get/1024/1024)." MiB).");
+say("Download all files that we need to get (".print_dl_size($bytes_to_get).").");
 # Download all files that we need to get.
 DOWNLOAD: {
   init_connection;
@@ -1199,7 +1199,7 @@ $avg_speed = sprintf("%3.0f",($bytes_gotten / $total_time)) unless ($total_time 
 if ($bytes_gotten == 0) {
   say("Downloaded files in ".$total_time."s");
 } else {
-  say("Downloaded ".int(1+$bytes_gotten/1024/1024)." MiB in ".$total_time."s at ".(int($avg_speed/1024*100)/100)." kiB/s");
+  say("Downloaded ".print_dl_size($bytes_gotten)." in ".$total_time."s at ".(int($avg_speed/1024*100)/100)." kiB/s");
 }
 
 print "Errors:\n ".join(" ",@errlog) if (@errlog);
@@ -1276,6 +1276,21 @@ if ($res == 0) {
 }
 
 exit;
+
+sub print_dl_size {
+  my $size=shift;
+  my $unit;
+  if ($size >= 10*1000*1024) {
+    $size=int($size/1024/1024);
+    $unit="MiB";
+  } elsif ($size >= 10*1000) {
+    $size=int($size/1024);
+    $unit="kiB";
+  } else {
+    $unit="B";
+  }
+  return "$size $unit";
+}
 
 # Pass this function a filename, a file size (bytes), and a md5sum (hex).
 # It will return true if the md5sum matches.
