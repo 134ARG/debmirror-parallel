@@ -13,7 +13,7 @@ rsync and package pool support
 
 =head1 SYNOPSIS
 
-debmirror [options] mirrordir
+debmirror [options] <mirrordir>
 
 =head1 DESCRIPTION
 
@@ -51,24 +51,23 @@ Any necessary files are downloaded.
 sub usage {
   warn join(" ", @_)."\n" if @_;
   warn <<EOF;
-Usage: $0 [--debug] [--progress] [--verbose] [--source|--nosource]
-          [--md5sums] [--passive] [--host=remotehost]
+Usage: $0 [--progress] [--verbose] [--debug] [--dry-run] [--help]
+          [--host=remotehost] [--root=directory]
+          [--method=ftp|hftp|http|rsync] [--passive]
           [--user=remoteusername] [--passwd=remoteuserpassword]
-          [--method=ftp|hftp|http|rsync]
-          [--timeout=seconds] [--root=directory]
-          [--dist=foo[,bar,..] ...] [--section=foo[,bar,..] ...]
-          [--arch=foo[,bar,..] ...] [--skippackages] [--getcontents]
-          [--postcleanup|--cleanup|--nocleanup] [--adddir=directory]
+          [--proxy=http://user:pass\@url:port/]
+          [--dist=foo[,bar,..] ...] [--omit-suite-symlinks]
+          [--section=foo[,bar,..] ...] [--arch=foo[,bar,..] ...]
+          [--adddir=directory] [--pdiff=use|mirror|none]
+          [--source|--nosource] [--getcontents] [--md5sums]
+          [--ignore-missing-release] [--ignore-release-gpg]
           [--ignore=regex] [--exclude=regex] [--include=regex]
-          [--exclude-deb-section=regex] [--max-batch=number]
-          [--rsync-batch=number] [--ignore-missing-release]
-          [--ignore-release-gpg]
-          [--limit-priority=regex] [--dry-run]
-          [--proxy=http://user:pass\@url:port/] [--help]
-          [--rsync-options=options] [--ignore-small-errors]
-          [--pdiff=use|mirror|none] [--omit-suite-symlinks]
-          [--allow-dist-rename]
-          mirrordir
+          [--exclude-deb-section=regex] [--limit-priority=regex]
+          [--timeout=seconds] [--max-batch=number]
+          [--rsync-batch=number] [--rsync-options=options]
+          [--postcleanup|--cleanup|--nocleanup] [--skippackages]
+          [--ignore-small-errors] [--allow-dist-rename]
+          <mirrordir>
 
 For details, see man page.
 EOF
@@ -79,16 +78,12 @@ EOF
 
 =over 4
 
-=item mirrordir
+=item <mirrordir>
 
 This required parameter specifies where the local mirror directory is. If the
 directory does not exist, it will be created. Be careful; telling this
 program that your home directory is the mirrordir is guaranteed to replace
 your home directory with a Debian mirror!
-
-=item --debug
-
-Enables verbose debug output, including ftp protocol dump.
 
 =item --progress -p
 
@@ -98,28 +93,41 @@ Displays progress bars as files are downloaded.
 
 Displays progress between file downloads.
 
-=item --source
+=item --debug
 
-Include source in the mirror (default).
+Enables verbose debug output, including ftp protocol dump.
 
-=item --nosource
+=item --dry-run
 
-Do not include source.
+Simulate a mirror run. This will still download the meta files to .temp
+but won't replace the old meta files, won't download debs and source
+files and only simulates cleanup.
 
-=item --md5sums -m
+=item --help
 
-Use md5sums to determine if files on the local mirror that are the correct
-size actually have the correct content. Not enabled by default, because
-it is too paranoid, and too slow.
-
-=item --passive
-
-Download in passive mode.
+Display a usage summary.
 
 =item --host=remotehost -h
 
 Specify the remote host to mirror from. Defaults to ftp.debian.org,
 you are strongly encouraged to find a closer mirror.
+
+=item --root=directory -r directory
+
+Specifies the directory on the remote host that is the root of the Debian
+archive. Defaults to "/debian", which will work for most mirrors. The root
+directory has a dists/ subdirectory.
+
+=item --method=ftp|hftp|http|rsync -e
+
+Specify the method to download files. Currently, supported methods are
+ftp, hftp (ftp over http proxy), http or rsync. To connect a rsync
+server, you need to put ':' prefix in the root directory
+(i.e. ":debian", which means host::debian).
+
+=item --passive
+
+Download in passive mode.
 
 =item --user=remoteusername -u
 
@@ -131,28 +139,9 @@ dealing with brain damaged proxy servers. Defaults to anonymous.
 Specify the remote user password to use to log into the remote ftp host.
 It is used with --user and defaults to anonymous@.
 
-=item --method=ftp|hftp|http|rsync -e
-
-Specify the method to download files. Currently, supported methods are
-ftp, hftp (ftp over http proxy), http or rsync. To connect a rsync
-server, you need to put ':' prefix in the root directory
-(i.e. ":debian", which means host::debian).
-
 =item --proxy=http://user:pass@url:port/
 
 Specifies the http proxy (like Squid) to use for http and hftp method.
-
-=item --timeout=seconds -t
-
-Specifies the timeout to use for network operations (either FTP or rsync).
-Set this to a higher value if you experience failed downloads. Defaults
-to 300 seconds.
-
-=item --root=directory -r directory
-
-Specifies the directory on the remote host that is the root of the Debian
-archive. Defaults to "/debian", which will work for most mirrors. The root
-directory has a dists/ subdirectory.
 
 =item --dist=foo[,bar,..] -d foo
 
@@ -161,6 +150,13 @@ mirror. This switch may be used multiple times, and multiple
 distributions may be specified at once, separated by commas. Using the
 links (stable, testing, unstable) does not have the expected results
 but you may add those links manually. Defaults to mirroring sid.
+
+=item --omit-suite-symlinks
+
+With this option set, debmirror will not create the 'suite->codename'
+symlink. This is needed for example when mirroring archived Debian
+releases as they will all have either 'stable' or 'oldstable' as
+suite in their Release files.
 
 =item --section=foo[,bar,..] -s foo
 
@@ -171,6 +167,98 @@ main,contrib,non-free,main/debian-installer.
 
 Specify the architectures to mirror. The default is --arch=i386.
 Specifying --arch=none will mirror no archs.
+
+=item --adddir directory
+
+Also download Packages and Sources files from the specified directory
+on the remote host (the directory is relative to the root of the
+Debian archive). If you used this option for "--adddir
+dists/proposed-updates" in the past use "--dist
+<dist>-proposed-updates" now. This feature is now obsolete and will be
+removed soon.
+
+=item --pdiff=use|mirror|none
+
+If --pdiff=use is specified and the Release file contains entries for
+pdiff files, then debmirror will attempt to use them to update the
+Packages and Sources files (can reduce download size of meta files),
+but will not include them in the mirror. This is the default behavior
+and avoids having time consuming pdiff files for a fast local mirror.
+Specifying --pdiff=mirror does the same as 'use', but will also include
+the downloaded pdiff files in the local mirror. Specify --pdiff=none to
+completely ignore pdiff files.
+
+=item --source
+
+Include source in the mirror (default).
+
+=item --nosource
+
+Do not include source.
+
+=item --getcontents
+
+Additionally download Contents.arch.gz files.
+
+=item --md5sums -m
+
+Use md5sums to determine if files on the local mirror that are the correct
+size actually have the correct content. Not enabled by default, because
+it is too paranoid, and too slow.
+
+=item --ignore-missing-release
+
+Don't fail if the Release file is missing.
+
+=item --ignore-release-gpg
+
+Don't fail if the Release.gpg file is missing.
+
+=item --ignore=regex
+
+Never delete any files whose filenames match the regex. May be used multiple times.
+
+=item --exclude=regex
+
+Never download any files whose filenames match the regex. May be used multiple times.
+
+=item --include=regex
+
+Don't exclude any files whose filenames match the regex. May be used multiple times.
+
+=item --exclude-deb-section=regex
+
+Never download any files whose Debian Section (games, doc, oldlibs,
+science, ...) match the regex.  May be used multiple times.
+
+=item --limit-priority=regex
+
+Limit download to files whose Debian Priority (required, extra,
+optional, ...) match the regex.  May be used multiple times.
+
+=item --timeout=seconds -t
+
+Specifies the timeout to use for network operations (either FTP or rsync).
+Set this to a higher value if you experience failed downloads. Defaults
+to 300 seconds.
+
+=item --max-batch=number
+
+Download at most max-batch number of files (and ignore rest).
+
+=item --rsync-batch=number
+
+Download at most number of files with each rsync call and then loop.
+
+=item --rsync-options=options
+
+Specify alternative rsync options to be used. Default options are
+"-aIL --partial". Care must be taken when specifying alternative
+options not to disrupt operations, it's best to only add to those
+options.
+
+The most likely option to add is "--bwlimit=x" to avoid saturating the
+bandwidth of your link.
 
 =item --postcleanup
 
@@ -186,77 +274,10 @@ step 2 above).
 
 Do not clean up the local mirror after mirroring is complete.
 
-=item --ignore=regex
-
-Never delete any files whose filenames match the regex. May be used multiple times.
-
-=item --exclude=regex
-
-Never download any files whose filenames match the regex. May be used multiple times.
-
-=item --exclude-deb-section=regex
-
-Never download any files whose Debian Section (games, doc, oldlibs,
-science, ...) match the regex.  May be used multiple times.
-
-=item --limit-priority=regex
-
-Limit download to files whose Debian Priority (required, extra,
-optional, ...) match the regex.  May be used multiple times.
-
-=item --include=regex
-
-Don't exclude any files whose filenames match the regex. May be used multiple times.
-
 =item --skippackages
 
 Don't re-download Packages and Sources files. Useful if you know they are
 up-to-date.
-
-=item --adddir directory
-
-Also download Packages and Sources files from the specified directory
-on the remote host (the directory is relative to the root of the
-Debian archive). If you used this option for "--adddir
-dists/proposed-updates" in the past use "--dist
-<dist>-proposed-updates" now. This feature is now obsolete and will be
-removed soon.
-
-=item --getcontents
-
-Additionally download Contents.arch.gz files.
-
-=item --max-batch=number
-
-Download at most max-batch number of files (and ignore rest).
-
-=item --rsync-batch=number
-
-Download at most number of files with each rsync call and then loop.
-
-=item --ignore-missing-release
-
-Don't fail if the Release file is missing.
-
-=item --ignore-release-gpg
-
-Don't fail if the Release.gpg file is missing.
-
-=item --dry-run
-
-Simulate a mirror run. This will still download the meta files to .temp
-but won't replace the old meta files, won't download debs and source
-files and only simulates cleanup.
-
-=item --rsync-options=options
-
-Specify alternative rsync options to be used. Default options are
-"-aIL --partial". Care must be taken when specifying alternative
-options not to disrupt operations, it's best to only add to those
-options.
-
-The most likely option to add is "--bwlimit=x" to avoid saturating the
-bandwidth of your link.
 
 =item --ignore-small-errors
 
@@ -268,24 +289,6 @@ upstream mirror actually is broken. Specifying --ignore-small-errors
 causes debmirror to ignore missing or broken deb and source files but
 still be pedantic about checking meta files.
 
-=item --pdiff=use|mirror|none
-
-If --pdiff=use is specified and the Release file contains entries for
-pdiff files, then debmirror will attempt to use them to update the
-Packages and Sources files (can reduce download size of meta files),
-but will not include them in the mirror. This is the default behavior
-and avoids having time consuming pdiff files for a fast local mirror.
-Specifying --pdiff=mirror does the same as 'use', but will also include
-the downloaded pdiff files in the local mirror. Specify --pdiff=none to
-completely ignore pdiff files.
-
-=item --omit-suite-symlinks
-
-With this option set, debmirror will not create the 'suite->codename'
-symlink. This is needed for example when mirroring archived Debian
-releases as they will all have either 'stable' or 'oldstable' as
-suite in their Release files.
-
 =item --allow-dist-rename
 
 The directory name for a dist should be equal to its Codename and not to
@@ -294,10 +297,6 @@ debmirror can rename them automatically.
 An existing symlink 'codename->suite' will be removed, but debmirror will
 automatically create a new symlink 'suite->codename' (immediately after
 moving meta files in place). This conversion should only be needed once.
-
-=item --help
-
-Display a usage summary.
 
 =back
 
