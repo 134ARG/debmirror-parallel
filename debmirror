@@ -449,6 +449,8 @@ our $rsync_batch=200;
 our $num_errors=0;
 our $bytes_to_get=0;
 our $bytes_gotten=0;
+our $bytes_meta=0;
+our $doing_meta=1;
 our $ignore_release=0;
 our $ignore_release_gpg=0;
 our $start_time = time;
@@ -813,7 +815,14 @@ if ($num_errors != 0) {
 init_connection if ($ua);
 
 # Calculate expected downloads for meta files
-$bytes_to_get = $bytes_gotten;
+# As we don't actually download most of the meta files (due to getting
+# only one compression variant or using pdiffs), we keep a separate count
+# of the actual downloaded amount of data in $bytes_meta.
+
+# The root Release files have already been downloaded
+$bytes_to_get = $bytes_meta;
+$bytes_gotten = $bytes_meta;
+
 sub add_bytes {
   my $name=shift;
   $bytes_to_get +=  $file_lists_size{"$tempdir/$name"} if (exists $file_lists_size{"$tempdir/$name"});
@@ -891,6 +900,11 @@ foreach (@extra_dirs) {
   get_packages($_, "Packages");
   get_sources($_, "Sources") if ($do_source);
 }
+
+# Set download size for meta files to actual values
+$doing_meta=0;
+$bytes_to_get=$bytes_meta;
+$bytes_gotten=$bytes_meta;
 
 # Sanity check. I once nuked a mirror because of this..
 if (@arches && ! @package_files) {
@@ -1292,6 +1306,14 @@ sub print_dl_size {
   return "$size $unit";
 }
 
+sub add_bytes_gotten {
+  my $size=shift;
+  $bytes_gotten += $size;
+  if ($doing_meta) {
+    $bytes_meta += $size;
+  }
+}
+
 # Pass this function a filename, a file size (bytes), and a md5sum (hex).
 # It will return true if the md5sum matches.
 sub check_file {
@@ -1459,7 +1481,7 @@ sub http_get {
   }
   # Account for actual bytes gotten
   my @stat = stat $file;
-  $bytes_gotten += $stat[7] if (@stat);
+  add_bytes_gotten($stat[7]) if (@stat);
 
   $| = $oldautoflush;
   return $ret;
@@ -1484,7 +1506,7 @@ sub ftp_get {
 	&& $size == $stat[7]
 	&& $mtime == $stat[9]) { # size and time match
       print "[$percent%] Keeping: $file\n" if ($progress || $verbose);
-      $bytes_gotten += $size;
+      add_bytes_gotten($size);
       return 1;
     }
   }
@@ -1509,7 +1531,7 @@ sub ftp_get {
     }
   }
   my $size=$ftp->size($file);
-  $bytes_gotten += $size if $size;
+  add_bytes_gotten($size) if $size;
   $| = $oldautoflush;
   print "\n" if (($verbose and not $progress) or ($dry_run and $progress));
   return $ret;
