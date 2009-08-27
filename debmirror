@@ -335,10 +335,12 @@ moving meta files in place). This conversion should only be needed once.
 
 Debmirror will only mirror the "current" images that are on the remote
 mirror. At least one of the options --di-dist or --di-arch must be
-passed to enable mirroring of the images. The special values "dists"
-resp. "arches" can be used to tell debmirror to use the same dists and
-architectures for D-I images as for the archive. If either option is not
-set, it will default to the same.
+passed to enable mirroring of the images.
+
+The special values "dists" resp. "arches" can be used to tell debmirror
+to use the same dists and architectures for D-I images as for the archive,
+but it is also possible to specify different values. If either option is
+not set, it will default to the same values as for the archive.
 
 =head2 Limitations
 
@@ -765,7 +767,7 @@ my (%file_lists_md5, %file_lists_size);
 foreach my $dist (@rdists) {
   my $tdir="$tempdir/.tmp/dists/$dist";
   next unless get_release($tdir, $dist);
-  my ($codename, $suite) = name_release($tdir, $dist);
+  my ($codename, $suite, $dist_sdir) = name_release("mirror", $tdir, $dist);
 
   make_dir ("dists/$codename$dist_sdir");
   make_dir ("$tempdir/dists/$codename$dist_sdir");
@@ -776,6 +778,9 @@ foreach my $dist (@rdists) {
   $files{"dists/$codename$dist_sdir/Release.gpg"}=1;
   $files{$tempdir."/"."dists/$codename$dist_sdir/Release.gpg"}=1;
 }
+
+# Check that @di_dists contains valid codenames
+di_check_dists() if @di_dists;
 
 foreach my $dist (keys %dists) {
   next unless exists $dists{$dist}{mirror};
@@ -1252,6 +1257,9 @@ foreach my $file (`find . -type f`) {
 }
 chdir($mirrordir) or die "chdir $mirrordir: $!";
 
+# Download D-I images.
+di_get_files() if @di_dists;
+
 # Update suite->codename symlinks
 if (! $omit_suite_symlinks && ! $dry_run) {
   my %suites;
@@ -1271,6 +1279,7 @@ if (! $omit_suite_symlinks && ! $dry_run) {
 
   foreach my $dist (keys %dists) {
     next if (! exists $dists{$dist}{suite});
+    next if (!-d "dists/$dist");
     my $suite = $dists{$dist}{suite};
     if (! exists $suites{$suite}) {
       symlink("$dist", "dists/$suite") or die "Failed to create symlink dists/$suite: $!";
@@ -1280,9 +1289,6 @@ if (! $omit_suite_symlinks && ! $dry_run) {
     }
   }
 }
-
-# Download D-I images.
-di_get_files() if @di_dists;
 
 # Write out trace file.
 if (! $dry_run) {
@@ -1651,7 +1657,7 @@ sub get_release {
 }
 
 sub name_release {
-  my ($tdir, $dist) = @_;
+  my ($type, $tdir, $dist) = @_;
   my ($buf, $codename, $suite);
 
   if (open RELEASE, "<$tdir/Release") {
@@ -1687,8 +1693,8 @@ sub name_release {
   $suite = "" if (! $suite || $suite eq $codename);
 
   die("Duplicate dist $codename$dist_sdir.\n")
-    if exists $dists{"$codename$dist_sdir"}{mirror};
-  $dists{"$codename$dist_sdir"}{mirror} = 1;
+    if exists $dists{"$codename$dist_sdir"}{$type};
+  $dists{"$codename$dist_sdir"}{$type} = 1;
   die("Conflicting suites '$suite' and '$dists{$codename}{suite}' for $codename.\n")
     if (exists $dists{"$codename"}{suite} && ($suite ne $dists{$codename}{suite}));
   $dists{$codename}{suite} = "$suite" if ($suite);
@@ -1703,7 +1709,7 @@ sub name_release {
     }
   }
 
-  return ($codename, $suite);
+  return ($codename, $suite, $dist_sdir);
 }
 
 # Get Index file in the passed subdirectory.
@@ -1976,10 +1982,32 @@ sub get_http_size {
   return $size;
 }
 
+sub di_check_dists {
+  say("Checking validity of D-I dists.");
+  DI_DIST:
+  for my $di_dist (@di_dists) {
+    next if exists $dists{$di_dist}; # dist with valid codename
+    foreach my $dist (keys %dists) {
+      my ($dist_raw, $dist_sdir) = split_dist($dist);
+      if ($di_dist eq $dists{$dist_raw}{suite}) {
+	$dists{"$dist_raw$dist_sdir"}{"d-i"} = 1; # suite, use codename instead
+	next DI_DIST;
+      }
+    }
+    # Only mirroring D-I images, not the archive itself
+    my $tdir="$tempdir/.tmp/dists/$di_dist";
+    next unless get_release($tdir, $di_dist);
+    name_release("d-i", $tdir, $di_dist);
+    unlink "$tdir/Release";
+    unlink "$tdir/Release.gpg";
+  }
+}
+
 sub di_add_files {
   my $tdir = "$tempdir/d-i";
 
-  foreach my $dist (@di_dists) {
+  foreach my $dist (keys %dists) {
+    next unless exists $dists{$dist}{"d-i"};
     foreach my $arch (@di_arches) {
       next if $arch =~ /kfreebsd-/;
 
