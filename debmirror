@@ -1218,23 +1218,8 @@ DOWNLOAD: {
   };
 }
 
-# Finish up.
-if ($download_method eq 'ftp') { $ftp->quit; }
-
-my $total_time = time - $start_time;
-my $avg_speed = 0;
-$avg_speed = sprintf("%3.0f",($bytes_gotten / $total_time)) unless ($total_time == 0);
-if ($bytes_gotten == 0) {
-  say("Downloaded files in ".$total_time."s");
-} else {
-  say("Downloaded ".print_dl_size($bytes_gotten)." in ".$total_time."s at ".(int($avg_speed/1024*100)/100)." kiB/s");
-}
-
-print "Errors:\n ".join(" ",@errlog) if (@errlog);
-
-if ($num_errors != 0) {
-  print "Failed to download files ($num_errors errors)!\n";
-  exit 1 if (!$ignore_small_errors);
+if (! @di_dists) {
+  download_finished();
 }
 
 say("Everything OK. Moving meta files.");
@@ -1258,7 +1243,10 @@ foreach my $file (`find . -type f`) {
 chdir($mirrordir) or die "chdir $mirrordir: $!";
 
 # Download D-I images.
-di_get_files() if @di_dists;
+if (@di_dists) {
+  di_get_files();
+  download_finished();
+}
 
 # Update suite->codename symlinks
 if (! $omit_suite_symlinks && ! $dry_run) {
@@ -1320,6 +1308,11 @@ save_state_cache() if $state_cache_days && !$dry_run;
 
 say("All done.");
 $lock->release;
+print "Errors:\n ".join(" ",@errlog) if (@errlog);
+if ($num_errors != 0) {
+  print "Failed to download files ($num_errors errors)!\n";
+  exit 1 if (!$ignore_small_errors);
+}
 
 exit;
 
@@ -2113,6 +2106,19 @@ sub di_cleanup {
     unlink "$file" or die "unlink $tempdir/d-i/$file: $!\n";
   }
   chdir("$mirrordir") or die "unable to chdir($mirrordir): $!\n";
+}
+
+sub download_finished {
+  if ($download_method eq 'ftp') { $ftp->quit; }
+
+  my $total_time = time - $start_time;
+  my $avg_speed = 0;
+  $avg_speed = sprintf("%3.0f",($bytes_gotten / $total_time)) unless ($total_time == 0);
+  if ($bytes_gotten == 0) {
+    say("Downloaded files in ".$total_time."s");
+  } else {
+    say("Downloaded ".print_dl_size($bytes_gotten)." in ".$total_time."s at ".(int($avg_speed/1024*100)/100)." kiB/s");
+  }
 }
 
 sub rename_distdir {
