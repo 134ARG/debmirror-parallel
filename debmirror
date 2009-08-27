@@ -58,16 +58,16 @@ Usage: $0 [--progress] [--verbose] [--debug] [--dry-run] [--help]
           [--proxy=http://user:pass\@url:port/]
           [--dist=foo[,bar,..] ...] [--omit-suite-symlinks]
           [--section=foo[,bar,..] ...] [--arch=foo[,bar,..] ...]
-          [--adddir=directory] [--pdiff=use|mirror|none]
+          [--di-dist=foo[,bar,..] ...] [--di-arch=foo[,bar,..] ...]
           [--source|--nosource] [--getcontents] [--md5sums]
           [--ignore-missing-release] [--ignore-release-gpg]
           [--ignore=regex] [--exclude=regex] [--include=regex]
           [--exclude-deb-section=regex] [--limit-priority=regex]
-          [--timeout=seconds] [--max-batch=number]
+          [--adddir=directory] [--timeout=seconds] [--max-batch=number]
           [--rsync-batch=number] [--rsync-options=options]
           [--postcleanup|--cleanup|--nocleanup] [--skippackages]
-          [--state-cache-days=number] [--ignore-small-errors]
-          [--allow-dist-rename]
+          [--pdiff=use|mirror|none] [--state-cache-days=number]
+          [--ignore-small-errors] [--allow-dist-rename]
           <mirrordir>
 
 For details, see man page.
@@ -170,25 +170,15 @@ main,contrib,non-free,main/debian-installer.
 Specify the architectures to mirror. The default is --arch=i386.
 Specifying --arch=none will mirror no archs.
 
-=item --adddir directory
+=item --di-dist=dists | foo[,bar,..]
 
-Also download Packages and Sources files from the specified directory
-on the remote host (the directory is relative to the root of the
-Debian archive). If you used this option for "--adddir
-dists/proposed-updates" in the past use "--dist
-<dist>-proposed-updates" now. This feature is now obsolete and will be
-removed soon.
+Mirror "current" Debian Installer images for the specified dists.
+See further the section L<Mirroring Debian Installer images> below.
 
-=item --pdiff=use|mirror|none
+=item --di-arch=arches | foo[,bar,..]
 
-If --pdiff=use is specified and the Release file contains entries for
-pdiff files, then debmirror will attempt to use them to update the
-Packages and Sources files (can reduce download size of meta files),
-but will not include them in the mirror. This is the default behavior
-and avoids having time consuming pdiff files for a fast local mirror.
-Specifying --pdiff=mirror does the same as 'use', but will also include
-the downloaded pdiff files in the local mirror. Specify --pdiff=none to
-completely ignore pdiff files.
+Mirror "current" Debian Installer images for the specified architectures.
+See further the section L<Mirroring Debian Installer images> below.
 
 =item --source
 
@@ -242,6 +232,15 @@ science, ...) match the regex.  May be used multiple times.
 Limit download to files whose Debian Priority (required, extra,
 optional, ...) match the regex.  May be used multiple times.
 
+=item --adddir directory
+
+Also download Packages and Sources files from the specified directory
+on the remote host (the directory is relative to the root of the
+Debian archive). If you used this option for "--adddir
+dists/proposed-updates" in the past use "--dist
+<dist>-proposed-updates" now. This feature is now obsolete and will be
+removed soon.
+
 =item --timeout=seconds -t
 
 Specifies the timeout to use for network operations (either FTP or rsync).
@@ -285,6 +284,17 @@ Do not clean up the local mirror after mirroring is complete.
 Don't re-download Packages and Sources files. Useful if you know they are
 up-to-date.
 
+=item --pdiff=use|mirror|none
+
+If --pdiff=use is specified and the Release file contains entries for
+pdiff files, then debmirror will attempt to use them to update the
+Packages and Sources files (can reduce download size of meta files),
+but will not include them in the mirror. This is the default behavior
+and avoids having time consuming pdiff files for a fast local mirror.
+Specifying --pdiff=mirror does the same as 'use', but will also include
+the downloaded pdiff files in the local mirror. Specify --pdiff=none to
+completely ignore pdiff files.
+
 =item --state-cache-days=number
 
 Save the state of the mirror in a cache file between runs. The cache will
@@ -320,6 +330,20 @@ automatically create a new symlink 'suite->codename' (immediately after
 moving meta files in place). This conversion should only be needed once.
 
 =back
+
+=head1 Mirroring Debian Installer images
+
+Debmirror will only mirror the "current" images that are on the remote
+mirror. At least one of the options --di-dist or --di-arch must be
+passed to enable mirroring of the images. The special values "dists"
+resp. "arches" can be used to tell debmirror to use the same dists and
+architectures for D-I images as for the archive. If either option is not
+set, it will default to the same.
+
+=head2 Limitations
+
+Mirroring of Debian Installer images is currently only supported for the
+"http" method. There are no progress updates for D-I images yet.
 
 =head1 ARCHIVE SIZE
 
