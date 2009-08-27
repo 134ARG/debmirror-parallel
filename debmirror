@@ -860,19 +860,6 @@ foreach (@extra_dirs) {
     add_bytes("$_/Sources.diff/Index");
   }
 }
-if ($getcontents) {
-  foreach my $dist (keys %dists) {
-    next unless exists $dists{$dist}{mirror};
-    foreach my $arch (@arches) {
-      next if $dist=~/experimental/;
-      next if $dist=~/.*-proposed-updates/;
-      next if $arch=~/source/;
-      if (!check_lists ("$tempdir/dists/$dist/Contents-$arch.gz")) {
-	add_bytes("dists/$dist/Contents-$arch.gz");
-      }
-    }
-  }
-}
 
 
 say("Get Packages and Sources files and other miscellany.");
@@ -927,6 +914,17 @@ $dry_run = $dry_run_var;
 
 if ($getcontents) {
   say("Get Contents files.");
+  foreach my $dist (keys %dists) {
+    next unless exists $dists{$dist}{mirror};
+    foreach my $arch (@arches) {
+      next if $dist=~/experimental/;
+      next if $dist=~/.*-proposed-updates/;
+      next if $arch=~/source/;
+      if (!check_lists ("$tempdir/dists/$dist/Contents-$arch.gz")) {
+	add_bytes("dists/$dist/Contents-$arch.gz");
+      }
+    }
+  }
   foreach my $dist (keys %dists) {
     next unless exists $dists{$dist}{mirror};
     foreach my $arch (@arches) {
