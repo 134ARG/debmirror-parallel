@@ -66,7 +66,8 @@ Usage: $0 [--progress] [--verbose] [--debug] [--dry-run] [--help]
           [--timeout=seconds] [--max-batch=number]
           [--rsync-batch=number] [--rsync-options=options]
           [--postcleanup|--cleanup|--nocleanup] [--skippackages]
-          [--ignore-small-errors] [--allow-dist-rename]
+          [--state-cache-days=number] [--ignore-small-errors]
+          [--allow-dist-rename]
           <mirrordir>
 
 For details, see man page.
@@ -207,6 +208,10 @@ Use md5sums to determine if files on the local mirror that are the correct
 size actually have the correct content. Not enabled by default, because
 it is too paranoid, and too slow.
 
+When the state cache is used, debmirror will only check md5sums during runs
+where the cache has expired or been invalidated, so it is worth considering
+to use these two options together.
+
 =item --ignore-missing-release
 
 Don't fail if the Release file is missing.
@@ -279,6 +284,21 @@ Do not clean up the local mirror after mirroring is complete.
 
 Don't re-download Packages and Sources files. Useful if you know they are
 up-to-date.
+
+=item --state-cache-days=number
+
+Save the state of the mirror in a cache file between runs. The cache will
+expire after the specified number of days, at which time a full check and
+cleanup of the mirror will be done. While the cache is valid, debmirror
+will trust that the mirror is consistent with this cache.
+
+The cache is only used for files that have a unique name, i.e. binary
+packages and source files. If a mirror update fails for any reason, the
+cache will be invalidated and the next run will include a full check.
+
+Main advantage of using the state cache is that it avoids a large amount
+of disk access while checking which files need to be fetched. It may also
+reduce the time required for mirror updates.
 
 =item --ignore-small-errors
 
@@ -418,6 +438,7 @@ Make a mirror using rsync. rsync server is ftp.debian.org::debian.
 
 use strict;
 use Cwd;
+use Storable qw(nstore retrieve);
 use Net::FTP;
 use Getopt::Long;
 use File::Temp qw/ tempfile /;
@@ -432,6 +453,7 @@ our ($debug, $progress, $verbose, $passive, $skippackages, $getcontents);
 our ($ua, $proxy);
 our (@rdists, @sections, @arches, @extra_dirs, @ignores, @excludes, @includes);
 our (@excludes_deb_section, @limit_priority);
+our $state_cache_days = 0;
 our $check_md5sums = 0;
 our $check_downloads = 0;
 our $cleanup=0;
@@ -473,11 +495,23 @@ require "$HOME/.debmirror.conf" if -r "$HOME/.debmirror.conf";
 # the value is the name of the suite.
 my %dists=();
 
-# This hash holds all the files we know about, If the hash key is false,
-# the file already exists in the mirror (or is locally created) and does not
-# need to be downloaded, if it is true the file needs to be downloaded.
-# Filenames should be relative to $mirrordir.
+# This hash holds all the files we know about. Values are:
+# - -1: file was not on mirror and download attempt failed
+# -  0: file was not on mirror and either needs downloading or was
+#       downloaded this run
+# -  1: file is on mirror and wanted according to meta data
+# -  2: file is on mirror and listed in state cache, but not (yet)
+#       verified as wanted according to meta data
+# Values -1 and 2 can occur in the state cache; see $files_cache_version
+# below! Filenames should be relative to $mirrordir.
 my %files;
+
+## State cache meta-data
+my $use_cache = 0;
+my $state_cache_exptime;
+# Next variable *must* be changed if the structure of the %files hash is
+# changed in a way that makes old state-cache files incompatible.
+my $files_cache_version = "1.0";
 
 my $help;
 GetOptions('debug'                  => \$debug,
@@ -509,6 +543,7 @@ GetOptions('debug'                  => \$debug,
 	   'timeout|t=s'            => \$timeout,
 	   'max-batch=s'            => \$max_batch,
 	   'rsync-batch=s'          => \$rsync_batch,
+	   'state-cache-days=s'     => \$state_cache_days,
 	   'ignore-missing-release' => \$ignore_release,
 	   'ignore-release-gpg'     => \$ignore_release_gpg,
 	   'dry-run'                => \$dry_run_var,
@@ -616,6 +651,9 @@ $files{$tracefile}=1;
 my $tempdir=".temp";
 make_dir($tempdir) if (! -d $tempdir);
 die "You need write permissions on $tempdir" if (! -w $tempdir);
+
+# Load the state cache.
+load_state_cache() if $state_cache_days;
 
 # Start up ftp.
 my $ftp;
@@ -983,7 +1021,16 @@ say("Parse Packages and Sources files and add to the file list everything therei
 	next if (defined($limit_priority) && defined($deb_priority)
 		 && ! ($deb_priority=~/$limit_priority/o));
       }
-      next if (exists $files{$filename}); # multiple occurrences
+      # File was listed in state cache, or file occurs multiple times
+      if (exists $files{$filename}) {
+	if ($files{$filename} >= 0) {
+	  $files{$filename} = 1 if $files{$filename} == 2;
+	  $empty_mirror = 0;
+	  next;
+	} else { # download failed previous run, retry
+	  $files{$filename} = 0;
+	}
+      }
       ($size)=m/^Size:\s+(\d+)/im;
       ($md5sum)=m/^MD5sum:\s+([A-Za-z0-9]+)/im;
       if (check_file($filename, $size, $md5sum)) {
@@ -1022,7 +1069,16 @@ say("Parse Packages and Sources files and add to the file list everything therei
 	if(!(defined($include) && ($filename=~/$include/o))) {
 	  next if (defined($exclude) && $filename=~/$exclude/o);
 	}
-	next if (exists $files{$filename}); # multiple occurrences
+	# File was listed in state cache, or file occurs multiple times
+	if (exists $files{$filename}) {
+	  if ($files{$filename} >= 0) {
+	    $files{$filename} = 1 if $files{$filename} == 2;
+	    $empty_mirror = 0;
+	    next;
+	  } else { # download failed previous run, retry
+	    $files{$filename} = 0;
+	  }
+	}
 	if (check_file($filename, $size, $md5sum)) {
 	  $files{$filename} = 1;
 	} else {
@@ -1277,7 +1333,7 @@ if (! $dry_run) {
 cleanup_unknown_files() if ($post_cleanup);
 
 # mirror cleanup for directories
-if ($cleanup || $post_cleanup) {
+if (! $use_cache && ($cleanup || $post_cleanup)) {
   # Remove all empty directories. Not done as part of main cleanup
   # to prevent race problems with pool download code, which
   # makes directories.. Sort so they are removable in bottom-up
@@ -1286,11 +1342,14 @@ if ($cleanup || $post_cleanup) {
   system("find . -depth -type d ! -name . ! -name .. -print0 | xargs -0 rmdir 2>/dev/null") if (! $dry_run);
 }
 
-if ($res == 0) {
-  say("All done.");
-} else {
+if ($res != 0) {
   die("Failed to move some meta files.");
 }
+
+# Save the state cache.
+save_state_cache() if $state_cache_days && !$dry_run;
+
+say("All done.");
 
 exit;
 
@@ -1798,18 +1857,32 @@ sub fetch_and_apply_pdiffs {
 # This subroutine is called on pre- and post-cleanup and takes no arguments.
 # It uses some global variables like $files, $mirrordir, @ignores
 sub cleanup_unknown_files {
-  say("Cleanup mirror.");
-  chdir($mirrordir) or die "chdir $mirrordir: $!";
-  my $ignore;
-  $ignore = "(".join("|", @ignores).")" if @ignores;
-  # Remove all files in the mirror that we don't know about
-  foreach my $file (`find . -type f`) {
-    chomp $file;
-    $file=~s:^\./::;
-    unless (exists $files{$file} or (defined($ignore) && $file=~/$ignore/o)) {
-      say("deleting $file") if ($verbose);
-      if (! $dry_run) {
-	unlink $file or die "unlink $file: $!";
+  print("Cleanup mirror") if ($verbose or $progress);
+  if ($use_cache) {
+    say(": using cache.");
+    foreach my $file (sort keys %files) {
+      if ($files{$file} == 2 && -f $file) {
+	say("deleting $file") if ($verbose);
+	if (! $dry_run) {
+	  unlink $file or die "unlink $file: $!";
+	}
+      }
+    }
+  } else {
+    say($state_cache_days ? ": full." : ".");
+    chdir($mirrordir) or die "chdir $mirrordir: $!";
+    my $ignore;
+    $ignore = "(".join("|", @ignores).")" if @ignores;
+    # Remove all files in the mirror that we don't know about
+    foreach my $file (`find . -type f`) {
+      chomp $file;
+      $file=~s:^\./::;
+      unless ((exists $files{$file} && $files{$file} != 2) or
+	      (defined($ignore) && $file=~/$ignore/o)) {
+	say("deleting $file") if ($verbose);
+	if (! $dry_run) {
+	  unlink $file or die "unlink $file: $!";
+	}
       }
     }
   }
@@ -1831,6 +1904,71 @@ sub rename_distdir {
   }
   rename("$dir/$suite", "$dir/$codename");
   say("  conversion completed successfully");
+}
+
+sub save_state_cache {
+  my $cache_file = "$tempdir/debmirror_state.cache";
+  say("Saving debmirror state cache.");
+  foreach my $file (keys %files) {
+    if ($files{$file} == 2) {
+      delete $files{$file};
+    } elsif ($files{$file} >= 0){
+      $files{$file} = 2;
+    }
+  }
+  # Add state cache meta data
+  $files{cache_version} = $files_cache_version;
+  $files{cache_expiration_time} = $state_cache_exptime ?
+    $state_cache_exptime : (time() + $state_cache_days * 24 * 60 * 60);
+  if (! nstore(\%files, $cache_file)) {
+    say("Failed to save state cache.");
+    unlink $cache_file if -f $cache_file;
+  }
+}
+
+sub load_state_cache {
+  my $cache_file = "$tempdir/debmirror_state.cache";
+  if (! -f $cache_file) {
+    say("State cache file does not exist; doing full mirroring.");
+    return;
+  }
+
+  my $rfiles;
+  say("Loading debmirror state cache.");
+  $rfiles = retrieve($cache_file);
+  if (! defined $rfiles) {
+    say("Failed to load state cache; doing full mirroring.");
+    return
+  }
+  if (! exists $$rfiles{cache_version}) {
+    say("Cache version missing in state cache; doing full mirroring.");
+    return
+  } elsif ($$rfiles{cache_version} ne $files_cache_version) {
+    say("State cache is incompatible with this version of debmirror; doing full mirroring.");
+    return
+  } else {
+    delete $$rfiles{cache_version};
+  }
+  if (! exists $$rfiles{cache_expiration_time}) {
+    say("Expiration time missing in state cache; doing full mirroring.");
+    return
+  } elsif ($$rfiles{cache_expiration_time} < time()) {
+    say("State cache has expired; doing full mirroring.");
+    return
+  } else {
+    $state_cache_exptime = $$rfiles{cache_expiration_time};
+    delete $$rfiles{cache_expiration_time};
+  }
+
+  say("State cache loaded successfully; will use cache.");
+  %files = %$rfiles;
+  $use_cache = 1;
+  # Preserve state cache during dry runs
+  if ($dry_run_var) {
+    $files{$cache_file} = 1 if $dry_run_var;
+  } else {
+    unlink $cache_file if -f $cache_file;
+  }
 }
 
 sub say {
