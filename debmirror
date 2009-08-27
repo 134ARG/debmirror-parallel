@@ -1465,7 +1465,7 @@ sub hftp_get {
     if ($ret->is_error) {
       $files{$file} = -1;
       warn "$file failed " . $ret->status_line . "\n" if ($progress or $verbose);
-      push (@errlog,"Download of $file failed: ".$ret->status_line);
+      push (@errlog,"Download of $file failed: ".$ret->status_line."\n");
       $num_errors++;
     } elsif ($progress || $verbose) {
       print "ok\n";
@@ -1499,7 +1499,7 @@ sub http_get {
     if ($ret->is_error) {
       $files{$file} = -1;
       warn "$file failed " . $ret->status_line . "\n" if ($progress or $verbose);
-      push (@errlog,"Download of $file failed: ".$ret->status_line);
+      push (@errlog,"Download of $file failed: ".$ret->status_line."\n");
       $num_errors++;
     } elsif ($progress || $verbose) {
       print "ok\n";
@@ -1554,7 +1554,7 @@ sub ftp_get {
     } else {
       $files{$file} = -1;
       warn " failed:".$ftp->message if ($progress or $verbose);
-      push (@errlog,"Download of $file failed: ".$ftp->message);
+      push (@errlog,"Download of $file failed: ".$ftp->message."\n");
       $num_errors++;
     }
   }
@@ -1636,12 +1636,12 @@ sub get_release {
       }
       if ($gpgv_res eq "failed") {
 	say("Release signature does not verify.");
-	push (@errlog,"Release signature does not verify.\n");
+	push (@errlog,"Release signature does not verify\n");
 	$num_errors++;
       }
     } else {
       say("Release signature does not verify, file missing.");
-      push (@errlog,"Release signature does not verify.\n");
+      push (@errlog,"Release signature does not verify\n");
       $num_errors++;
     }
   }
@@ -1671,7 +1671,7 @@ sub name_release {
   if ($codename) {
     if ($dist_raw ne $codename && $dist_raw ne $suite) {
       say("Broken Release file: neither Codename nor Suite matches $dist.");
-      push (@errlog,"Broken Release file: neither Codename nor Suite matches $dist.\n");
+      push (@errlog,"Broken Release file: neither Codename nor Suite matches $dist\n");
       $num_errors++;
       next;
     }
