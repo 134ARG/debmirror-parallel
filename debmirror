@@ -1196,17 +1196,14 @@ foreach my $file (`find . -type f`) {
   # this skips pdiff files if unwanted
   next if (!exists $files{$file});
   print("Moving $file\n") if ($debug);
-  if ($mirrordir."/".$file) {
-    $res &= unlink($mirrordir."/".$file) if (! $dry_run);
-  }
   if (! $dry_run) {
+    $res &= unlink($mirrordir."/".$file) if ($mirrordir."/".$file);
     "$file" =~ m,(^.*)/,;
     make_dir("$mirrordir/$1");
     if (!link($file, $mirrordir."/".$file)) {
       $res &= system("cp $file $mirrordir/$file");
     }
   }
-  $res &= link($file, $mirrordir."/".$file) if (! $dry_run);
 }
 chdir($mirrordir) or die "chdir $mirrordir: $!";
 # Update suite->codename symlinks
