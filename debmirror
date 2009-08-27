@@ -1255,7 +1255,6 @@ DOWNLOAD: {
 
 # Finish up.
 if ($download_method eq 'ftp') { $ftp->quit; }
-$lock->release;
 
 my $total_time = time - $start_time;
 my $avg_speed = 0;
@@ -1350,6 +1349,7 @@ if ($res != 0) {
 save_state_cache() if $state_cache_days && !$dry_run;
 
 say("All done.");
+$lock->release;
 
 exit;
 
