@@ -115,15 +115,16 @@ you are strongly encouraged to find a closer mirror.
 =item --root=directory -r directory
 
 Specifies the directory on the remote host that is the root of the Debian
-archive. Defaults to "/debian", which will work for most mirrors. The root
+archive. Defaults to "debian", which will work for most mirrors. The root
 directory has a dists/ subdirectory.
 
 =item --method=ftp|hftp|http|rsync -e
 
 Specify the method to download files. Currently, supported methods are
-ftp, hftp (ftp over http proxy), http or rsync. To connect a rsync
-server, you need to put ':' prefix in the root directory
-(i.e. ":debian", which means host::debian).
+ftp, hftp (ftp over http proxy), http or rsync.
+
+Note: starting with version 1.1 it is no longer needed to add a ':' prefix
+for the root directory.
 
 =item --passive
 
@@ -440,7 +441,7 @@ our $do_source=1;
 our $host="ftp.debian.org";
 our $user="anonymous";
 our $passwd="anonymous@";
-our $remoteroot="/debian";
+our $remoteroot="debian";
 our $download_method="ftp";
 our $timeout=300;
 our $max_batch=0;
@@ -535,6 +536,9 @@ if (!($pdiff_mode eq "none")) {
     $pdiff_mode = "none";
   }
 }
+
+# Backwards compatibility: remote root dir no longer needs prefix
+$remoteroot =~ s%^[:/]%%;
 
 # Post-process arrays. Allow commas to separate values the user entered.
 # If the user entered nothing, provide defaults.
@@ -646,7 +650,7 @@ sub init_connection {
     $ftp=Net::FTP->new($host, %opts) or die "$@\n";
     $ftp->login($user, $passwd) or die "login failed"; # anonymous
     $ftp->binary or die "could not set binary mode";
-    $ftp->cwd($remoteroot) or die "cwd to $remoteroot failed";
+    $ftp->cwd("/$remoteroot") or die "cwd to /$remoteroot failed";
     $ftp->hash(\*STDOUT,102400) if $progress;
     return;
   };
@@ -661,7 +665,7 @@ init_connection;
 
 # fix remoteroot if --method=rsync
 if ($download_method eq "rsync") {
-  $remoteroot = "$host:$remoteroot/";
+  $remoteroot = "$host\:\:$remoteroot/";
   if (! ($user eq 'anonymous')) {
     $remoteroot = "$user\@$remoteroot";
   }
