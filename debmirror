@@ -763,98 +763,9 @@ say("Get Release files.");
 $ua->default_header( "Cache-Control" => "max-age=0" ) if ($ua);
 my (%file_lists_md5, %file_lists_size);
 foreach my $dist (@rdists) {
-  my ($codename, $suite);
   my $tdir="$tempdir/.tmp/dists/$dist";
-  make_dir ("$tdir");
-  next unless remote_get("dists/$dist/Release", "$tempdir/.tmp");
-  my $t = $num_errors;
-  next unless remote_get("dists/$dist/Release.gpg", "$tempdir/.tmp");
-  # Check for gpg
-  if (!$ignore_release_gpg) {
-    if (system("gpgv --version >/dev/null 2>/dev/null")) {
-      say("gpgv failed: --ignore-release-gpg or gpgv binary missing?");
-      push (@errlog,"gpgv failed: --ignore-release-gpg or gpgv binary missing?\n");
-      $num_errors++;
-    }
-    # Verify Release signature
-    if (-f "$tdir/Release.gpg" || -f "$tdir/Release") {
-      my $gpgv_res="failed";
-      open GPGV, "gpgv 2>/dev/null --status-fd 1 $tdir/Release.gpg $tdir/Release|";
-      while (<GPGV>) {
-	$gpgv_res="valid" if /^\[GNUPG:\] VALIDSIG/;
-      }
-      close GPGV;
-      if ($gpgv_res eq "failed" || $debug) {
-	system("gpgv --status-fd 1 $tdir/Release.gpg $tdir/Release");
-      }
-      if ($verbose && !$debug) {
-	system("gpgv --status-fd 1 $tdir/Release.gpg $tdir/Release >/dev/null");
-      }
-      if ($gpgv_res eq "failed") {
-	say("Release signature does not verify.");
-	push (@errlog,"Release signature does not verify.\n");
-	$num_errors++;
-      }
-    } else {
-      say("Release signature does not verify, file missing.");
-      push (@errlog,"Release signature does not verify.\n");
-      $num_errors++;
-    }
-  }
-  $num_errors=$t if ($ignore_release_gpg);
-
-  my $buf;
-  if (open RELEASE, "<$tdir/Release") {
-    while (<RELEASE>) {
-      last if /^MD5Sum:/;
-      $buf = $buf . $_;
-    }
-    close RELEASE;
-  }
-  $_ = $buf;
-  ($codename) = m/^Codename:\s+(.*)/im;
-  ($suite) = m/^Suite:\s+(.*)/im;
-
-  # Allow for for example "<codename|suite>/updates"; split into the
-  # raw dist (codename or suite) and the subdirectory.
-  $dist =~ m:^([^/]+)/?:;
-  my $dist_raw = $1;
-  $dist =~ m:^[^/]+(/.*)?$:;
-  my $dist_sdir = $1 ? $1 : "";
-
-  if ($codename) {
-    if ($dist_raw ne $codename && $dist_raw ne $suite) {
-      say("Broken Release file: neither Codename nor Suite matches $dist.");
-      push (@errlog,"Broken Release file: neither Codename nor Suite matches $dist.\n");
-      $num_errors++;
-      next;
-    }
-  } elsif ($suite) {
-    say("Release file does not contain Codename; using Suite ($suite).");
-    $codename = $suite;
-  } else {
-    say("Release file contains neither Codename nor Suite; using $dist.");
-    $codename = $dist_raw;
-  }
-  # For experimental the suite is the same as the codename
-  $suite = "" if (! $suite || $suite eq $codename);
-
-  die("Duplicate dist $codename$dist_sdir.\n")
-    if exists $dists{"$codename$dist_sdir"}{mirror};
-  $dists{"$codename$dist_sdir"}{mirror} = 1;
-  die("Conflicting suites '$suite' and '$dists{$codename}{suite}' for $codename.\n")
-    if (exists $dists{"$codename"}{suite} && ($suite ne $dists{$codename}{suite}));
-  $dists{$codename}{suite} = "$suite" if ($suite);
-
-  # This should be a one-time conversion only
-  if ($suite) {
-    if (-d "$tempdir/dists/$suite" && !-l "$tempdir/dists/$suite") {
-      rename_distdir("$tempdir/dists", $codename, $suite);
-    }
-    if (-d "dists/$suite" && !-l "dists/$suite") {
-      rename_distdir("dists", $codename, $suite);
-    }
-  }
+  next unless get_release($tdir, $dist);
+  my ($codename, $suite) = name_release($tdir, $dist);
 
   make_dir ("dists/$codename$dist_sdir");
   make_dir ("$tempdir/dists/$codename$dist_sdir");
@@ -1685,6 +1596,114 @@ sub system_redirect_io {
     unlink($tofile) or die "unlink($tofile) failed: $!";
   }
   system("$command <$fromfile >$tofile");
+}
+
+sub split_dist {
+  my $dist = shift;
+  $dist =~ m:^([^/]+)/?:;
+  my $dist_raw = $1;
+  $dist =~ m:^[^/]+(/.*)?$:;
+  my $dist_sdir = $1 ? $1 : "";
+  return ($dist_raw, $dist_sdir);
+}
+
+sub get_release {
+  my ($tdir, $dist) = @_;
+
+  make_dir ("$tdir");
+  return 0 unless remote_get("dists/$dist/Release", "$tempdir/.tmp");
+  my $t = $num_errors;
+  return 0 unless remote_get("dists/$dist/Release.gpg", "$tempdir/.tmp");
+  # Check for gpg
+  if (!$ignore_release_gpg) {
+    if (system("gpgv --version >/dev/null 2>/dev/null")) {
+      say("gpgv failed: --ignore-release-gpg or gpgv binary missing?");
+      push (@errlog,"gpgv failed: --ignore-release-gpg or gpgv binary missing?\n");
+      $num_errors++;
+    }
+    # Verify Release signature
+    if (-f "$tdir/Release.gpg" || -f "$tdir/Release") {
+      my $gpgv_res="failed";
+      open GPGV, "gpgv 2>/dev/null --status-fd 1 $tdir/Release.gpg $tdir/Release|";
+      while (<GPGV>) {
+	$gpgv_res="valid" if /^\[GNUPG:\] VALIDSIG/;
+      }
+      close GPGV;
+      if ($gpgv_res eq "failed" || $debug) {
+	system("gpgv --status-fd 1 $tdir/Release.gpg $tdir/Release");
+      }
+      if ($verbose && !$debug) {
+	system("gpgv --status-fd 1 $tdir/Release.gpg $tdir/Release >/dev/null");
+      }
+      if ($gpgv_res eq "failed") {
+	say("Release signature does not verify.");
+	push (@errlog,"Release signature does not verify.\n");
+	$num_errors++;
+      }
+    } else {
+      say("Release signature does not verify, file missing.");
+      push (@errlog,"Release signature does not verify.\n");
+      $num_errors++;
+    }
+  }
+  $num_errors=$t if ($ignore_release_gpg);
+  return 1
+}
+
+sub name_release {
+  my ($tdir, $dist) = @_;
+  my ($buf, $codename, $suite);
+
+  if (open RELEASE, "<$tdir/Release") {
+    while (<RELEASE>) {
+      last if /^MD5Sum:/;
+      $buf = $buf . $_;
+    }
+    close RELEASE;
+  }
+  $_ = $buf;
+  ($codename) = m/^Codename:\s+(.*)/im;
+  ($suite) = m/^Suite:\s+(.*)/im;
+
+  # Allow for for example "<codename|suite>/updates"; split into the
+  # raw dist (codename or suite) and the subdirectory.
+  my ($dist_raw, $dist_sdir) = split_dist($dist);
+
+  if ($codename) {
+    if ($dist_raw ne $codename && $dist_raw ne $suite) {
+      say("Broken Release file: neither Codename nor Suite matches $dist.");
+      push (@errlog,"Broken Release file: neither Codename nor Suite matches $dist.\n");
+      $num_errors++;
+      next;
+    }
+  } elsif ($suite) {
+    say("Release file does not contain Codename; using Suite ($suite).");
+    $codename = $suite;
+  } else {
+    say("Release file contains neither Codename nor Suite; using $dist.");
+    $codename = $dist_raw;
+  }
+  # For experimental the suite is the same as the codename
+  $suite = "" if (! $suite || $suite eq $codename);
+
+  die("Duplicate dist $codename$dist_sdir.\n")
+    if exists $dists{"$codename$dist_sdir"}{mirror};
+  $dists{"$codename$dist_sdir"}{mirror} = 1;
+  die("Conflicting suites '$suite' and '$dists{$codename}{suite}' for $codename.\n")
+    if (exists $dists{"$codename"}{suite} && ($suite ne $dists{$codename}{suite}));
+  $dists{$codename}{suite} = "$suite" if ($suite);
+
+  # This should be a one-time conversion only
+  if ($suite) {
+    if (-d "$tempdir/dists/$suite" && !-l "$tempdir/dists/$suite") {
+      rename_distdir("$tempdir/dists", $codename, $suite);
+    }
+    if (-d "dists/$suite" && !-l "dists/$suite") {
+      rename_distdir("dists", $codename, $suite);
+    }
+  }
+
+  return ($codename, $suite);
 }
 
 # Get Index file in the passed subdirectory.
