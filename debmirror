@@ -1197,12 +1197,8 @@ DOWNLOAD: {
   };
 }
 
-# Finish up. Write out trace file.
+# Finish up.
 if ($download_method eq 'ftp') { $ftp->quit; }
-make_dir("project/trace");
-open OUT, ">$tracefile" or die "$tracefile: $!";
-print OUT `date -u`;
-close OUT;
 $lock->release;
 
 my $total_time = time - $start_time;
@@ -1268,6 +1264,15 @@ if (! $omit_suite_symlinks && ! $dry_run) {
     }
   }
 }
+
+# Write out trace file.
+if (! $dry_run) {
+  make_dir("project/trace");
+  open OUT, ">$tracefile" or die "$tracefile: $!";
+  print OUT `date -u`;
+  close OUT;
+}
+
 # Post mirror cleanup
 cleanup_unknown_files() if ($post_cleanup);
 
