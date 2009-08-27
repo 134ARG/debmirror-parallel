@@ -723,8 +723,16 @@ foreach my $dist (@rdists) {
   $_ = $buf;
   ($codename) = m/^Codename:\s+(.*)/im;
   ($suite) = m/^Suite:\s+(.*)/im;
+
+  # Allow for for example "<codename|suite>/updates"; split into the
+  # raw dist (codename or suite) and the subdirectory.
+  $dist =~ m:^([^/]+)/?:;
+  my $dist_raw = $1;
+  $dist =~ m:^[^/]+(/.*)?$:;
+  my $dist_sdir = $1 ? $1 : "";
+
   if ($codename) {
-    if ($dist ne $codename && $dist ne $suite) {
+    if ($dist_raw ne $codename && $dist_raw ne $suite) {
       say("Broken Release file: neither Codename nor Suite matches $dist.");
       push (@errlog,"Broken Release file: neither Codename nor Suite matches $dist.\n");
       $num_errors++;
@@ -735,12 +743,17 @@ foreach my $dist (@rdists) {
     $codename = $suite;
   } else {
     say("Release file contains neither Codename nor Suite; using $dist.");
-    $codename = $dist;
+    $codename = $dist_raw;
   }
-  die("Duplicate Codename $codename.\n") if exists $dists{$codename};
   # For experimental the suite is the same as the codename
   $suite = "" if (! $suite || $suite eq $codename);
-  $dists{$codename} = "$suite";
+
+  die("Duplicate dist $codename$dist_sdir.\n")
+    if exists $dists{"$codename$dist_sdir"}{mirror};
+  $dists{"$codename$dist_sdir"}{mirror} = 1;
+  die("Conflicting suites '$suite' and '$dists{$codename}{suite}' for $codename.\n")
+    if (exists $dists{"$codename"}{suite} && ($suite ne $dists{$codename}{suite}));
+  $dists{$codename}{suite} = "$suite" if ($suite);
 
   # This should be a one-time conversion only
   if ($suite) {
@@ -752,17 +765,18 @@ foreach my $dist (@rdists) {
     }
   }
 
-  make_dir ("dists/$codename");
-  make_dir ("$tempdir/dists/$codename");
-  rename("$tdir/Release", "$tempdir/dists/$codename/Release") or die "Error while moving $tdir/Release: $!\n";
-  rename("$tdir/Release.gpg", "$tempdir/dists/$codename/Release.gpg") or die "Error while moving $tdir/Release.gpg: $!\n";
-  $files{"dists/$codename/Release"}=1;
-  $files{$tempdir."/"."dists/$codename/Release"}=1;
-  $files{"dists/$codename/Release.gpg"}=1;
-  $files{$tempdir."/"."dists/$codename/Release.gpg"}=1;
+  make_dir ("dists/$codename$dist_sdir");
+  make_dir ("$tempdir/dists/$codename$dist_sdir");
+  rename("$tdir/Release", "$tempdir/dists/$codename$dist_sdir/Release") or die "Error while moving $tdir/Release: $!\n";
+  rename("$tdir/Release.gpg", "$tempdir/dists/$codename$dist_sdir/Release.gpg") or die "Error while moving $tdir/Release.gpg: $!\n";
+  $files{"dists/$codename$dist_sdir/Release"}=1;
+  $files{$tempdir."/"."dists/$codename$dist_sdir/Release"}=1;
+  $files{"dists/$codename$dist_sdir/Release.gpg"}=1;
+  $files{$tempdir."/"."dists/$codename$dist_sdir/Release.gpg"}=1;
 }
 
 foreach my $dist (keys %dists) {
+  next unless exists $dists{$dist}{mirror};
   # Parse the Release
   if (open RELEASE, "<$tempdir/dists/$dist/Release") {
     while (<RELEASE>) {
@@ -801,6 +815,7 @@ sub add_bytes {
   $bytes_to_get +=  $file_lists_size{"$tempdir/$name"} if (exists $file_lists_size{"$tempdir/$name"});
 }
 foreach my $dist (keys %dists) {
+  next unless exists $dists{$dist}{mirror};
   foreach my $section (@sections) {
     foreach my $arch (@arches) {
       add_bytes("dists/$dist/$section/binary-$arch/Packages");
@@ -834,6 +849,7 @@ foreach (@extra_dirs) {
 }
 if ($getcontents) {
   foreach my $dist (keys %dists) {
+    next unless exists $dists{$dist}{mirror};
     foreach my $arch (@arches) {
       next if $dist=~/experimental/;
       next if $dist=~/.*-proposed-updates/;
@@ -850,6 +866,7 @@ say("Get Packages and Sources files and other miscellany.");
 # Get Packages and Sources files and other miscellany.
 my (@package_files, @source_files);
 foreach my $dist (keys %dists) {
+  next unless exists $dists{$dist}{mirror};
   foreach my $section (@sections) {
     # no d-i in woody
     next if ($section =~ /debian-installer/ && $dist eq "woody");
@@ -893,6 +910,7 @@ $dry_run = $dry_run_var;
 if ($getcontents) {
   say("Get Contents files.");
   foreach my $dist (keys %dists) {
+    next unless exists $dists{$dist}{mirror};
     foreach my $arch (@arches) {
       next if $dist=~/experimental/;
       next if $dist=~/.*-proposed-updates/;
@@ -1213,8 +1231,8 @@ if (! $omit_suite_symlinks && ! $dry_run) {
   foreach my $file (grep (!/^\.\.?$/, readdir (DIR))) {
     if (-l "dists/$file") {
       my $cur = readlink("dists/$file") or die "Error reading symlink dists/$file: $!";
-      if (exists $dists{$cur} &&
-	  ($file eq $dists{$cur} || $file eq "stable-$dists{$cur}")) {
+      if (exists $dists{$cur}{suite} &&
+	  ($file eq $dists{$cur}{suite} || $file eq "stable-$dists{$cur}{suite}")) {
 	$suites{$file} = "ok";
       } else {
 	unlink("dists/$file") or die "Failed to remove symlink dists/$file: $!";
@@ -1224,8 +1242,8 @@ if (! $omit_suite_symlinks && ! $dry_run) {
   closedir (DIR);
 
   foreach my $dist (keys %dists) {
-    next if (! $dists{$dist});
-    my $suite = $dists{$dist};
+    next if (! exists $dists{$dist}{suite});
+    my $suite = $dists{$dist}{suite};
     if (! exists $suites{$suite}) {
       symlink("$dist", "dists/$suite") or die "Failed to create symlink dists/$suite: $!";
     }
