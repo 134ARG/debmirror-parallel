@@ -24,6 +24,9 @@ our (%files, %sizes, %total);
 our $root="/srv/ftp.debian.org/ftp/dists";
 chdir($root) or die "chdir $root: $!";
 
+my ($tfh, $tfile) = tempfile();
+END { unlink $tfile if $tfile }
+
 foreach my $suite (@suites) {
   next unless -f "$root/$suite/Release";
   if (open RELEASE, "<$root/$suite/Release") {
@@ -114,20 +117,16 @@ foreach my $arch (@arches) {
 }
 
 sub parse_packages {
+  local $/ = "\n\n";
   my ($file, $suite, $sect, $arch) = @_;
   my ($line, $res, $size, $filename, $architecture);
-  my $gunzf = gzopen("$root/$suite/$sect/$file", "rb") or die "$file: $!";
-  my $loop = 1;
-  while ($loop) {
-    my $buf = "";
-    while((($res = $gunzf->gzreadline($line)) > 0)
-	  && !($line =~ /^$/)) {
-      $buf = $buf . $line;
-    }
-    die "$file: $!" if ($res < 0);
-    if ($res == 0) {
-      $loop = 0;
-      next if ($buf eq "");
+  system_redirect_io("gzip -d", "$root/$suite/$sect/$file", "$tfile");
+  open(TFILE, "<", $tfile) or die "$tfile: $!";
+  for (;;) {
+    my $buf;
+    unless (defined( $buf = <TFILE> )) {
+      last if eof;
+      die "$file: $!" if $!;
     }
     $_ = $buf;
     ($filename) = m/^Filename:\s+(.*)/im;
@@ -155,23 +154,19 @@ sub parse_packages {
     $files{$filename}{x} = 1;
     $files{$filename}{$suite} = 1;
   }
-  $gunzf->gzclose();
+  close(TFILE);
 }
 sub parse_sources {
+  local $/ = "\n\n";
   my ($file, $suite, $sect) = @_;
   my ($line, $res, $size, $directory, $filename, $md5sum);
-  my $gunzf = gzopen("$root/$suite/$sect/$file", "rb") or die "$file: $!";
-  my $loop = 1;
-  while ($loop) {
-    my $buf = "";
-    while((($res = $gunzf->gzreadline($line)) > 0)
-	  && !($line =~ /^$/)) {
-      $buf = $buf . $line;
-    }
-    die "$file: $!" if ($res < 0);
-    if ($res == 0) {
-      $loop = 0;
-      next if ($buf eq "");
+  system_redirect_io("gzip -d", "$root/$suite/$sect/$file", "$tfile");
+  open(TFILE, "<", $tfile) or die "$tfile: $!";
+  for (;;) {
+    my $buf;
+    unless (defined( $buf = <TFILE> )) {
+      last if eof;
+      die "$file: $!" if $!;
     }
     $_ = $buf;
     ($directory) = m/^Directory:\s+(.*)/im;
@@ -201,5 +196,16 @@ sub parse_sources {
       $files{$filename}{$suite} = 1;
     }
   }
-  $gunzf->gzclose();
+  close(TFILE);
+}
+
+# run system() with stdin and stdout redirected to files
+# unlinks stdout target file first to break hard links
+sub system_redirect_io {
+  my ($command, $fromfile, $tofile) = @_;
+
+  if (-f $tofile) {
+    unlink($tofile) or die "unlink($tofile) failed: $!";
+  }
+  system("$command <$fromfile >$tofile");
 }

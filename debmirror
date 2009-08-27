@@ -912,6 +912,8 @@ if ($download_method eq 'ftp') { $ftp->quit; }
 
 say("Parse Packages and Sources files and add to the file list everything therein.");
 {
+  local $/="\n\n"; # Set input separator to read entire package
+
   my ($filename, $size, $md5sum, $directory, $exclude, $include,
       $architecture, $exclude_deb_section, $limit_priority, $deb_section,
       $deb_priority);
@@ -927,20 +929,12 @@ say("Parse Packages and Sources files and add to the file list everything therei
   $include = "(".join("|", @includes).")" if @includes;
   foreach my $file (@package_files) {
     next if (!-f $file);
-    my $gunzf = gzopen($file, "rb") or die "$file: $!";
-    my $line;
-    my $res;
-    my $loop = 1;
-    while ($loop) {
-      my $buf = "";
-      while((($res = $gunzf->gzreadline($line)) > 0)
-	    && !($line =~ /^$/)) {
-	$buf = $buf . $line;
-      }
-      die "$file: $!" if ($res < 0);
-      if ($res == 0) {
-	$loop = 0;
-	next if ($buf eq "");
+    open(FILE, "<", $file) or die "$file: $!";
+    for (;;) {
+      my $buf;
+      unless (defined( $buf = <FILE> )) {
+	last if eof;
+	die "$file: $!" if $!;
       }
       $_ = $buf;
       ($filename)=m/^Filename:\s+(.*)/im;
@@ -969,24 +963,16 @@ say("Parse Packages and Sources files and add to the file list everything therei
       }
       $empty_mirror = 0;
     }
-    $gunzf->gzclose();
+    close(FILE);
   }
   foreach my $file (@source_files) {
     next if (!-f $file);
-    my $gunzf = gzopen($file, "rb") or die "$file: $!";
-    my $line;
-    my $res;
-    my $loop = 1;
-    while ($loop) {
+    open(FILE, "<", $file) or die "$file: $!";
+    for (;;) {
       my $buf = "";
-      while((($res = $gunzf->gzreadline($line)) > 0)
-	    && !($line =~ /^$/)) {
-	$buf = $buf . $line;
-      }
-      die "$file: $!" if ($res < 0);
-      if ($res == 0) {
-	$loop = 0;
-	next if ($buf eq "");
+      unless (defined( $buf = <FILE> )) {
+	last if eof;
+	die "$file: $!" if $!;
       }
       $_ = $buf;
       ($directory) = m/^Directory:\s+(.*)/im;
@@ -1015,7 +1001,7 @@ say("Parse Packages and Sources files and add to the file list everything therei
       }
       $empty_mirror = 0;
     }
-    $gunzf->gzclose();
+    close(FILE);
   }
 
   # Sanity check to avoid completely nuking a mirror.
@@ -1621,10 +1607,10 @@ sub get_index {
     }
   }
   if ($file eq "Packages") {
-    push @package_files, "$tempdir/$subdir/$file.gz";
+    push @package_files, "$tempdir/$subdir/$file";
   } else {
     if ($file eq "Sources") {
-      push @source_files, "$tempdir/$subdir/$file.gz";
+      push @source_files, "$tempdir/$subdir/$file";
     } else {
       die "get_index called with unknown type $file\n";
     }
