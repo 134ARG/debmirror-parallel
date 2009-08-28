@@ -2038,32 +2038,30 @@ sub di_get_files {
 
   foreach my $image_dir (sort keys %di_files) {
     foreach my $file (sort keys %{ $di_files{$image_dir} }) {
+      next unless $di_files{$image_dir}{$file}{status} == 0;
       # Fetch images into a temporary location
       $file =~ m:(^.*)/:;
       make_dir ("$tdir/$image_dir/$1") if $1;
-      if (! $di_files{$image_dir}{$file}{status}) {
-	if (!remote_get("$image_dir/$file", $tdir) ||
-            !check_file("$tdir/$image_dir/$file", -1, $di_files{$image_dir}{$file}{md5sum})) {
-	  $lres = 0;
-	  last if (! $dry_run);
-	}
-	if (-f "$tdir/$image_dir/$file") {
-	  $bytes_to_get += -s _; # As we did not have the size in add_di_files()
-	}
+      if (!remote_get("$image_dir/$file", $tdir) ||
+          !check_file("$tdir/$image_dir/$file", -1, $di_files{$image_dir}{$file}{md5sum})) {
+	$lres = 0;
+	last if (! $dry_run);
+      }
+      if (-f "$tdir/$image_dir/$file") {
+	$bytes_to_get += -s _; # As we did not have the size in add_di_files()
       }
     }
 
     # Move images in place on mirror
     if ($lres && ! $dry_run) {
       foreach my $file (sort keys %{ $di_files{$image_dir} }) {
-	if (! $di_files{$image_dir}{$file}{status}) {
-	  $file =~ m:(^.*)/:;
-	  make_dir ("$image_dir/$1") if $1;
-	  if (-f "$image_dir/$file") {
-	    unlink "$image_dir/$file";
-	  }
-	  link("$tdir/$image_dir/$file", "$image_dir/$file");
-        }
+	next unless $di_files{$image_dir}{$file}{status} == 0;
+	$file =~ m:(^.*)/:;
+	make_dir ("$image_dir/$1") if $1;
+	if (-f "$image_dir/$file") {
+	  unlink "$image_dir/$file";
+	}
+	link("$tdir/$image_dir/$file", "$image_dir/$file");
       }
       # Move the MD5SUMS file in place on mirror
       link("$tdir/$image_dir/MD5SUMS", "$image_dir/MD5SUMS");
