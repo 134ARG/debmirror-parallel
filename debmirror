@@ -1599,10 +1599,9 @@ sub system_redirect_io {
 
 sub split_dist {
   my $dist = shift;
-  $dist =~ m:^([^/]+)/?:;
-  my $dist_raw = $1;
+  my ($dist_raw) = ($dist =~ m:^([^/]+)/?:);
   $dist =~ m:^[^/]+(/.*)?$:;
-  my $dist_sdir = $1 ? $1 : "";
+  my $dist_sdir = $1 // "";
   return ($dist_raw, $dist_sdir);
 }
 
@@ -2019,8 +2018,7 @@ sub di_add_files {
       open(FILE, "<", "$tdir/$image_dir/MD5SUMS") or die "$tdir/$image_dir/MD5SUMS: $!";
       $_ = <FILE>;
       while (m/^([A-Za-z0-9]{32}  .*)/mg) {
-	my ($md5sum, $filename);
-	($md5sum, $filename)=split(' ', $1, 3);
+	my ($md5sum, $filename) = split(' ', $1, 3);
 	$filename =~ s:^\./::;
 	$di_files{$image_dir}{$filename}{md5sum} = $md5sum;
 	#$di_files{$image_dir}{$filename}{size} = get_http_size("$image_dir/$filename");
