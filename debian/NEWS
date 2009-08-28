@@ -1,4 +1,4 @@
-debmirror (1:2.0) UNRELEASED; urgency=low
+debmirror (1:2.0) unstable; urgency=low
 
   * Option --root=directory no longer requires "/" or ":" prefix
 
@@ -27,7 +27,7 @@ debmirror (1:2.0) UNRELEASED; urgency=low
     for the package archive. In this release there are no progress
     updates displayed yet.
 
- -- Frans Pop <fjp@debian.org>  Thu, 27 Aug 2009 14:35:03 +0200
+ -- Frans Pop <fjp@debian.org>  Fri, 28 Aug 2009 15:32:09 +0200
 
 debmirror (1:1.0) unstable; urgency=low
 
