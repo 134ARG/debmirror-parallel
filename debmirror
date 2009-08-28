@@ -2034,9 +2034,9 @@ sub di_add_files {
 sub di_get_files {
   say("Getting Debian Installer images.");
   my $tdir = "$tempdir/d-i";
-  my $lres = 1;
 
   foreach my $image_dir (sort keys %di_files) {
+    my $lres = 1;
     foreach my $file (sort keys %{ $di_files{$image_dir} }) {
       next unless $di_files{$image_dir}{$file}{status} == 0;
       # Fetch images into a temporary location
