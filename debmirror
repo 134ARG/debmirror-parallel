@@ -2150,8 +2150,10 @@ sub save_state_cache {
   # Add state cache meta data
   my $now = time();
   $files{cache_version} = $files_cache_version;
-  $files{cache_expiration_time} = $state_cache_exptime ?
-    $state_cache_exptime : ($now + $state_cache_days * 24 * 60 * 60);
+  if (! $state_cache_exptime) {
+    $state_cache_exptime = $now + $state_cache_days * 24 * 60 * 60;
+  }
+  $files{cache_expiration_time} = $state_cache_exptime;
   if (! nstore(\%files, $cache_file)) {
     say("Failed to save state cache.");
     unlink $cache_file if -f $cache_file;
@@ -2159,12 +2161,12 @@ sub save_state_cache {
     my $expires = int(($state_cache_exptime - $now) / (60 * 60)); # hours
     if ($expires > 0) {
       my $days = int($expires / 24);
-      my $hours = int($expires - ($days * 24));
+      my $hours = $expires % 24;
       say("State cache will expire in " .
 	  ($days ? "$days day(s)" : ($hours ? "" : "the next hour")) .
 	  ($hours ? ($days ? " and " : "") . "$hours hour(s)" : "") . ".");
     } else {
-      say("State cache expired during this run.");
+      say("State cache expired during this run; next run will not use cache.");
     }
   }
 }
@@ -2180,23 +2182,23 @@ sub load_state_cache {
   say("Loading debmirror state cache.");
   $rfiles = retrieve($cache_file);
   if (! defined $rfiles) {
-    say("Failed to load state cache; doing full mirroring.");
+    say("Failed to load state cache; doing full mirror check.");
     return
   }
   if (! exists $$rfiles{cache_version}) {
     say("Cache version missing in state cache; doing full mirroring.");
     return
   } elsif ($$rfiles{cache_version} ne $files_cache_version) {
-    say("State cache is incompatible with this version of debmirror; doing full mirroring.");
+    say("State cache is incompatible with this version of debmirror; doing full mirror check.");
     return
   } else {
     delete $$rfiles{cache_version};
   }
   if (! exists $$rfiles{cache_expiration_time}) {
-    say("Expiration time missing in state cache; doing full mirroring.");
+    say("Expiration time missing in state cache; doing full mirror check.");
     return
   } elsif ($$rfiles{cache_expiration_time} < time()) {
-    say("State cache has expired; doing full mirroring.");
+    say("State cache has expired; doing full mirror check.");
     return
   } else {
     $state_cache_exptime = $$rfiles{cache_expiration_time};
