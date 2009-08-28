@@ -24,8 +24,8 @@ debmirror (1:2.0) UNRELEASED; urgency=low
   * Support for mirroring "current" Debian Installer images
 
     With the option to specify a different set of dists and arches than
-    for the package archive. In this release only the http method is
-    supported and there will be no progress updates.
+    for the package archive. In this release there are no progress
+    updates displayed yet.
 
  -- Frans Pop <fjp@debian.org>  Thu, 27 Aug 2009 14:35:03 +0200
 

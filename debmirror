@@ -344,8 +344,7 @@ not set, it will default to the same values as for the archive.
 
 =head2 Limitations
 
-Mirroring of Debian Installer images is currently only supported for the
-"http" method. There are no progress updates for D-I images yet.
+There are no progress updates displayed for D-I images.
 
 =head1 ARCHIVE SIZE
 
@@ -609,11 +608,6 @@ if (!($pdiff_mode eq "none")) {
 
 # Backwards compatibility: remote root dir no longer needs prefix
 $remoteroot =~ s%^[:/]%%;
-
-# D-I images only supported over http
-if (@di_dists && $download_method ne "http") {
-  die("Mirroring Debian Installer images is currently only supported over http.");
-}
 
 # Post-process arrays. Allow commas to separate values the user entered.
 # If the user entered nothing, provide defaults.
@@ -2035,6 +2029,8 @@ sub di_add_files {
   }
 }
 
+# ToDo: for rsync maybe it would make sense to sync the images directly
+# into place, the whole $image_dir at a time.
 sub di_get_files {
   say("Getting Debian Installer images.");
   my $tdir = "$tempdir/d-i";
