@@ -175,10 +175,8 @@ Specifying --arch=none will mirror no archs.
 
 Also download Packages and Sources files from the specified directory
 on the remote host (the directory is relative to the root of the
-Debian archive). If you used this option for "--adddir
-dists/proposed-updates" in the past use "--dist
-<dist>-proposed-updates" now. This feature is now obsolete and will be
-removed soon.
+Debian archive). This feature is now obsolete and may be removed in
+a future release.
 
 =item --rsync-extra=foo[,bar,..]
 
