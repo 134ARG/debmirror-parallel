@@ -1,6 +1,7 @@
 debmirror (1:2.1) UNRELEASED; urgency=low
 
   * Fix location of debmirror.conf. Closes: #544139.
+  * Don't display download speed if rsync is used. Closes: #422100.
 
  -- Frans Pop <fjp@debian.org>  Sat, 29 Aug 2009 13:08:39 +0200
 

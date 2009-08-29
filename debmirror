@@ -2104,12 +2104,12 @@ sub download_finished {
   if ($download_method eq 'ftp') { $ftp->quit; }
 
   my $total_time = time - $start_time;
-  my $avg_speed = 0;
-  $avg_speed = sprintf("%3.0f",($bytes_gotten / $total_time)) unless ($total_time == 0);
-  if ($bytes_gotten == 0) {
-    say("Downloaded files in ".$total_time."s");
+  if ($download_method eq 'rsync' || $bytes_gotten == 0) {
+    say("Download completed in ".$total_time."s.");
   } else {
-    say("Downloaded ".print_dl_size($bytes_gotten)." in ".$total_time."s at ".(int($avg_speed/1024*100)/100)." kiB/s");
+    my $avg_speed = 0;
+    $avg_speed = sprintf("%3.0f",($bytes_gotten / $total_time)) unless ($total_time == 0);
+    say("Downloaded ".print_dl_size($bytes_gotten)." in ".$total_time."s at ".(int($avg_speed/1024*100)/100)." kiB/s.");
   }
 }
 
