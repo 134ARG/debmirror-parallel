@@ -1,4 +1,4 @@
-debmirror (1:2.1) UNRELEASED; urgency=low
+debmirror (1:2.1) unstable; urgency=low
 
   * Support mirroring of trace files, ./doc, ./indices and ./tools
 
@@ -13,7 +13,7 @@ debmirror (1:2.1) UNRELEASED; urgency=low
 
     See the man page for details.
 
- -- Frans Pop <fjp@debian.org>  Sat, 29 Aug 2009 15:16:40 +0200
+ -- Frans Pop <fjp@debian.org>  Sat, 29 Aug 2009 18:55:19 +0200
 
 debmirror (1:2.0) unstable; urgency=low
 
@@ -28,9 +28,9 @@ debmirror (1:2.0) unstable; urgency=low
     Debmirror now has the option to save the state of the mirror to a
     cache file between runs. The cache has a configurable expiry time.
     While the cache is valid, debmirror will trust that the mirror is
-    consistent with this cache instead of checking the presence of
-    files on disk. Use of the cache avoids a large amount of disk access
-    and may reduce the time required for updates.
+    consistent with this cache instead of checking the presence of files
+    on disk. Use of the cache avoids a large amount of disk access and
+    may reduce the time required for updates.
 
     The limited validity of the cache ensures that the actual state of
     the mirror still gets checked periodically. You may want to consider

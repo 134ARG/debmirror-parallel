@@ -1,4 +1,4 @@
-debmirror (1:2.1) UNRELEASED; urgency=low
+debmirror (1:2.1) unstable; urgency=low
 
   * Fix location of debmirror.conf. Closes: #544139.
   * Don't display download speed if rsync is used. Closes: #422100.
@@ -9,7 +9,7 @@ debmirror (1:2.1) UNRELEASED; urgency=low
   * Ubuntu uses an identical Codename for different suites, so just ignore
     it and use the Suite instead. Closes: #544132.
 
- -- Frans Pop <fjp@debian.org>  Sat, 29 Aug 2009 13:08:39 +0200
+ -- Frans Pop <fjp@debian.org>  Sat, 29 Aug 2009 18:55:25 +0200
 
 debmirror (1:2.0) unstable; urgency=low
 
