@@ -2,6 +2,10 @@ debmirror (1:2.1) UNRELEASED; urgency=low
 
   * Fix location of debmirror.conf. Closes: #544139.
   * Don't display download speed if rsync is used. Closes: #422100.
+  * Support mirroring specific additional files from specific locations on
+    the mirror: trace files, ./doc, ./indices and ./tools. The transfer
+    method used for this is always rsync, irrespective of what method is
+    specified in the --method option. Closes: #153680, #156564.
 
  -- Frans Pop <fjp@debian.org>  Sat, 29 Aug 2009 13:08:39 +0200
 

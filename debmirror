@@ -58,12 +58,13 @@ Usage: $0 [--progress] [--verbose] [--debug] [--dry-run] [--help]
           [--proxy=http://user:pass\@url:port/]
           [--dist=foo[,bar,..] ...] [--omit-suite-symlinks]
           [--section=foo[,bar,..] ...] [--arch=foo[,bar,..] ...]
+          [--adddir=directory] [--rsync-extra=foo[,bar,..] ...]
           [--di-dist=foo[,bar,..] ...] [--di-arch=foo[,bar,..] ...]
           [--source|--nosource] [--getcontents] [--md5sums]
           [--ignore-missing-release] [--ignore-release-gpg]
           [--ignore=regex] [--exclude=regex] [--include=regex]
           [--exclude-deb-section=regex] [--limit-priority=regex]
-          [--adddir=directory] [--timeout=seconds] [--max-batch=number]
+          [--timeout=seconds] [--max-batch=number]
           [--rsync-batch=number] [--rsync-options=options]
           [--postcleanup|--cleanup|--nocleanup] [--skippackages]
           [--pdiff=use|mirror|none] [--state-cache-days=number]
@@ -170,6 +171,57 @@ main,contrib,non-free,main/debian-installer.
 Specify the architectures to mirror. The default is --arch=i386.
 Specifying --arch=none will mirror no archs.
 
+=item --adddir directory
+
+Also download Packages and Sources files from the specified directory
+on the remote host (the directory is relative to the root of the
+Debian archive). If you used this option for "--adddir
+dists/proposed-updates" in the past use "--dist
+<dist>-proposed-updates" now. This feature is now obsolete and will be
+removed soon.
+
+=item --rsync-extra=foo[,bar,..]
+
+Allows to also mirror files from a number of directories that are not part
+of the package archive itself. Debmirror will B<always> use rsync for the
+transfer of these files, irrespective of what transfer method is specified
+in the --method option.
+
+This option can therefore not be used if your remote mirror does not support
+rsync, or if the mirror needs a different --root option for rsync than for
+the main transfer method specified with --method.
+
+The following values are supported.
+
+=over 2
+
+=item doc
+
+Download all files and subdirectories in ./doc directory, and all README
+files in the root directory of the archive.
+
+=item indices
+
+Download all files and subdirectories in ./indices directory. Note that
+this directory can contain some rather large files; don't include this
+type unless you know you need these files.
+
+=item tools
+
+Download all files and subdirectories in ./tools directory.
+
+=item trace
+
+Download the remote mirror's trace files for the archive (./project/trace/*).
+
+=back
+
+If specified, the update of trace files will be done at the beginning of
+the mirror run; the other types are done near the end. 
+
+This switch may be used multiple times, and multiple values may be specified
+at once, separated by comma's; unknown values are ignored.
+
 =item --di-dist=dists | foo[,bar,..]
 
 Mirror "current" Debian Installer images for the specified dists.
@@ -231,15 +283,6 @@ science, ...) match the regex.  May be used multiple times.
 
 Limit download to files whose Debian Priority (required, extra,
 optional, ...) match the regex.  May be used multiple times.
-
-=item --adddir directory
-
-Also download Packages and Sources files from the specified directory
-on the remote host (the directory is relative to the root of the
-Debian archive). If you used this option for "--adddir
-dists/proposed-updates" in the past use "--dist
-<dist>-proposed-updates" now. This feature is now obsolete and will be
-removed soon.
 
 =item --timeout=seconds -t
 
@@ -341,6 +384,9 @@ The special values "dists" resp. "arches" can be used to tell debmirror
 to use the same dists and architectures for D-I images as for the archive,
 but it is also possible to specify different values. If either option is
 not set, it will default to the same values as for the archive.
+
+If you wish to create custom CD images using for example I<debian-cd>,
+you will probably also want add the option "--rsync-extra=doc,tools".
 
 =head2 Limitations
 
@@ -478,7 +524,7 @@ our ($debug, $progress, $verbose, $passive, $skippackages, $getcontents);
 our ($ua, $proxy);
 our (@rdists, @sections, @arches, @extra_dirs, @ignores, @excludes, @includes);
 our (@excludes_deb_section, @limit_priority);
-our (@di_dists, @di_arches);
+our (@di_dists, @di_arches, @rsync_extra);
 our $state_cache_days = 0;
 our $check_md5sums = 0;
 our $check_downloads = 0;
@@ -561,6 +607,7 @@ GetOptions('debug'                  => \$debug,
 	   'adddir=s'               => \@extra_dirs,
 	   'di-dist=s'              => \@di_dists,
 	   'di-arch=s'              => \@di_arches,
+	   'rsync-extra=s'          => \@rsync_extra,
 	   'cleanup'                => \$cleanup,
 	   'postcleanup'            => \$post_cleanup,
 	   'nocleanup'              => \$no_cleanup,
@@ -620,6 +667,7 @@ $remoteroot =~ s%^[:/]%%;
 @arches=() if (join(',',@arches) eq "none");
 @di_dists=split(/,/,join(',',@di_dists));
 @di_arches=split(/,/,join(',',@di_arches));
+@rsync_extra=split(/,/,join(',',@rsync_extra));
 if (@di_dists) {
   @di_dists = @rdists if ($di_dists[0] eq "dists");
   @di_arches = @arches if (!@di_arches || $di_arches[0] eq "arches");
@@ -751,6 +799,9 @@ my $rsyncremote = "$host\:\:$remoteroot/";
 if (! ($user eq 'anonymous')) {
   $rsyncremote = "$user\@$rsyncremote";
 }
+
+# Update the remote trace files; also update ignores for @rsync_extra.
+rsync_extra(1, @rsync_extra);
 
 say("Get Release files.");
 # Get Release files without caching for http
@@ -1234,6 +1285,9 @@ foreach my $file (`find . -type f`) {
 }
 chdir($mirrordir) or die "chdir $mirrordir: $!";
 
+# Get optional directories using rsync.
+rsync_extra(0, @rsync_extra);
+
 # Download D-I images.
 if (@di_dists) {
   di_get_files();
@@ -1576,6 +1630,79 @@ sub rsync_get {
     $num_errors++;
     return 0;
   }
+}
+
+sub rsync_extra {
+  my $early = shift;
+  my @extras = @_;
+  my @includes;
+
+  # @ignores is updated during $early to prevent removal of files
+  # if cleanup is done early.
+  for my $type (@extras) {
+    if ($early) {
+      if ($type eq "trace") {
+	push(@includes, "- /project/trace/$hostname");
+	push(@includes, "/project/trace/*");
+	push(@ignores, "^project/trace/");
+	say("Updating remote trace files (using rsync).");
+      } elsif ($type eq "doc") {
+	push(@ignores, "^doc/");
+	push(@ignores, "^README*");
+      } elsif ($type eq "tools") {
+	push(@ignores, "^tools/");
+      } elsif ($type eq "indices") {
+	push(@ignores, "^indices/");
+      }
+    } else {
+      if ($type eq "doc") {
+	push(@includes, "/doc/***");
+	push(@includes, "/README*");
+      } elsif ($type eq "tools") {
+	push(@includes, "/tools/***");
+      } elsif ($type eq "indices") {
+	push(@includes, "/indices/***");
+      }
+    }
+  }
+  return if (! @includes);
+  if (! $early) {
+    @extras = grep(!/^trace$/, @extras); # drop 'trace' from list
+    say("Updating extra files (using rsync): @extras.");
+  }
+  rsync_extra_get(@includes);
+}
+
+sub rsync_extra_get {
+  my @includes = @_;
+  my $fh;
+  my @result;
+
+  my $opt=$rsync_options;
+  $opt = "$opt --progress" if $progress;
+  $opt = "$opt -v" if $verbose;
+  $opt = "$opt -v" if $debug;
+  $opt = "$opt -n" if $dry_run;
+
+  ($fh, $rsynctempfile) = tempfile();
+  foreach my $line (@includes) {
+    if ($line !~ /^- /) {
+      my $dirname;
+      my @dir;
+      ($dirname) = ($line =~ m:(.*/):);
+      @dir= split(/\//, $dirname);
+      for (1..$#dir) {
+	push (@result, "" . join('/', @dir[0..$_]) . "/");
+      }
+    }
+    push (@result, "$line");
+  }
+  for (@result) {
+    print $fh "$_\n";
+  }
+  system ("rsync --timeout=$timeout $opt $rsyncremote --delete --include-from=$rsynctempfile --exclude='*' $mirrordir");
+  close $fh;
+  unlink $rsynctempfile;
 }
 
 # run system() with stdin and stdout redirected to files

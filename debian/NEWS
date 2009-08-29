@@ -1,3 +1,20 @@
+debmirror (1:2.1) UNRELEASED; urgency=low
+
+  * Support mirroring of trace files, ./doc, ./indices and ./tools
+
+    Mirroring trace files and files from the listed directories can be
+    specified using the --rsync-extra option. As the name implies,
+    debmirror will always use rsync to transfer these files, irrespective
+    of what transfer method is specified in the --method option.
+
+    With this new feature, debmirror can mirror all files needed to
+    create custom CD images using debian-cd. Note that current versions
+    of debian-cd no longer require the ./indices directory.
+
+    See the man page for details.
+
+ -- Frans Pop <fjp@debian.org>  Sat, 29 Aug 2009 15:16:40 +0200
+
 debmirror (1:2.0) unstable; urgency=low
 
   * Option --root=directory no longer requires "/" or ":" prefix
