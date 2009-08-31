@@ -722,7 +722,6 @@ $mirrordir = cwd();
 my $hostname=`hostname -f 2>/dev/null || hostname`;
 chomp $hostname;
 my $lockfile="Archive-Update-in-Progress-$hostname";
-$files{$lockfile}=1;
 say("Attempting to get lock, this might take 2 minutes before it fails.");
 my $lockmgr = LockFile::Simple->make(-format => "%f/$lockfile", -max => 12,
 				     -delay => 10, -nfs => 1, -autoclean => 1,
@@ -732,10 +731,6 @@ my $lock = $lockmgr->lock("$mirrordir")
 $SIG{INT}=sub { $lock->release; exit 1 };
 $SIG{TERM}=sub { $lock->release; exit 1 };
 
-# Register the trace file.
-my $tracefile="project/trace/$hostname";
-$files{$tracefile}=1;
-
 # Create tempdir if missing
 my $tempdir=".temp";
 make_dir($tempdir) if (! -d $tempdir);
@@ -743,6 +738,11 @@ die "You need write permissions on $tempdir" if (! -w $tempdir);
 
 # Load the state cache.
 load_state_cache() if $state_cache_days;
+
+# Register the trace and lock files.
+my $tracefile="project/trace/$hostname";
+$files{$tracefile}=1;
+$files{$lockfile}=1;
 
 # Start up ftp.
 my $ftp;
