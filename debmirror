@@ -1631,8 +1631,7 @@ sub rsync_get {
 }
 
 sub rsync_extra {
-  my $early = shift;
-  my @extras = @_;
+  my ($early, @extras) = @_;
   my @includes;
 
   # @ignores is updated during $early to prevent removal of files
