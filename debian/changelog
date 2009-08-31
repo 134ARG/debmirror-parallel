@@ -1,8 +1,8 @@
-debmirror (1:2.1.1) UNRELEASED; urgency=low
+debmirror (1:2.1.1) unstable; urgency=low
 
   * Register the trace and lock files only after loading the state cache.
 
- -- Frans Pop <fjp@debian.org>  Mon, 31 Aug 2009 14:11:09 +0200
+ -- Frans Pop <fjp@debian.org>  Mon, 31 Aug 2009 14:16:47 +0200
 
 debmirror (1:2.1) unstable; urgency=low
 
