@@ -2462,7 +2462,7 @@ sub load_state_cache {
   $use_cache = 1;
   # Preserve state cache during dry runs
   if ($dry_run_var) {
-    $files{$cache_file} = 1 if $dry_run_var;
+    $files{$cache_file} = 1;
   } else {
     unlink $cache_file if -f $cache_file;
   }
