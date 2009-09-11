@@ -379,7 +379,22 @@ moving meta files in place). This conversion should only be needed once.
 
 =back
 
-=head1 Mirroring Debian Installer images
+=head1 USING DEBMIRROR
+
+=head2 Using regular expressions in options
+
+Various options accept regular expressions that can be used to tune what
+is included in the mirror. They can be any regular expression valid in
+I<perl>, which also means that extended syntax is standard. Make sure to
+anchor regular expressions appropriately: this is not done by debmirror.
+
+The --include and --exclude options can be combined. This combination
+for example will, if the --i18n option is used, exclude all F<Translation>
+files, except for the ones for Portuguese (pt) and Brazillian (pt_BR):
+
+  --exclude='/Translation-.*\.bz2$' --include='/Translation-pt.*\.bz2$'
+
+=head2 Mirroring Debian Installer images
 
 Debmirror will only mirror the "current" images that are on the remote
 mirror. At least one of the options --di-dist or --di-arch must be
@@ -393,7 +408,7 @@ not set, it will default to the same values as for the archive.
 If you wish to create custom CD images using for example I<debian-cd>,
 you will probably also want add the option "--rsync-extra=doc,tools".
 
-=head2 Limitations
+B<Limitations>
 
 There are no progress updates displayed for D-I images.
 
@@ -476,7 +491,8 @@ and testing versions of Debian; download from 'ftp.kernel.org':
   debmirror -a i386,sparc -d sid -d etch -s main --nosource \
             -h ftp.nl.debian.org --progress $HOME/mirror/debian
 
-Make a mirror using rsync (rsync server is 'ftp.debian.org::debian'):
+Make a mirror using rsync (rsync server is 'ftp.debian.org::debian'),
+excluding the section 'debug' and the package 'foo-doc':
 
   debmirror -e rsync $HOME/mirror/debian --exclude='/foo-doc_' \
             --exclude-deb-section='^debug$'
