@@ -412,6 +412,25 @@ B<Limitations>
 
 There are no progress updates displayed for D-I images.
 
+=head1 EXAMPLES
+
+Simply make a mirror in F</srv/mirror/debian>, using all defaults (or the
+settings defined in F<debmirror.conf>):
+
+  debmirror /srv/mirror/debian
+
+Make a mirror of i386 and sparc binaries, main only, and include both unstable
+and testing versions of Debian; download from 'ftp.kernel.org':
+
+  debmirror -a i386,sparc -d sid -d etch -s main --nosource \
+            -h ftp.nl.debian.org --progress $HOME/mirror/debian
+
+Make a mirror using rsync (rsync server is 'ftp.debian.org::debian'),
+excluding the section 'debug' and the package 'foo-doc':
+
+  debmirror -e rsync $HOME/mirror/debian --exclude='/foo-doc_' \
+            --exclude-deb-section='^debug$'
+
 =head1 ARCHIVE SIZE
 
 The tables below give an indication of the space needed to mirror the
@@ -477,25 +496,6 @@ All numbers reflect the state of te archive per 19 Aug 2009.
 [1] Note that debmirror keeps an extra copy of all meta data. This is
 necessary to guarantee that the local mirror stays consistent while
 debmirror is running.
-
-=head1 EXAMPLES
-
-Simply make a mirror in F</srv/mirror/debian>, using all defaults (or the
-settings defined in F<debmirror.conf>):
-
-  debmirror /srv/mirror/debian
-
-Make a mirror of i386 and sparc binaries, main only, and include both unstable
-and testing versions of Debian; download from 'ftp.kernel.org':
-
-  debmirror -a i386,sparc -d sid -d etch -s main --nosource \
-            -h ftp.nl.debian.org --progress $HOME/mirror/debian
-
-Make a mirror using rsync (rsync server is 'ftp.debian.org::debian'),
-excluding the section 'debug' and the package 'foo-doc':
-
-  debmirror -e rsync $HOME/mirror/debian --exclude='/foo-doc_' \
-            --exclude-deb-section='^debug$'
 
 =head1 FILES
 
