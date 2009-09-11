@@ -187,7 +187,8 @@ in the --method option.
 
 This option can therefore not be used if your remote mirror does not support
 rsync, or if the mirror needs a different --root option for rsync than for
-the main transfer method specified with --method.
+the main transfer method specified with --method. Excluding individual files
+in the directories is not supported.
 
 The following values are supported.
 
