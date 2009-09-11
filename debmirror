@@ -465,20 +465,21 @@ debmirror is running.
 
 =head1 EXAMPLES
 
- debmirror /mirror/debian
+Simply make a mirror in /srv/mirror/debian, using all defaults (or the
+settings defined in debmirror.conf):
 
-Simply make a mirror in /mirror/debian, using all defaults (or the settings
-defined in debmirror.conf).
-
- debmirror -a i386,sparc -d sid -d etch -s main --nosource \
-           -h ftp.nl.debian.org --progress $HOME/debian/mirror
+  debmirror /srv/mirror/debian
 
 Make a mirror of i386 and sparc binaries, main only, and include both unstable
-and testing versions of Debian. Download from ftp.kernel.org.
+and testing versions of Debian; download from 'ftp.kernel.org':
 
- debmirror -e rsync -r :debian $HOME/debian/mirror
+  debmirror -a i386,sparc -d sid -d etch -s main --nosource \
+            -h ftp.nl.debian.org --progress $HOME/mirror/debian
 
-Make a mirror using rsync. rsync server is ftp.debian.org::debian.
+Make a mirror using rsync (rsync server is 'ftp.debian.org::debian'):
+
+  debmirror -e rsync $HOME/mirror/debian --exclude='/foo-doc_' \
+            --exclude-deb-section='^debug$'
 
 =head1 FILES
 
