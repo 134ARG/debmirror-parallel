@@ -101,9 +101,9 @@ Enables verbose debug output, including ftp protocol dump.
 
 =item --dry-run
 
-Simulate a mirror run. This will still download the meta files to .temp
-but won't replace the old meta files, won't download debs and source
-files and only simulates cleanup.
+Simulate a mirror run. This will still download the meta files to the
+F<./.temp> working directory, but won't replace the old meta files, won't
+download debs and source files and only simulates cleanup.
 
 =item --help
 
@@ -111,14 +111,14 @@ Display a usage summary.
 
 =item --host=remotehost -h
 
-Specify the remote host to mirror from. Defaults to ftp.debian.org,
+Specify the remote host to mirror from. Defaults to 'ftp.debian.org',
 you are strongly encouraged to find a closer mirror.
 
 =item --root=directory -r directory
 
 Specifies the directory on the remote host that is the root of the Debian
 archive. Defaults to "debian", which will work for most mirrors. The root
-directory has a dists/ subdirectory.
+directory has a F<./dists> subdirectory.
 
 =item --method=ftp|hftp|http|rsync -e
 
@@ -156,10 +156,10 @@ but you may add those links manually. Defaults to mirroring sid.
 
 =item --omit-suite-symlinks
 
-With this option set, debmirror will not create the 'suite->codename'
+With this option set, debmirror will not create the 'S<suite -> codename>'
 symlink. This is needed for example when mirroring archived Debian
 releases as they will all have either 'stable' or 'oldstable' as
-suite in their Release files.
+suite in their F<Release> files.
 
 =item --section=foo[,bar,..] -s foo
 
@@ -196,22 +196,22 @@ The following values are supported.
 
 =item doc
 
-Download all files and subdirectories in ./doc directory, and all README
+Download all files and subdirectories in F<./doc> directory, and all README
 files in the root directory of the archive.
 
 =item indices
 
-Download all files and subdirectories in ./indices directory. Note that
+Download all files and subdirectories in F<./indices> directory. Note that
 this directory can contain some rather large files; don't include this
 type unless you know you need these files.
 
 =item tools
 
-Download all files and subdirectories in ./tools directory.
+Download all files and subdirectories in F<./tools> directory.
 
 =item trace
 
-Download the remote mirror's trace files for the archive (./project/trace/*).
+Download the remote mirror's trace files for the archive (F<./project/trace/*>).
 
 =back
 
@@ -241,13 +241,13 @@ Do not include source.
 
 =item --i18n
 
-Additionally download Translation-lang.bz2 files, which contain translations
-of package descriptions. Selection of specific translations is possible using
-the --include and --exclude options.
+Additionally download F<Translation-E<lt>langE<gt>.bz2> files, which contain
+translations of package descriptions. Selection of specific translations is
+possible using the --include and --exclude options.
 
 =item --getcontents
 
-Additionally download Contents.arch.gz files.
+Additionally download F<Contents.E<lt>archE<gt>.gz> files.
 
 =item --md5sums -m
 
@@ -261,11 +261,11 @@ to use these two options together.
 
 =item --ignore-missing-release
 
-Don't fail if the Release file is missing.
+Don't fail if the F<Release> file is missing.
 
 =item --ignore-release-gpg
 
-Don't fail if the Release.gpg file is missing.
+Don't fail if the F<Release.gpg> file is missing.
 
 =item --ignore=regex
 
@@ -334,8 +334,8 @@ up-to-date.
 
 =item --pdiff=use|mirror|none
 
-If --pdiff=use is specified and the Release file contains entries for
-pdiff files, then debmirror will attempt to use them to update the
+If --pdiff=use is specified and the F<Release> file contains entries
+for pdiff files, then debmirror will attempt to use them to update the
 Packages and Sources files (can reduce download size of meta files),
 but will not include them in the mirror. This is the default behavior
 and avoids having time consuming pdiff files for a fast local mirror.
@@ -401,9 +401,9 @@ There are no progress updates displayed for D-I images.
 
 The tables below give an indication of the space needed to mirror the
 archive. They are particularly useful if you wish to set up a partial
-mirror. Only the size of source and binary packages is included.
-You have to allow for around 1-4 GB of meta data (in dists/<dist>) per
-suite (depending in your settings) [1]. Plus whatever space is needed
+mirror. Only the size of source and binary packages is included. You
+should allow for around 1-4 GB of meta data (in F<./dists/E<lt>distE<gt>>)
+per suite (depending in your settings) [1]. Plus whatever space is needed
 for extra directories (e.g. tools, doc) you wish to mirror.
 
 The tables also show how much additional space is required if you add
@@ -465,8 +465,8 @@ debmirror is running.
 
 =head1 EXAMPLES
 
-Simply make a mirror in /srv/mirror/debian, using all defaults (or the
-settings defined in debmirror.conf):
+Simply make a mirror in F</srv/mirror/debian>, using all defaults (or the
+settings defined in F<debmirror.conf>):
 
   debmirror /srv/mirror/debian
 
