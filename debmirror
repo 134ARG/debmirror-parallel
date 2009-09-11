@@ -60,7 +60,7 @@ Usage: $0 [--progress] [--verbose] [--debug] [--dry-run] [--help]
           [--section=foo[,bar,..] ...] [--arch=foo[,bar,..] ...]
           [--adddir=directory] [--rsync-extra=foo[,bar,..] ...]
           [--di-dist=foo[,bar,..] ...] [--di-arch=foo[,bar,..] ...]
-          [--source|--nosource] [--getcontents] [--md5sums]
+          [--source|--nosource] [--i18n] [--getcontents] [--md5sums]
           [--ignore-missing-release] [--ignore-release-gpg]
           [--ignore=regex] [--exclude=regex] [--include=regex]
           [--exclude-deb-section=regex] [--limit-priority=regex]
@@ -238,6 +238,12 @@ Include source in the mirror (default).
 =item --nosource
 
 Do not include source.
+
+=item --i18n
+
+Additionally download Translation-lang.bz2 files, which contain translations
+of package descriptions. Selection of specific translations is possible using
+the --include and --exclude options.
 
 =item --getcontents
 
@@ -519,7 +525,7 @@ use Digest::SHA1;
 use LWP::UserAgent;
 
 # Yeah, I use too many global variables in this program.
-our ($debug, $progress, $verbose, $passive, $skippackages, $getcontents);
+our ($debug, $progress, $verbose, $passive, $skippackages, $getcontents, $i18n);
 our ($ua, $proxy);
 our (@rdists, @sections, @arches, @extra_dirs, @ignores, @excludes, @includes);
 our (@excludes_deb_section, @limit_priority);
@@ -577,6 +583,10 @@ my %dists=();
 # below! Filenames should be relative to $mirrordir.
 my %files;
 
+# Hash to record which Translation files needs download. Files also get
+# registered in %files.
+my %i18n_get;
+
 # Separate hash for files belonging to Debian Installer images.
 # This data is not cached.
 my %di_files;
@@ -616,6 +626,7 @@ GetOptions('debug'                  => \$debug,
 	   'limit-priority=s'       => \@limit_priority,
 	   'include=s'              => \@includes,
 	   'skippackages'           => \$skippackages,
+	   'i18n'                   => \$i18n,
 	   'getcontents'            => \$getcontents,
 	   'method|e=s'             => \$download_method,
 	   'timeout|t=s'            => \$timeout,
@@ -888,6 +899,7 @@ foreach my $dist (keys %dists) {
       add_bytes("dists/$dist/$section/source/Release");
       add_bytes("dists/$dist/$section/source/Sources.diff/Index") unless ($pdiff_mode eq "none");
     }
+    add_bytes("dists/$dist/$section/i18n/Index");
   }
 }
 foreach (@extra_dirs) {
@@ -926,6 +938,7 @@ foreach my $dist (keys %dists) {
     if ($do_source && $section !~ /debian-installer/) {
       get_index("dists/$dist/$section/source", "Sources");
     }
+    get_i18n_index("dists/$dist/$section/i18n");
   }
 }
 foreach (@extra_dirs) {
@@ -957,19 +970,29 @@ if ($num_errors != 0) {
 # for the ftp method.
 $dry_run = $dry_run_var;
 
-if ($getcontents) {
-  say("Get Contents files.");
+# Determine size of Contents and Translation files to get.
+if ($getcontents || $i18n) {
   foreach my $dist (keys %dists) {
     next unless exists $dists{$dist}{mirror};
-    foreach my $arch (@arches) {
-      next if $dist=~/experimental/;
-      next if $dist=~/.*-proposed-updates/;
-      next if $arch=~/source/;
-      if (!check_lists ("$tempdir/dists/$dist/Contents-$arch.gz")) {
-	add_bytes("dists/$dist/Contents-$arch.gz");
+    if ($getcontents) {
+      foreach my $arch (@arches) {
+	next if $dist=~/experimental/;
+	next if $dist=~/.*-proposed-updates/;
+	next if $arch=~/source/;
+	if (!check_lists ("$tempdir/dists/$dist/Contents-$arch.gz")) {
+	  add_bytes("dists/$dist/Contents-$arch.gz");
+	}
+      }
+    }
+    if ($i18n) {
+      foreach my $section (@sections) {
+	parse_i18n_index("dists/$dist/$section/i18n");
       }
     }
   }
+}
+if ($getcontents) {
+  say("Get Contents files.");
   foreach my $dist (keys %dists) {
     next unless exists $dists{$dist}{mirror};
     foreach my $arch (@arches) {
@@ -981,6 +1004,15 @@ if ($getcontents) {
       }
       $files{"dists/$dist/Contents-$arch.gz"}=1;
       $files{$tempdir."/"."dists/$dist/Contents-$arch.gz"}=1;
+    }
+  }
+}
+if ($i18n) {
+  say("Get Translation files.");
+  foreach my $dist (keys %dists) {
+    next unless exists $dists{$dist}{mirror};
+    foreach my $section (@sections) {
+      get_i18n_files();
     }
   }
 }
@@ -1403,6 +1435,21 @@ sub check_file {
     }
   }
   return 0;
+}
+
+# Always checks both file size and sha1 as the files get updated (this is
+# similar to what is done in check_lists, which forces check_md5sums).
+sub check_i18n {
+  my ($filename, $size, $sha1)=@_;
+  my $digest = Digest::SHA1->new;
+  my $ret = 0;
+
+  if (-f "$filename" and ($size == -s _)) {
+    open HANDLE, $filename or die "$filename: $!";
+    $digest->addfile(*HANDLE);
+    $ret = ($sha1 eq $digest->hexdigest);
+  }
+  return $ret;
 }
 
 # Check uncompressed pdiff content against sha1sum from Index file.
@@ -1940,6 +1987,64 @@ sub get_index {
   $files{"$tempdir/$subdir/$file.bz2"}=1;
   $files{"$tempdir/$subdir/$file"}=1;
   $files{"$tempdir/$subdir/Release"}=1;
+}
+
+sub get_i18n_index {
+  my $subdir=shift;
+  if (exists $file_lists_size{"$tempdir/$subdir/Index"}) {
+    make_dir($subdir);
+    make_dir("$tempdir/$subdir");
+
+    if (!check_lists ("$tempdir/$subdir/Index")) {
+      say("$subdir/Release needs fetch");
+      if (!remote_get("$subdir/Index")) {
+	push (@errlog,"$subdir/Index failed md5sum check, removing\n");
+      }
+    } else {
+      $bytes_gotten += $file_lists_size{"$tempdir/$subdir/Index"};
+    }
+    $files{"$subdir/Index"}=1;
+    $files{"$tempdir/$subdir/Index"}=1;
+  }
+}
+
+sub parse_i18n_index {
+  my $subdir = shift;
+  my ($sha1, $size, $filename);
+  my $exclude = "(".join("|", @excludes).")" if @excludes;
+  my $include = "(".join("|", @includes).")" if @includes;
+
+  # Parse the Index file
+  if (open INDEX, "<$tempdir/$subdir/Index") {
+    while (<INDEX>) {
+      last if /^SHA1:/;
+    }
+    while (<INDEX>) {
+      next unless /^ /;
+
+      my ($sha1, $size, $filename) = (/ ([a-z0-9]+) +(\d+) +(.*)$/);
+      if(!(defined($include) && ($subdir."/".$filename)=~/$include/o)) {
+	next if (defined($exclude) && ($subdir."/".$filename)=~/$exclude/o);
+      }
+
+      $files{"$subdir/$filename"}=1;
+      $files{$tempdir."/"."$subdir/$filename"}=1;
+      if (! check_i18n("$tempdir/$subdir/$filename", $size, $sha1)) {
+	$bytes_to_get += $size;
+	$i18n_get{"$subdir/$filename"}{sha1} = $sha1;
+	$i18n_get{"$subdir/$filename"}{size} = $size;
+      }
+    }
+    close INDEX;
+  }
+}
+
+sub get_i18n_files {
+  foreach my $file (sort keys %i18n_get) {
+    if (! check_i18n("$tempdir/$file", $i18n_get{$file}{size}, $i18n_get{$file}{sha1})) {
+      remote_get("$file");
+    }
+  }
 }
 
 sub fetch_and_apply_pdiffs {
