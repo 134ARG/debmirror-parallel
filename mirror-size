@@ -43,7 +43,7 @@ foreach my $suite (@suites) {
 
   foreach my $sect (@sects) {
     next unless -d "$root/$suite/$sect";
-    print("Processing $suite $sect\n");
+    print(STDERR "Processing $suite $sect\n");
     foreach my $arch (@arches) {
       my $file;
       if ($arch eq "source") {
@@ -66,6 +66,7 @@ foreach my $suite (@suites) {
   $width{$suite} = exists $sizes{"d$suite"} ? 16 : 6;
 }
 
+print("Total archive size (binary + source) per section:\n\n");
 printf("%10s ", "(in MiB)");
 foreach my $suite (@suites) {
   next unless exists $dists{$suite};
@@ -106,6 +107,7 @@ foreach my $suite (@suites) {
 printf(" | %6i", int((1 + $total{all}) /1024/1024)."\n");
 
 print("\n\n");
+print("Archive size per architecture (source and arch=all packages are shown separately):\n\n");
 printf("%10s ", "(in MiB)");
 foreach my $suite (@suites) {
   next unless exists $dists{$suite};
@@ -129,6 +131,10 @@ foreach my $arch (@arches) {
   }
   printf(" | %6i\n", int((1 + $sizes{all}{$arch}) /1024/1024));
 }
+
+my @ts=gmtime(time());
+printf("\nAll numbers reflect the state of te archive per %i %s %i.\n", $ts[3],
+       (qw(Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec))[$ts[4]], $ts[5] + 1900);
 
 ### Functions
 
