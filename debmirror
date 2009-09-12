@@ -600,8 +600,12 @@ my %dists=();
 # below! Filenames should be relative to $mirrordir.
 my %files;
 
-# Hash to record which Translation files needs download. Files also get
-# registered in %files.
+# Hash to record size and md5sums of meta files and package files (from the
+# Release file and Source/Packages files).
+my %file_lists;
+
+# Hash to record which Translation files needs download. Contains size and sha1
+# info. Files also get registered in %files.
 my %i18n_get;
 
 # Separate hash for files belonging to Debian Installer images.
@@ -833,7 +837,6 @@ rsync_extra(1, @rsync_extra);
 say("Get Release files.");
 # Get Release files without caching for http
 $ua->default_header( "Cache-Control" => "max-age=0" ) if ($ua);
-my (%file_lists_md5, %file_lists_size);
 foreach my $dist (@rdists) {
   my $tdir="$tempdir/.tmp/dists/$dist";
   next unless get_release($tdir, $dist);
@@ -863,8 +866,8 @@ foreach my $dist (keys %dists) {
     while (defined $_ && $_ =~ /^ /) {
       my ($md5sum, $size, $filename) =
 	(/ ([a-z0-9]+) +(\d+) +(.*)$/);
-      $file_lists_md5{"$tempdir/dists/$dist/$filename"} = $md5sum;
-      $file_lists_size{"$tempdir/dists/$dist/$filename"} = $size;
+      $file_lists{"$tempdir/dists/$dist/$filename"}{md5} = $md5sum;
+      $file_lists{"$tempdir/dists/$dist/$filename"}{size} = $size;
       $_ = <RELEASE>;
     }
     close RELEASE;
@@ -896,7 +899,7 @@ $bytes_gotten = $bytes_meta;
 
 sub add_bytes {
   my $name=shift;
-  $bytes_to_get +=  $file_lists_size{"$tempdir/$name"} if (exists $file_lists_size{"$tempdir/$name"});
+  $bytes_to_get +=  $file_lists{"$tempdir/$name"}{size} if exists $file_lists{"$tempdir/$name"};
 }
 foreach my $dist (keys %dists) {
   next unless exists $dists{$dist}{mirror};
@@ -1067,8 +1070,8 @@ say("Parse Packages and Sources files and add to the file list everything therei
 	$files{$filename} = 1;
       } else {
 	$files{$filename} = 0;
-	$file_lists_md5{$filename} = $md5sum;
-	$file_lists_size{$filename} = $size;
+	$file_lists{$filename}{md5} = $md5sum;
+	$file_lists{$filename}{size} = $size;
 	$bytes_to_get += $size;
       }
       $empty_mirror = 0;
@@ -1113,8 +1116,8 @@ say("Parse Packages and Sources files and add to the file list everything therei
 	  $files{$filename} = 1;
 	} else {
 	  $files{$filename} = 0;
-	  $file_lists_md5{$filename} = $md5sum;
-	  $file_lists_size{$filename} = $size;
+	  $file_lists{$filename}{md5} = $md5sum;
+	  $file_lists{$filename}{size} = $size;
 	  $bytes_to_get += $size;
 	}
       }
@@ -1490,9 +1493,8 @@ sub check_lists {
   my $t = $check_md5sums;
   my $ret = 1;
   $check_md5sums = 1;
-  if (exists $file_lists_size{$file}) {
-    $ret = check_file ($file, $file_lists_size{$file},
-		       $file_lists_md5{$file});
+  if (exists $file_lists{$file}) {
+    $ret = check_file($file, $file_lists{$file}{size}, $file_lists{$file}{md5});
   }
   $check_md5sums = $t;
   return $ret;
@@ -1898,7 +1900,7 @@ sub get_index {
   make_dir($subdir);
   make_dir("$tempdir/$subdir");
 
-  if (!($pdiff_mode eq "none") && exists $file_lists_size{"$tempdir/$subdir/$file.diff/Index"}) {
+  if (!($pdiff_mode eq "none") && exists $file_lists{"$tempdir/$subdir/$file.diff/Index"}) {
     if (!check_lists ("$tempdir/$subdir/$file.diff/Index")) {
       make_dir("$tempdir/$subdir/$file.diff");
       say("$subdir/$file.diff/Index needs fetch");
@@ -1912,7 +1914,7 @@ sub get_index {
 	}
       }
     } else {
-      $bytes_gotten += $file_lists_size{"$tempdir/$subdir/$file.diff/Index"};
+      $bytes_gotten += $file_lists{"$tempdir/$subdir/$file.diff/Index"}{size};
       fetch_and_apply_pdiffs($subdir, "$file");
       if (check_lists ("$tempdir/$subdir/$file")) {
 	system_redirect_io("gzip -9 -n", "$tempdir/$subdir/$file", "$tempdir/$subdir/$file.gz");
@@ -1923,7 +1925,7 @@ sub get_index {
     $files{"$tempdir/$subdir/$file.diff/Index"}=1;
   }
 
-  if (exists $file_lists_size{"$tempdir/$subdir/$file.gz"}) {
+  if (exists $file_lists{"$tempdir/$subdir/$file.gz"}{size}) {
     if (!check_lists ("$tempdir/$subdir/$file.gz")) {
       say("$subdir/$file.gz needs fetch");
       if (remote_get("$subdir/$file.gz")) {
@@ -1934,7 +1936,7 @@ sub get_index {
 	$num_errors++;
       }
     } else {
-      $bytes_gotten += $file_lists_size{"$tempdir/$subdir/$file.gz"};
+      $bytes_gotten += $file_lists{"$tempdir/$subdir/$file.gz"}{size};
     }
   } elsif ($ignore_release) {
     say("Ignoring missing Release file for $subdir/$file.gz");
@@ -1949,7 +1951,7 @@ sub get_index {
       say("$subdir/$file.gz does not exist locally or in Release, skipping.") if ($debug);
     }
   }
-  if (exists $file_lists_size{"$tempdir/$subdir/$file"}) {
+  if (exists $file_lists{"$tempdir/$subdir/$file"}) {
     if (!check_lists ("$tempdir/$subdir/$file")) {
       say("$subdir/$file needs fetch");
       if (remote_get("$subdir/$file")) {
@@ -1959,27 +1961,27 @@ sub get_index {
 	$num_errors++;
       }
     } else {
-      $bytes_gotten += $file_lists_size{"$tempdir/$subdir/$file"};
+      $bytes_gotten += $file_lists{"$tempdir/$subdir/$file"}{size};
     }
   }
-  if (exists $file_lists_size{"$tempdir/$subdir/$file.bz2"}) {
+  if (exists $file_lists{"$tempdir/$subdir/$file.bz2"}) {
     if (!check_lists ("$tempdir/$subdir/$file.bz2")) {
       say("$subdir/$file.bz2 needs fetch");
       if (!remote_get("$subdir/$file.bz2")) {
 	push (@errlog,"$subdir/$file.bz2 failed md5sum check, removing\n");
       }
     } else {
-      $bytes_gotten += $file_lists_size{"$tempdir/$subdir/$file.bz2"};
+      $bytes_gotten += $file_lists{"$tempdir/$subdir/$file.bz2"}{size};
     }
   }
-  if (exists $file_lists_size{"$tempdir/$subdir/Release"}) {
+  if (exists $file_lists{"$tempdir/$subdir/Release"}) {
     if (!check_lists ("$tempdir/$subdir/Release")) {
       say("$subdir/Release needs fetch");
       if (!remote_get("$subdir/Release")) {
 	push (@errlog,"$subdir/Release failed md5sum check, removing\n");
       }
     } else {
-      $bytes_gotten += $file_lists_size{"$tempdir/$subdir/Release"};
+      $bytes_gotten += $file_lists{"$tempdir/$subdir/Release"}{size};
     }
   }
   if ($file eq "Packages") {
@@ -1994,7 +1996,7 @@ sub get_index {
   $files{"$subdir/$file.gz"}=1;
   $files{"$subdir/$file.bz2"}=1;
   # Uncompressed files are no longer kept on the mirrors
-  $files{"$subdir/$file"}=1 unless (exists $file_lists_size{"$tempdir/$subdir/$file.gz"});
+  $files{"$subdir/$file"}=1 unless exists $file_lists{"$tempdir/$subdir/$file.gz"};
   $files{"$subdir/Release"}=1;
   $files{"$tempdir/$subdir/$file.gz"}=1;
   $files{"$tempdir/$subdir/$file.bz2"}=1;
@@ -2004,7 +2006,7 @@ sub get_index {
 
 sub get_i18n_index {
   my $subdir=shift;
-  if (exists $file_lists_size{"$tempdir/$subdir/Index"}) {
+  if (exists $file_lists{"$tempdir/$subdir/Index"}) {
     make_dir($subdir);
     make_dir("$tempdir/$subdir");
 
@@ -2014,7 +2016,7 @@ sub get_i18n_index {
 	push (@errlog,"$subdir/Index failed md5sum check, removing\n");
       }
     } else {
-      $bytes_gotten += $file_lists_size{"$tempdir/$subdir/Index"};
+      $bytes_gotten += $file_lists{"$tempdir/$subdir/Index"}{size};
     }
     $files{"$subdir/Index"}=1;
     $files{"$tempdir/$subdir/Index"}=1;
