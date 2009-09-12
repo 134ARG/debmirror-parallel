@@ -1,12 +1,12 @@
-debmirror (1:2.2) UNRELEASED; urgency=low
+debmirror (1:2.2) unstable; urgency=low
 
-  * Support for mirroring translated packages descriptions
+  * Support mirroring of translated packages descriptions
 
     If the option --i18n is passed, debmirror will also mirror the files
     containing translated package descriptions. The --include and --exclude
     options can be used to select which translations to mirror.
 
- -- Frans Pop <fjp@debian.org>  Fri, 11 Sep 2009 14:49:52 +0200
+ -- Frans Pop <fjp@debian.org>  Sat, 12 Sep 2009 08:58:07 +0200
 
 debmirror (1:2.1) unstable; urgency=low
 
