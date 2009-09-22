@@ -875,7 +875,7 @@ foreach my $dist (keys %dists) {
       add_bytes("dists/$dist/$section/source/Release");
       add_bytes("dists/$dist/$section/source/Sources.diff/Index") unless ($pdiff_mode eq "none");
     }
-    add_bytes("dists/$dist/$section/i18n/Index");
+    add_bytes("dists/$dist/$section/i18n/Index") if $i18n;
   }
 }
 foreach (@extra_dirs) {
@@ -914,7 +914,7 @@ foreach my $dist (keys %dists) {
     if ($do_source && $section !~ /debian-installer/) {
       get_index("dists/$dist/$section/source", "Sources");
     }
-    get_i18n_index("dists/$dist/$section/i18n");
+    get_i18n_index("dists/$dist/$section/i18n") if $i18n;
   }
 }
 foreach (@extra_dirs) {
