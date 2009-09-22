@@ -1,6 +1,8 @@
 debmirror (1:2.2.1) UNRELEASED; urgency=low
 
   * Only fetch i18n Index files if needed.
+  * Fix mirroring D-I images when the archive is also being mirrored for the
+    same dist. Closes: #547789.
 
  -- Frans Pop <fjp@debian.org>  Tue, 22 Sep 2009 17:55:11 +0200
 

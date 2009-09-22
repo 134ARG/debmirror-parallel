@@ -2182,20 +2182,25 @@ sub di_check_dists {
   say("Checking validity of D-I dists.");
   DI_DIST:
   for my $di_dist (@di_dists) {
-    next if exists $dists{$di_dist}; # dist with valid codename
-    foreach my $dist (keys %dists) {
-      my ($dist_raw, $dist_sdir) = split_dist($dist);
-      if ($di_dist eq $dists{$dist_raw}{suite}) {
-	$dists{"$dist_raw$dist_sdir"}{"d-i"} = 1; # suite, use codename instead
-	next DI_DIST;
+    if (exists $dists{$di_dist}) {
+      # Valid dist and also mirroring the archive itself
+      $dists{$di_dist}{"d-i"} = 1;
+    } else {
+      foreach my $dist (keys %dists) {
+	my ($dist_raw, $dist_sdir) = split_dist($dist);
+	if ($di_dist eq $dists{$dist_raw}{suite}) {
+	  # Suite specified, use codename instead
+	  $dists{"$dist_raw$dist_sdir"}{"d-i"} = 1;
+	  next DI_DIST;
+	}
       }
+      # Only mirroring D-I images, not the archive itself
+      my $tdir="$tempdir/.tmp/dists/$di_dist";
+      next unless get_release($tdir, $di_dist);
+      name_release("d-i", $tdir, $di_dist);
+      unlink "$tdir/Release";
+      unlink "$tdir/Release.gpg";
     }
-    # Only mirroring D-I images, not the archive itself
-    my $tdir="$tempdir/.tmp/dists/$di_dist";
-    next unless get_release($tdir, $di_dist);
-    name_release("d-i", $tdir, $di_dist);
-    unlink "$tdir/Release";
-    unlink "$tdir/Release.gpg";
   }
 }
 
@@ -2307,13 +2312,15 @@ sub di_cleanup {
     chdir("$mirrordir") or die "unable to chdir($tempdir): $!\n";
   }
   # Clean up temporary D-I files (silently)
-  chdir("$tempdir/d-i") or die "unable to chdir($tempdir/d-i): $!\n";
-  foreach my $file (`find . -type f`) {
-    chomp $file;
-    $file=~s:^\./::;
-    unlink "$file" or die "unlink $tempdir/d-i/$file: $!\n";
+  if (-d "$tempdir/d-i") {
+    chdir("$tempdir/d-i") or die "unable to chdir($tempdir/d-i): $!\n";
+    foreach my $file (`find . -type f`) {
+      chomp $file;
+      $file=~s:^\./::;
+      unlink "$file" or die "unlink $tempdir/d-i/$file: $!\n";
+    }
+    chdir("$mirrordir") or die "unable to chdir($mirrordir): $!\n";
   }
-  chdir("$mirrordir") or die "unable to chdir($mirrordir): $!\n";
 }
 
 sub download_finished {
