@@ -1096,22 +1096,7 @@ say("Download all files that we need to get (".print_dl_size($bytes_to_get - $by
 init_connection;
 
 # Download Contents and Translation files.
-if ($getcontents) {
-  say("Get Contents files.");
-  foreach my $dist (keys %dists) {
-    next unless exists $dists{$dist}{mirror};
-    foreach my $arch (@arches) {
-      next if $dist=~/experimental/;
-      next if $dist=~/.*-proposed-updates/;
-      next if $arch=~/source/;
-      if (!check_lists ("$tempdir/dists/$dist/Contents-$arch.gz")) {
-	remote_get("dists/$dist/Contents-$arch.gz");
-      }
-      $files{"dists/$dist/Contents-$arch.gz"}=1;
-      $files{$tempdir."/"."dists/$dist/Contents-$arch.gz"}=1;
-    }
-  }
-}
+get_contents_files() if ($getcontents);
 get_i18n_files() if ($i18n);
 
 # Download all package files that we need to get.
@@ -1958,6 +1943,23 @@ sub get_index {
   $files{"$tempdir/$subdir/$file.bz2"}=1;
   $files{"$tempdir/$subdir/$file"}=1;
   $files{"$tempdir/$subdir/Release"}=1;
+}
+
+sub get_contents_files {
+  say("Get Contents files.");
+  foreach my $dist (keys %dists) {
+    next unless exists $dists{$dist}{mirror};
+    foreach my $arch (@arches) {
+      next if $dist=~/experimental/;
+      next if $dist=~/.*-proposed-updates/;
+      next if $arch=~/source/;
+      if (!check_lists ("$tempdir/dists/$dist/Contents-$arch.gz")) {
+	remote_get("dists/$dist/Contents-$arch.gz");
+      }
+      $files{"dists/$dist/Contents-$arch.gz"}=1;
+      $files{$tempdir."/"."dists/$dist/Contents-$arch.gz"}=1;
+    }
+  }
 }
 
 sub get_i18n_index {
