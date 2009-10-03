@@ -1660,7 +1660,7 @@ sub rsync_extra {
 	push(@includes, "- /project/trace/$hostname");
 	push(@includes, "/project/trace/*");
 	push(@ignores, "^project/trace/");
-	say("Updating remote trace files (using rsync).");
+	say("Update remote trace files (using rsync).");
       } elsif ($type eq "doc") {
 	push(@ignores, "^doc/");
 	push(@ignores, "^README*");
@@ -1683,7 +1683,7 @@ sub rsync_extra {
   return if (! @includes);
   if (! $early) {
     @extras = grep(!/^trace$/, @extras); # drop 'trace' from list
-    say("Updating extra files (using rsync): @extras.");
+    say("Update extra files (using rsync): @extras.");
   }
   rsync_extra_get(@includes);
 }
