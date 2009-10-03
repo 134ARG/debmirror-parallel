@@ -156,7 +156,7 @@ but you may add those links manually. Defaults to mirroring sid.
 
 =item --omit-suite-symlinks
 
-With this option set, debmirror will not create the 'S<suite -> codename>'
+With this option set, debmirror will not create the 'S<suite -E<gt> codename>'
 symlink. This is needed for example when mirroring archived Debian
 releases as they will all have either 'stable' or 'oldstable' as
 suite in their F<Release> files.
@@ -282,12 +282,12 @@ Don't exclude any files whose filenames match the regex. May be used multiple ti
 =item --exclude-deb-section=regex
 
 Never download any files whose Debian Section (games, doc, oldlibs,
-science, ...) match the regex.  May be used multiple times.
+science, ...) match the regex. May be used multiple times.
 
 =item --limit-priority=regex
 
 Limit download to files whose Debian Priority (required, extra,
-optional, ...) match the regex.  May be used multiple times.
+optional, ...) match the regex. May be used multiple times.
 
 =item --timeout=seconds -t
 
@@ -371,11 +371,11 @@ still be pedantic about checking meta files.
 =item --allow-dist-rename
 
 The directory name for a dist should be equal to its Codename and not to
-a Suite. If the local mirror currently has directories named after Suites.
+a Suite. If the local mirror currently has directories named after Suites,
 debmirror can rename them automatically.
-An existing symlink 'codename->suite' will be removed, but debmirror will
-automatically create a new symlink 'suite->codename' (immediately after
-moving meta files in place). This conversion should only be needed once.
+An existing symlink S<codename -E<gt> suite> will be removed, but debmirror
+will automatically create a new symlink S<suite -E<gt> codename> (immediately
+after moving meta files in place). This conversion should only be needed once.
 
 =back
 
