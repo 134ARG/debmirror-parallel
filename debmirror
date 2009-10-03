@@ -530,7 +530,7 @@ our $dry_run=0;
 our $dry_run_var=0;
 our $rsync_options="-aIL --partial";
 our $ignore_small_errors=0;
-our $pdiff_mode="use";
+our $diff_mode="use";
 our $omit_suite_symlinks=0;
 our $allow_dist_rename=0;
 my @errlog;
@@ -616,7 +616,7 @@ GetOptions('debug'                  => \$debug,
 	   'proxy=s'                => \$proxy,
 	   'rsync-options=s'        => \$rsync_options,
 	   'ignore-small-errors'    => \$ignore_small_errors,
-	   'pdiff=s'                => \$pdiff_mode,
+	   'pdiff=s'                => \$diff_mode,
 	   'omit-suite-symlinks'    => \$omit_suite_symlinks,
 	   'allow-dist-rename'      => \$allow_dist_rename,
 	   'help'                   => \$help,
@@ -627,16 +627,16 @@ usage if $help;
 my $mirrordir=shift or usage("mirrordir not specified");
 
 # Check for patch binary if needed
-if (!($pdiff_mode eq "none")) {
+if (!($diff_mode eq "none")) {
   if (system("patch --version 2>/dev/null >/dev/null")) {
     say("Patch binary missing, falling back to --pdiff=none");
     push (@errlog,"Patch binary missing, falling back to --pdiff=none\n");
-    $pdiff_mode = "none";
+    $diff_mode = "none";
   }
   if (system("ed --version 2>/dev/null >/dev/null")) {
     say("Ed binary missing, falling back to --pdiff=none");
     push (@errlog,"Ed binary missing, falling back to --pdiff=none\n");
-    $pdiff_mode = "none";
+    $diff_mode = "none";
   }
 }
 
@@ -683,7 +683,7 @@ say("Sections: ".join(",", @sections));
 say("Including source.") if $do_source;
 say("D-I arches: ".join(",", @di_arches)) if @di_arches;
 say("D-I dists: ".join(",", @di_dists)) if @di_dists;
-say("Pdiff mode: $pdiff_mode");
+say("Pdiff mode: $diff_mode");
 say("Checking md5sums.") if $check_md5sums;
 say("Passive mode on.") if $passive;
 say("Proxy: $proxy") if $proxy;
@@ -846,7 +846,7 @@ init_connection if ($ua);
 
 # Calculate expected downloads for meta files
 # As we don't actually download most of the meta files (due to getting
-# only one compression variant or using pdiffs), we keep a separate count
+# only one compression variant or using diffs), we keep a separate count
 # of the actual downloaded amount of data in $bytes_meta.
 
 # The root Release files have already been downloaded
@@ -865,7 +865,7 @@ foreach my $dist (keys %dists) {
       add_bytes("dists/$dist/$section/binary-$arch/Packages.gz");
       add_bytes("dists/$dist/$section/binary-$arch/Packages.bz2");
       add_bytes("dists/$dist/$section/binary-$arch/Release");
-      add_bytes("dists/$dist/$section/binary-$arch/Packages.diff/Index") unless ($pdiff_mode eq "none");
+      add_bytes("dists/$dist/$section/binary-$arch/Packages.diff/Index") unless ($diff_mode eq "none");
     }
     # d-i does not have separate source sections
     if ($do_source && $section !~ /debian-installer/) {
@@ -873,7 +873,7 @@ foreach my $dist (keys %dists) {
       add_bytes("dists/$dist/$section/source/Sources.gz");
       add_bytes("dists/$dist/$section/source/Sources.bz2");
       add_bytes("dists/$dist/$section/source/Release");
-      add_bytes("dists/$dist/$section/source/Sources.diff/Index") unless ($pdiff_mode eq "none");
+      add_bytes("dists/$dist/$section/source/Sources.diff/Index") unless ($diff_mode eq "none");
     }
     add_bytes("dists/$dist/$section/i18n/Index") if $i18n;
   }
@@ -1273,7 +1273,7 @@ my $res=0;
 foreach my $file (`find . -type f`) {
   chomp $file;
   $file=~s:^\./::;
-  # this skips pdiff files if unwanted
+  # this skips diff files if unwanted
   next if (!exists $files{$file});
   print("Moving $file\n") if ($debug);
   if (! $dry_run) {
@@ -1424,8 +1424,8 @@ sub check_i18n {
   return $ret;
 }
 
-# Check uncompressed pdiff content against sha1sum from Index file.
-sub check_pdiff {
+# Check uncompressed diff content against sha1sum from Index file.
+sub check_diff {
   my ($filename, $size, $sha1) = @_;
   my $digest = Digest::SHA1->new;
   my $ret = 0;
@@ -1856,14 +1856,14 @@ sub get_index {
   make_dir($subdir);
   make_dir("$tempdir/$subdir");
 
-  if (!($pdiff_mode eq "none") && exists $file_lists{"$tempdir/$subdir/$file.diff/Index"}) {
+  if (!($diff_mode eq "none") && exists $file_lists{"$tempdir/$subdir/$file.diff/Index"}) {
     if (!check_lists ("$tempdir/$subdir/$file.diff/Index")) {
       make_dir("$tempdir/$subdir/$file.diff");
       say("$subdir/$file.diff/Index needs fetch");
       if (!remote_get("$subdir/$file.diff/Index")) {
 	push (@errlog,"$subdir/$file.diff/Index failed md5sum check, removing\n");
       } else {
-	fetch_and_apply_pdiffs($subdir, $file);
+	fetch_and_apply_diffs($subdir, $file);
 	if (check_lists ("$tempdir/$subdir/$file")) {
 	  system_redirect_io("gzip -9 -n", "$tempdir/$subdir/$file", "$tempdir/$subdir/$file.gz");
 	  system_redirect_io("bzip2", "$tempdir/$subdir/$file", "$tempdir/$subdir/$file.bz2");
@@ -1871,13 +1871,13 @@ sub get_index {
       }
     } else {
       $bytes_gotten += $file_lists{"$tempdir/$subdir/$file.diff/Index"}{size};
-      fetch_and_apply_pdiffs($subdir, "$file");
+      fetch_and_apply_diffs($subdir, "$file");
       if (check_lists ("$tempdir/$subdir/$file")) {
 	system_redirect_io("gzip -9 -n", "$tempdir/$subdir/$file", "$tempdir/$subdir/$file.gz");
 	system_redirect_io("bzip2", "$tempdir/$subdir/$file", "$tempdir/$subdir/$file.bz2");
       }
     }
-    $files{"$subdir/$file.diff/Index"}=1 if ($pdiff_mode eq "mirror");
+    $files{"$subdir/$file.diff/Index"}=1 if ($diff_mode eq "mirror");
     $files{"$tempdir/$subdir/$file.diff/Index"}=1;
   }
 
@@ -2019,15 +2019,15 @@ sub get_i18n_files {
   }
 }
 
-sub fetch_and_apply_pdiffs {
-  my ($subdir, $list) = @_;
-  local (*INDEX, *LIST);
-  my (%history_sha1, %history_size, %pdiff_sha1, %pdiff_size);
+sub fetch_and_apply_diffs {
+  my ($subdir, $type) = @_;
+  local (*INDEX, *FILE);
+  my (%history_sha1, %history_size, %diff_sha1, %diff_size);
   my ($current_sha1, $current_size, $sha1, $size, $file, $digest, $ret);
   my $t = $num_errors;
 
   # Parse DiffIndex file
-  open(INDEX, "$tempdir/$subdir/$list.diff/Index") or die "$tempdir/$subdir/$list.diff/Index: $!";
+  open(INDEX, "$tempdir/$subdir/$type.diff/Index") or die "$tempdir/$subdir/$type.diff/Index: $!";
   $_ = <INDEX>;
   while (defined($_)) {
     if (m/^SHA1-Current:/m) {
@@ -2046,60 +2046,60 @@ sub fetch_and_apply_pdiffs {
       while (defined($_ = <INDEX>)) {
 	last if (!m/^\s/m);
 	($sha1, $size, $file) = m/^\s+([A-Za-z0-9]+)\s+(\d+)\s+(.*)/m;
-	$pdiff_sha1{$file} = $sha1;
-	$pdiff_size{$file} = $size;
+	$diff_sha1{$file} = $sha1;
+	$diff_size{$file} = $size;
       }
     }
   }
   close(INDEX);
 
-  # Download pdiff files as necessary
+  # Download diff files as necessary
   $ret = 1;
-  foreach $file (sort keys %pdiff_sha1) {
-    if (!check_pdiff("$tempdir/$subdir/$list.diff/$file", $pdiff_size{$file}, $pdiff_sha1{$file})) {
-      say("$subdir/$list.diff/$file.gz needs fetch");
-      remote_get("$subdir/$list.diff/$file.gz");
+  foreach $file (sort keys %diff_sha1) {
+    if (!check_diff("$tempdir/$subdir/$type.diff/$file", $diff_size{$file}, $diff_sha1{$file})) {
+      say("$subdir/$type.diff/$file.gz needs fetch");
+      remote_get("$subdir/$type.diff/$file.gz");
 #FIXME: before download
-      if (-f "$tempdir/$subdir/$list.diff/$file.gz") {
-	$bytes_to_get += -s "$tempdir/$subdir/$list.diff/$file.gz";
+      if (-f "$tempdir/$subdir/$type.diff/$file.gz") {
+	$bytes_to_get += -s "$tempdir/$subdir/$type.diff/$file.gz";
       }
-      if (!check_pdiff("$tempdir/$subdir/$list.diff/$file", $pdiff_size{$file}, $pdiff_sha1{$file})) {
-	say("$subdir/$list.diff/$file.gz failed sha1sum check, removing");
-	push (@errlog,"$subdir/$list.diff/$file.gz failed sha1sum check, removing\n");
-	unlink "$tempdir/$subdir/$list.diff/$file.gz";
+      if (!check_diff("$tempdir/$subdir/$type.diff/$file", $diff_size{$file}, $diff_sha1{$file})) {
+	say("$subdir/$type.diff/$file.gz failed sha1sum check, removing");
+	push (@errlog,"$subdir/$type.diff/$file.gz failed sha1sum check, removing\n");
+	unlink "$tempdir/$subdir/$type.diff/$file.gz";
 	$ret = 0;
       }
     }
-    $files{"$subdir/$list.diff/$file.gz"}=1 if ($pdiff_mode eq "mirror");
-    $files{"$tempdir/$subdir/$list.diff/$file.gz"}=1;
+    $files{"$subdir/$type.diff/$file.gz"}=1 if ($diff_mode eq "mirror");
+    $files{"$tempdir/$subdir/$type.diff/$file.gz"}=1;
   }
   $num_errors = $t if ($ignore_small_errors);
   return unless ($ret);
 
-  # Apply pdiff files
-  open(LIST, "$tempdir/$subdir/$list") or return;
+  # Apply diff files
+  open(FILE, "$tempdir/$subdir/$type") or return;
   $digest = Digest::SHA1->new;
-  $digest->addfile(*LIST);
+  $digest->addfile(*FILE);
   $sha1 = $digest->hexdigest;
-  $size = -s "$tempdir/$subdir/$list";
+  $size = -s "$tempdir/$subdir/$type";
   foreach $file (sort keys %history_sha1) {
     next unless ($sha1 eq $history_sha1{$file} && $size eq $history_size{$file});
-    if (system("gzip -d < \"$tempdir/$subdir/$list.diff/$file.gz\" | patch --ed \"$tempdir/$subdir/$list\"")) {
-      say("Patch $file failed, will fetch $subdir/$list file");
-      unlink "$tempdir/$subdir/$list";
+    if (system("gzip -d < \"$tempdir/$subdir/$type.diff/$file.gz\" | patch --ed \"$tempdir/$subdir/$type\"")) {
+      say("Patch $file failed, will fetch $subdir/$type file");
+      unlink "$tempdir/$subdir/$type";
       return;
     }
-    open(LIST, "$tempdir/$subdir/$list") or return;
+    open(FILE, "$tempdir/$subdir/$type") or return;
     $digest = Digest::SHA1->new;
-    $digest->addfile(*LIST);
+    $digest->addfile(*FILE);
     $sha1 = $digest->hexdigest;
-    $size = -s "$tempdir/$subdir/$list";
-    say("$subdir/$list patched with $subdir/$list.diff/$file.gz");
+    $size = -s "$tempdir/$subdir/$type";
+    say("$subdir/$type patched with $subdir/$type.diff/$file.gz");
   }
   if (!($sha1 eq $current_sha1 && $size eq $current_size)) {
-    say("$subdir/$list failed sha1sum check, removing");
-    push (@errlog,"$subdir/$list failed sha1sum check, removing\n");
-    unlink "$tempdir/$subdir/$list";
+    say("$subdir/$type failed sha1sum check, removing");
+    push (@errlog,"$subdir/$type failed sha1sum check, removing\n");
+    unlink "$tempdir/$subdir/$type";
   }
 }
 
