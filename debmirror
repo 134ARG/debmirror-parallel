@@ -2069,10 +2069,6 @@ sub fetch_and_apply_pdiffs {
 	unlink "$tempdir/$subdir/$list.diff/$file.gz";
 	$ret = 0;
       }
-    } else {
-#FIXME: before download
-      $bytes_to_get += -s "$tempdir/$subdir/$list.diff/$file.gz";
-      $bytes_gotten += -s "$tempdir/$subdir/$list.diff/$file.gz";
     }
     $files{"$subdir/$list.diff/$file.gz"}=1 if ($pdiff_mode eq "mirror");
     $files{"$tempdir/$subdir/$list.diff/$file.gz"}=1;
