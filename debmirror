@@ -800,17 +800,22 @@ say("Get Release files.");
 $ua->default_header( "Cache-Control" => "max-age=0" ) if ($ua);
 foreach my $dist (@rdists) {
   my $tdir="$tempdir/.tmp/dists/$dist";
-  next unless get_release($tdir, $dist);
+  my $have_release = get_release($tdir, $dist);
+  next unless ($have_release || $ignore_release);
   my ($codename, $suite, $dist_sdir) = name_release("mirror", $tdir, $dist);
 
-  make_dir ("dists/$codename$dist_sdir");
-  make_dir ("$tempdir/dists/$codename$dist_sdir");
-  rename("$tdir/Release", "$tempdir/dists/$codename$dist_sdir/Release") or die "Error while moving $tdir/Release: $!\n";
-  rename("$tdir/Release.gpg", "$tempdir/dists/$codename$dist_sdir/Release.gpg") or die "Error while moving $tdir/Release.gpg: $!\n";
-  $files{"dists/$codename$dist_sdir/Release"}=1;
-  $files{$tempdir."/"."dists/$codename$dist_sdir/Release"}=1;
-  $files{"dists/$codename$dist_sdir/Release.gpg"}=1;
-  $files{$tempdir."/"."dists/$codename$dist_sdir/Release.gpg"}=1;
+  if ($have_release) {
+    make_dir ("dists/$codename$dist_sdir");
+    make_dir ("$tempdir/dists/$codename$dist_sdir");
+    rename("$tdir/Release", "$tempdir/dists/$codename$dist_sdir/Release")
+      or die "Error while moving $tdir/Release: $!\n";
+    rename("$tdir/Release.gpg", "$tempdir/dists/$codename$dist_sdir/Release.gpg")
+      or die "Error while moving $tdir/Release.gpg: $!\n";
+    $files{"dists/$codename$dist_sdir/Release"}=1;
+    $files{$tempdir."/"."dists/$codename$dist_sdir/Release"}=1;
+    $files{"dists/$codename$dist_sdir/Release.gpg"}=1;
+    $files{$tempdir."/"."dists/$codename$dist_sdir/Release.gpg"}=1;
+  }
 }
 
 # Check that @di_dists contains valid codenames
@@ -1784,23 +1789,30 @@ sub name_release {
   my ($type, $tdir, $dist) = @_;
   my ($buf, $origin, $codename, $suite);
 
-  if (open RELEASE, "<$tdir/Release") {
-    while (<RELEASE>) {
-      last if /^MD5Sum:/;
-      $buf = $buf . $_;
+  if (-f "$tdir/Release") {
+    if (open RELEASE, "<$tdir/Release") {
+      while (<RELEASE>) {
+	last if /^MD5Sum:/;
+	$buf = $buf . $_;
+      }
+      close RELEASE;
     }
-    close RELEASE;
+
+    $_ = $buf;
+    ($origin) = m/^Origin:\s+(.*)/im;
+    ($codename) = m/^Codename:\s+(.*)/im;
+    ($suite) = m/^Suite:\s+(.*)/im;
+  } elsif ($ignore_release) {
+    $origin = "none";
   }
-  $_ = $buf;
-  ($origin) = m/^Origin:\s+(.*)/im;
-  ($codename) = m/^Codename:\s+(.*)/im;
-  ($suite) = m/^Suite:\s+(.*)/im;
 
   # Allow for for example "<codename|suite>/updates"; split into the
   # raw dist (codename or suite) and the subdirectory.
   my ($dist_raw, $dist_sdir) = split_dist($dist);
 
-  if ($origin eq "Ubuntu") {
+  if ($origin eq "none") {
+    $codename = $dist_raw;
+  } elsif ($origin eq "Ubuntu") {
     if ($suite) {
       say("Ubuntu Release file: using Suite ($suite).");
       $codename = $suite;
@@ -1896,7 +1908,9 @@ sub get_index {
     say("Ignoring missing Release file for $subdir/$file.gz");
     push (@errlog,"Ignoring missing Release file for $subdir/$file.gz\n");
     say("$subdir/$file.gz needs fetch");
-    remote_get("$subdir/$file.gz");
+    if (remote_get("$subdir/$file.gz")) {
+      system_redirect_io("gzip -d", "$tempdir/$subdir/$file.gz", "$tempdir/$subdir/$file");
+    }
   } else {
     if (-f "$subdir/$file.gz") {
       say("$subdir/$file.gz exists locally but not in Release");
@@ -2255,7 +2269,7 @@ sub di_check_dists {
       }
       # Only mirroring D-I images, not the archive itself
       my $tdir="$tempdir/.tmp/dists/$di_dist";
-      next unless get_release($tdir, $di_dist);
+      next unless (get_release($tdir, $di_dist) || $ignore_release);
       name_release("d-i", $tdir, $di_dist);
       unlink "$tdir/Release";
       unlink "$tdir/Release.gpg";
