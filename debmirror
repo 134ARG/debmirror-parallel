@@ -67,7 +67,7 @@ Usage: $0 [--progress] [--verbose] [--debug] [--dry-run] [--help]
           [--timeout=seconds] [--max-batch=number]
           [--rsync-batch=number] [--rsync-options=options]
           [--postcleanup|--cleanup|--nocleanup] [--skippackages]
-          [--pdiff=use|mirror|none] [--state-cache-days=number]
+          [--diff=use|mirror|none] [--state-cache-days=number]
           [--ignore-small-errors] [--allow-dist-rename]
           <mirrordir>
 
@@ -247,7 +247,10 @@ possible using the --include and --exclude options.
 
 =item --getcontents
 
-Additionally download F<Contents.E<lt>archE<gt>.gz> files.
+Additionally download F<Contents.E<lt>archE<gt>.gz> files. Note that these
+files can be relatively big and can change frequently, especially for the
+testing and unstable suites. Use of the available diff files is strongly
+recommended (see the --diff option).
 
 =item --md5sums -m
 
@@ -332,16 +335,18 @@ Do not clean up the local mirror after mirroring is complete.
 Don't re-download Packages and Sources files. Useful if you know they are
 up-to-date.
 
-=item --pdiff=use|mirror|none
+=item --diff=use|mirror|none
 
-If --pdiff=use is specified and the F<Release> file contains entries
-for pdiff files, then debmirror will attempt to use them to update the
-Packages and Sources files (can reduce download size of meta files),
-but will not include them in the mirror. This is the default behavior
-and avoids having time consuming pdiff files for a fast local mirror.
-Specifying --pdiff=mirror does the same as 'use', but will also include
-the downloaded pdiff files in the local mirror. Specify --pdiff=none to
-completely ignore pdiff files.
+If --diff=use is specified and the F<Release> file contains entries for
+diff files, then debmirror will attempt to use them to update Packages,
+Sources and Contents files (which can significantly reduce the download
+size for meta files), but will not include them in the mirror. This is
+the default behavior and avoids having time consuming diff files for a
+fast local mirror.
+
+Specifying --diff=mirror does the same as 'use', but will also include
+the downloaded diff files in the local mirror. Specify --diff=none to
+completely ignore diff files.
 
 =item --state-cache-days=number
 
@@ -616,7 +621,7 @@ GetOptions('debug'                  => \$debug,
 	   'proxy=s'                => \$proxy,
 	   'rsync-options=s'        => \$rsync_options,
 	   'ignore-small-errors'    => \$ignore_small_errors,
-	   'pdiff=s'                => \$diff_mode,
+	   'diff=s'                 => \$diff_mode,
 	   'omit-suite-symlinks'    => \$omit_suite_symlinks,
 	   'allow-dist-rename'      => \$allow_dist_rename,
 	   'help'                   => \$help,
@@ -629,13 +634,13 @@ my $mirrordir=shift or usage("mirrordir not specified");
 # Check for patch binary if needed
 if (!($diff_mode eq "none")) {
   if (system("patch --version 2>/dev/null >/dev/null")) {
-    say("Patch binary missing, falling back to --pdiff=none");
-    push (@errlog,"Patch binary missing, falling back to --pdiff=none\n");
+    say("Patch binary missing, falling back to --diff=none");
+    push (@errlog,"Patch binary missing, falling back to --diff=none\n");
     $diff_mode = "none";
   }
   if (system("ed --version 2>/dev/null >/dev/null")) {
-    say("Ed binary missing, falling back to --pdiff=none");
-    push (@errlog,"Ed binary missing, falling back to --pdiff=none\n");
+    say("Ed binary missing, falling back to --diff=none");
+    push (@errlog,"Ed binary missing, falling back to --diff=none\n");
     $diff_mode = "none";
   }
 }
