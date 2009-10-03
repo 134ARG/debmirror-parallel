@@ -947,23 +947,24 @@ if ($num_errors != 0) {
 $dry_run = $dry_run_var;
 
 # Determine size of Contents and Translation files to get.
-if ($getcontents || $i18n) {
+if ($getcontents) {
   foreach my $dist (keys %dists) {
     next unless exists $dists{$dist}{mirror};
-    if ($getcontents) {
-      foreach my $arch (@arches) {
-	next if $dist=~/experimental/;
-	next if $dist=~/.*-proposed-updates/;
-	next if $arch=~/source/;
-	if (!check_lists ("$tempdir/dists/$dist/Contents-$arch.gz")) {
-	  add_bytes("dists/$dist/Contents-$arch.gz");
-	}
+    foreach my $arch (@arches) {
+      next if $dist=~/experimental/;
+      next if $dist=~/.*-proposed-updates/;
+      next if $arch=~/source/;
+      if (!check_lists ("$tempdir/dists/$dist/Contents-$arch.gz")) {
+	add_bytes("dists/$dist/Contents-$arch.gz");
       }
     }
-    if ($i18n) {
-      foreach my $section (@sections) {
-	parse_i18n_index("dists/$dist/$section/i18n");
-      }
+  }
+}
+if ($i18n) {
+  foreach my $dist (keys %dists) {
+    next unless exists $dists{$dist}{mirror};
+    foreach my $section (@sections) {
+      parse_i18n_index("dists/$dist/$section/i18n");
     }
   }
 }
