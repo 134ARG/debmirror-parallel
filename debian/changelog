@@ -1,3 +1,12 @@
+debmirror (1:2.3) UNRELEASED; urgency=low
+
+  * Support updating Contents files using diff files. This can significantly
+    reduce the download size when Contents files change. Closes: #436027.
+  * Because of the previous change the option --pdiff has been renamed to
+    --diff as 'package diffs' no longer covers its use.
+
+ -- Frans Pop <fjp@debian.org>  Sat, 03 Oct 2009 11:55:33 +0200
+
 debmirror (1:2.2.1) unstable; urgency=low
 
   * Only fetch i18n Index files if needed.

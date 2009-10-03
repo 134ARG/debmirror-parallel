@@ -1,3 +1,18 @@
+debmirror (1:2.3) UNRELEASED; urgency=low
+
+  * Use diff files to update Contents files; option --pdiff is now --diff
+
+    Contents files are relatively large and can change frequently,
+    especially for the testing and unstable suites. Use of the diff files
+    to update Contents files will significantly reduce the total download
+    size.
+
+    The option '--pdiff' has been renamed to '--diff' because it no longer
+    affects only "package diffs". For the configuration file the variable
+    to use is now '$diff_mode'.
+
+ -- Frans Pop <fjp@debian.org>  Sat, 03 Oct 2009 12:00:07 +0200
+
 debmirror (1:2.2) unstable; urgency=low
 
   * Support mirroring of translated packages descriptions
