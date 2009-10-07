@@ -505,7 +505,7 @@ use LWP::UserAgent;
 # Yeah, I use too many global variables in this program.
 our ($debug, $progress, $verbose, $passive, $skippackages, $getcontents, $i18n);
 our ($ua, $proxy);
-our (@rdists, @sections, @arches, @extra_dirs, @ignores, @excludes, @includes);
+our (@dists, @sections, @arches, @extra_dirs, @ignores, @excludes, @includes);
 our (@excludes_deb_section, @limit_priority);
 our (@di_dists, @di_arches, @rsync_extra);
 our $state_cache_days = 0;
@@ -548,7 +548,7 @@ require "$HOME/.debmirror.conf" if -r "$HOME/.debmirror.conf";
 
 # This hash contains the releases to mirror. The codename is the key and
 # the value is the name of the suite.
-my %dists=();
+my %distset=();
 
 # This hash holds all the files we know about. Values are:
 # - -1: file was not on mirror and download attempt failed
@@ -592,7 +592,7 @@ GetOptions('debug'                  => \$debug,
 	   'user|u=s'               => \$user,
 	   'passwd=s'               => \$passwd,
 	   'root|r=s'               => \$remoteroot,
-	   'dist|d=s'               => \@rdists,
+	   'dist|d=s'               => \@dists,
 	   'section|s=s'            => \@sections,
 	   'arch|a=s'               => \@arches,
 	   'adddir=s'               => \@extra_dirs,
@@ -650,8 +650,8 @@ $remoteroot =~ s%^[:/]%%;
 
 # Post-process arrays. Allow commas to separate values the user entered.
 # If the user entered nothing, provide defaults.
-@rdists=split(/,/,join(',',@rdists));
-@rdists=qw(sid) unless @rdists;
+@dists=split(/,/,join(',',@dists));
+@dists=qw(sid) unless @dists;
 @sections=split(/,/,join(',',@sections));
 @sections=qw(main contrib non-free main/debian-installer) unless @sections;
 @arches=split(/,/,join(',',@arches));
@@ -661,10 +661,10 @@ $remoteroot =~ s%^[:/]%%;
 @di_arches=split(/,/,join(',',@di_arches));
 @rsync_extra=split(/,/,join(',',@rsync_extra));
 if (@di_dists) {
-  @di_dists = @rdists if ($di_dists[0] eq "dists");
+  @di_dists = @dists if ($di_dists[0] eq "dists");
   @di_arches = @arches if (!@di_arches || $di_arches[0] eq "arches");
 } elsif (@di_arches) {
-  @di_dists = @rdists if (!@di_dists);
+  @di_dists = @dists if (!@di_dists);
   @di_arches = @arches if ($di_arches[0] eq "arches");
 }
 $cleanup=0 if ($no_cleanup);
@@ -683,7 +683,7 @@ if ($passwd eq "anonymous@") {
   say("Mirroring to $mirrordir from $download_method://$user:XXX\@$host/$remoteroot/");
 }
 say("Arches: ".join(",", @arches));
-say("Dists: ".join(",", @rdists));
+say("Dists: ".join(",", @dists));
 say("Sections: ".join(",", @sections));
 say("Including source.") if $do_source;
 say("D-I arches: ".join(",", @di_arches)) if @di_arches;
@@ -798,7 +798,7 @@ rsync_extra(1, @rsync_extra);
 say("Get Release files.");
 # Get Release files without caching for http
 $ua->default_header( "Cache-Control" => "max-age=0" ) if ($ua);
-foreach my $dist (@rdists) {
+foreach my $dist (@dists) {
   my $tdir="$tempdir/.tmp/dists/$dist";
   my $have_release = get_release($tdir, $dist);
   next unless ($have_release || $ignore_release);
@@ -821,8 +821,8 @@ foreach my $dist (@rdists) {
 # Check that @di_dists contains valid codenames
 di_check_dists() if @di_dists;
 
-foreach my $dist (keys %dists) {
-  next unless exists $dists{$dist}{mirror};
+foreach my $dist (keys %distset) {
+  next unless exists $distset{$dist}{mirror};
   # Parse the Release
   if (open RELEASE, "<$tempdir/dists/$dist/Release") {
     while (<RELEASE>) {
@@ -867,8 +867,8 @@ sub add_bytes {
   my $name=shift;
   $bytes_to_get +=  $file_lists{"$tempdir/$name"}{size} if exists $file_lists{"$tempdir/$name"};
 }
-foreach my $dist (keys %dists) {
-  next unless exists $dists{$dist}{mirror};
+foreach my $dist (keys %distset) {
+  next unless exists $distset{$dist}{mirror};
   foreach my $section (@sections) {
     foreach my $arch (@arches) {
       add_bytes("dists/$dist/$section/binary-$arch/Packages");
@@ -908,8 +908,8 @@ di_add_files() if @di_dists;
 say("Get Packages and Sources files and other miscellany.");
 # Get Packages and Sources files and other miscellany.
 my (@package_files, @source_files);
-foreach my $dist (keys %dists) {
-  next unless exists $dists{$dist}{mirror};
+foreach my $dist (keys %distset) {
+  next unless exists $distset{$dist}{mirror};
   foreach my $section (@sections) {
     # no d-i in woody
     next if ($section =~ /debian-installer/ && $dist eq "woody");
@@ -961,8 +961,8 @@ if ($getcontents) {
   # Updates of Contents files using diffs are done here; only full downloads
   # are delayed.
   say("Update Contents files.") if ($diff_mode ne "none");
-  foreach my $dist (keys %dists) {
-    next unless exists $dists{$dist}{mirror};
+  foreach my $dist (keys %distset) {
+    next unless exists $distset{$dist}{mirror};
     foreach my $arch (@arches) {
       next if $dist=~/experimental/;
       next if $dist=~/.*-proposed-updates/;
@@ -978,8 +978,8 @@ if ($getcontents) {
   }
 }
 if ($i18n) {
-  foreach my $dist (keys %dists) {
-    next unless exists $dists{$dist}{mirror};
+  foreach my $dist (keys %distset) {
+    next unless exists $distset{$dist}{mirror};
     foreach my $section (@sections) {
       parse_i18n_index("dists/$dist/$section/i18n");
     }
@@ -1306,8 +1306,8 @@ if (! $omit_suite_symlinks && ! $dry_run) {
   foreach my $file (grep (!/^\.\.?$/, readdir (DIR))) {
     if (-l "dists/$file") {
       my $cur = readlink("dists/$file") or die "Error reading symlink dists/$file: $!";
-      if (exists $dists{$cur}{suite} &&
-	  ($file eq $dists{$cur}{suite} || $file eq "stable-$dists{$cur}{suite}")) {
+      if (exists $distset{$cur}{suite} &&
+	  ($file eq $distset{$cur}{suite} || $file eq "stable-$distset{$cur}{suite}")) {
 	$suites{$file} = "ok";
       } else {
 	unlink("dists/$file") or die "Failed to remove symlink dists/$file: $!";
@@ -1316,10 +1316,10 @@ if (! $omit_suite_symlinks && ! $dry_run) {
   }
   closedir (DIR);
 
-  foreach my $dist (keys %dists) {
-    next if (! exists $dists{$dist}{suite});
+  foreach my $dist (keys %distset) {
+    next if (! exists $distset{$dist}{suite});
     next if (!-d "dists/$dist");
-    my $suite = $dists{$dist}{suite};
+    my $suite = $distset{$dist}{suite};
     if (! exists $suites{$suite}) {
       symlink("$dist", "dists/$suite") or die "Failed to create symlink dists/$suite: $!";
     }
@@ -1840,11 +1840,11 @@ sub name_release {
   $suite = "" if (! $suite || $suite eq $codename);
 
   die("Duplicate dist $codename$dist_sdir.\n")
-    if exists $dists{"$codename$dist_sdir"}{$type};
-  $dists{"$codename$dist_sdir"}{$type} = 1;
-  die("Conflicting suites '$suite' and '$dists{$codename}{suite}' for $codename.\n")
-    if (exists $dists{"$codename"}{suite} && ($suite ne $dists{$codename}{suite}));
-  $dists{$codename}{suite} = "$suite" if ($suite);
+    if exists $distset{"$codename$dist_sdir"}{$type};
+  $distset{"$codename$dist_sdir"}{$type} = 1;
+  die("Conflicting suites '$suite' and '$distset{$codename}{suite}' for $codename.\n")
+    if (exists $distset{"$codename"}{suite} && ($suite ne $distset{$codename}{suite}));
+  $distset{$codename}{suite} = "$suite" if ($suite);
 
   # This should be a one-time conversion only
   if ($suite) {
@@ -2018,8 +2018,8 @@ sub update_contents {
 
 sub get_contents_files {
   my $first = 1;
-  foreach my $dist (keys %dists) {
-    next unless exists $dists{$dist}{mirror};
+  foreach my $dist (keys %distset) {
+    next unless exists $distset{$dist}{mirror};
     foreach my $arch (@arches) {
       next if $dist=~/experimental/;
       next if $dist=~/.*-proposed-updates/;
@@ -2255,15 +2255,15 @@ sub di_check_dists {
   say("Checking validity of D-I dists.");
   DI_DIST:
   for my $di_dist (@di_dists) {
-    if (exists $dists{$di_dist}) {
+    if (exists $distset{$di_dist}) {
       # Valid dist and also mirroring the archive itself
-      $dists{$di_dist}{"d-i"} = 1;
+      $distset{$di_dist}{"d-i"} = 1;
     } else {
-      foreach my $dist (keys %dists) {
+      foreach my $dist (keys %distset) {
 	my ($dist_raw, $dist_sdir) = split_dist($dist);
-	if ($di_dist eq $dists{$dist_raw}{suite}) {
+	if ($di_dist eq $distset{$dist_raw}{suite}) {
 	  # Suite specified, use codename instead
-	  $dists{"$dist_raw$dist_sdir"}{"d-i"} = 1;
+	  $distset{"$dist_raw$dist_sdir"}{"d-i"} = 1;
 	  next DI_DIST;
 	}
       }
@@ -2282,8 +2282,8 @@ sub di_add_files {
   my $exclude = "(".join("|", @excludes).")" if @excludes;
   my $include = "(".join("|", @includes).")" if @includes;
 
-  foreach my $dist (keys %dists) {
-    next unless exists $dists{$dist}{"d-i"};
+  foreach my $dist (keys %distset) {
+    next unless exists $distset{$dist}{"d-i"};
     foreach my $arch (@di_arches) {
       next if $arch =~ /kfreebsd-/;
 
