@@ -1,6 +1,6 @@
 debmirror (1:2.4.1) UNRELEASED; urgency=low
 
-  * Update example configuration (closes: #549952):
+  * Update example configuration (closes: #549955):
     - fix error in variable names for setting D-I dists & arches
     - add example for setting "extra rsync directories"
   * Rename variables so that @dists can be set again in a configuration file.
