@@ -693,12 +693,12 @@ if ($passwd eq "anonymous@") {
 } else {
   say("Mirroring to $mirrordir from $download_method://$user:XXX\@$host/$remoteroot/");
 }
-say("Arches: ".join(",", @arches));
-say("Dists: ".join(",", @dists));
-say("Sections: ".join(",", @sections));
+say("Arches: " . join(",", @arches));
+say("Dists: " . join(",", @dists));
+say("Sections: " . join(",", @sections));
 say("Including source.") if $do_source;
-say("D-I arches: ".join(",", @di_arches)) if @di_arches;
-say("D-I dists: ".join(",", @di_dists)) if @di_dists;
+say("D-I arches: " . join(",", @di_arches)) if @di_arches;
+say("D-I dists: " . join(",", @di_dists)) if @di_dists;
 say("Pdiff mode: $diff_mode");
 say("Checking md5sums.") if $check_md5sums;
 say("Passive mode on.") if $passive;
@@ -858,7 +858,7 @@ if ($num_errors != 0 && $ignore_release) {
 }
 
 if ($num_errors != 0) {
-  print "Errors:\n ".join(" ", @errlog) if (@errlog);
+  print "Errors:\n " . join(" ", @errlog) if (@errlog);
   die "Failed to download some Release or Release.gpg files!\n";
 }
 
@@ -953,16 +953,16 @@ $bytes_gotten = $bytes_meta;
 
 # Sanity check. I once nuked a mirror because of this..
 if (@arches && ! @package_files) {
-  print "Errors:\n ".join(" ", @errlog) if (@errlog);
+  print "Errors:\n " . join(" ", @errlog) if (@errlog);
   die "Failed to download any Packages files!\n";
 }
 if ($do_source && ! @source_files) {
-  print "Errors:\n ".join(" ", @errlog) if (@errlog);
+  print "Errors:\n " . join(" ", @errlog) if (@errlog);
   die "Failed to download any Sources files!\n";
 }
 
 if ($num_errors != 0) {
-  print "Errors:\n ".join(" ", @errlog) if (@errlog);
+  print "Errors:\n " . join(" ", @errlog) if (@errlog);
   die "Failed to download some Package, Sources or Release files!\n";
 }
 
@@ -1013,11 +1013,11 @@ say("Parse Packages and Sources files and add to the file list everything therei
 
   my %arches = map { $_ => 1 } (@arches, "all");
 
-  $include = "(".join("|", @includes).")" if @includes;
-  $exclude = "(".join("|", @excludes).")" if @excludes;
-  $exclude_deb_section = "(".join("|", @excludes_deb_section).")"
+  $include = "(" . join("|", @includes) . ")" if @includes;
+  $exclude = "(" . join("|", @excludes) . ")" if @excludes;
+  $exclude_deb_section = "(" . join("|", @excludes_deb_section) . ")"
     if @excludes_deb_section;
-  $limit_priority = "(".join("|", @limit_priority).")" if @limit_priority;
+  $limit_priority = "(" . join("|", @limit_priority) . ")" if @limit_priority;
   foreach my $file (@package_files) {
     next if (! -f $file);
     open(FILE, "<", $file) or die "$file: $!";
@@ -1115,7 +1115,7 @@ say("Parse Packages and Sources files and add to the file list everything therei
 
   # Sanity check to avoid completely nuking a mirror.
   if ($empty_mirror) {
-    print "Errors:\n ".join(" ", @errlog) if (@errlog);
+    print "Errors:\n " . join(" ", @errlog) if (@errlog);
     die "No packages after parsing Packages and Sources files!\n";
   }
 }
@@ -1123,7 +1123,8 @@ say("Parse Packages and Sources files and add to the file list everything therei
 # Pre-mirror cleanup
 cleanup_unknown_files() if ($cleanup && ! $post_cleanup);
 
-say("Download all files that we need to get (".print_dl_size($bytes_to_get - $bytes_gotten).").");
+say("Download all files that we need to get (" .
+    print_dl_size($bytes_to_get - $bytes_gotten) . ").");
 init_connection;
 
 # Download Contents and Translation files.
@@ -1375,7 +1376,7 @@ save_state_cache() if $state_cache_days && ! $dry_run;
 
 say("All done.");
 $lock->release;
-print "Errors:\n ".join(" ", @errlog) if (@errlog);
+print "Errors:\n " . join(" ", @errlog) if (@errlog);
 if ($num_errors != 0) {
   print "Failed to download files ($num_errors errors)!\n";
   exit 1 if (! $ignore_small_errors);
@@ -2075,8 +2076,8 @@ sub get_i18n_index {
 sub parse_i18n_index {
   my $subdir = shift;
   my ($sha1, $size, $filename);
-  my $exclude = "(".join("|", @excludes).")" if @excludes;
-  my $include = "(".join("|", @includes).")" if @includes;
+  my $exclude = "(" . join("|", @excludes) . ")" if @excludes;
+  my $include = "(" . join("|", @includes) . ")" if @includes;
 
   # Parse the Index file
   if (open INDEX, "<$tempdir/$subdir/Index") {
@@ -2239,7 +2240,7 @@ sub cleanup_unknown_files {
     say($state_cache_days ? ": full." : ".");
     chdir($mirrordir) or die "chdir $mirrordir: $!";
     my $ignore;
-    $ignore = "(".join("|", @ignores).")" if @ignores;
+    $ignore = "(" . join("|", @ignores) . ")" if @ignores;
     # Remove all files in the mirror that we don't know about
     foreach my $file (`find . -type f`) {
       chomp $file;
@@ -2296,8 +2297,8 @@ sub di_check_dists {
 
 sub di_add_files {
   my $tdir = "$tempdir/d-i";
-  my $exclude = "(".join("|", @excludes).")" if @excludes;
-  my $include = "(".join("|", @includes).")" if @includes;
+  my $exclude = "(" . join("|", @excludes) . ")" if @excludes;
+  my $include = "(" . join("|", @includes) . ")" if @includes;
 
   foreach my $dist (keys %distset) {
     next unless exists $distset{$dist}{"d-i"};
@@ -2424,7 +2425,8 @@ sub download_finished {
     my $avg_speed = 0;
     $avg_speed = sprintf("%3.0f", ($bytes_gotten / $total_time))
       unless ($total_time == 0);
-    say("Downloaded ".print_dl_size($bytes_gotten)." in ".$total_time."s at ".(int($avg_speed/1024*100)/100)." kiB/s.");
+    say("Downloaded " . print_dl_size($bytes_gotten) .
+	" in ".$total_time."s at " . (int($avg_speed/1024*100)/100) . " kiB/s.");
   }
 }
 
