@@ -643,12 +643,12 @@ my $mirrordir = shift or usage("mirrordir not specified");
 if (!($diff_mode eq "none")) {
   if (system("patch --version 2>/dev/null >/dev/null")) {
     say("Patch binary missing, falling back to --diff=none");
-    push (@errlog,"Patch binary missing, falling back to --diff=none\n");
+    push(@errlog,"Patch binary missing, falling back to --diff=none\n");
     $diff_mode = "none";
   }
   if (system("ed --version 2>/dev/null >/dev/null")) {
     say("Ed binary missing, falling back to --diff=none");
-    push (@errlog,"Ed binary missing, falling back to --diff=none\n");
+    push(@errlog,"Ed binary missing, falling back to --diff=none\n");
     $diff_mode = "none";
   }
 }
@@ -850,7 +850,7 @@ foreach my $dist (keys %distset) {
 
 if ($num_errors != 0 && $ignore_release) {
   say("Ignoring failed Release files.");
-  push (@errlog, "Ignoring failed Release files\n");
+  push(@errlog, "Ignoring failed Release files\n");
   $num_errors = 0;
 }
 
@@ -979,7 +979,7 @@ if ($getcontents) {
 	if (!update_contents("dists/$dist", "Contents-$arch")) {
 	  add_bytes("dists/$dist/Contents-$arch.gz");
 	}
-      } elsif (!check_lists ("$tempdir/dists/$dist/Contents-$arch.gz")) {
+      } elsif (!check_lists("$tempdir/dists/$dist/Contents-$arch.gz")) {
 	add_bytes("dists/$dist/Contents-$arch.gz");
       }
     }
@@ -1142,7 +1142,7 @@ DOWNLOAD: {
 	}
 	hftp_get($file);
 	if ($max_batch > 0 && ++$i >= $max_batch) {
-	  push (@errlog, "Batch limit exceeded, mirror run was partial\n");
+	  push(@errlog, "Batch limit exceeded, mirror run was partial\n");
 	  $num_errors++;
 	  last;
 	}
@@ -1163,7 +1163,7 @@ DOWNLOAD: {
 	}
 	http_get($file);
 	if ($max_batch > 0 && ++$i >= $max_batch) {
-	  push (@errlog, "Batch limit exceeded, mirror run was partial\n");
+	  push(@errlog, "Batch limit exceeded, mirror run was partial\n");
 	  $num_errors++;
 	  last;
 	}
@@ -1183,7 +1183,7 @@ DOWNLOAD: {
 	}
 	ftp_get($file);
 	if ($max_batch > 0 && ++$i >= $max_batch) {
-	  push (@errlog, "Batch limit exceeded, mirror run was partial\n");
+	  push(@errlog, "Batch limit exceeded, mirror run was partial\n");
 	  $num_errors++;
 	  last;
 	}
@@ -1210,9 +1210,9 @@ DOWNLOAD: {
 	($dirname) = $file =~ m:(.*/):;
 	@dir = split(/\//, $dirname);
 	for (0..$#dir) {
-	  push (@result, "" . join('/', @dir[0..$_]) . "/");
+	  push(@result, "" . join('/', @dir[0..$_]) . "/");
 	}
-	push (@result, "$file");
+	push(@result, "$file");
 	if (++$j >= $rsync_batch) {
 	  $j = 0;
 	  ($fh, $rsynctempfile) = tempfile();
@@ -1242,7 +1242,7 @@ DOWNLOAD: {
 	}
 	if ($max_batch > 0 && ++$i >= $max_batch) {
 	  print "Batch limit exceeded, mirror run will be partial\n";
-	  push (@errlog, "Batch limit exceeded, mirror run was partial\n");
+	  push(@errlog, "Batch limit exceeded, mirror run was partial\n");
 	  $num_errors++;
 	  last;
 	}
@@ -1538,7 +1538,7 @@ sub hftp_get {
     if ($ret->is_error) {
       $files{$file} = -1;
       warn "$file failed " . $ret->status_line . "\n" if ($progress or $verbose);
-      push (@errlog, "Download of $file failed: ".$ret->status_line."\n");
+      push(@errlog, "Download of $file failed: ".$ret->status_line."\n");
       $num_errors++;
     } elsif ($progress || $verbose) {
       print "ok\n";
@@ -1572,7 +1572,7 @@ sub http_get {
     if ($ret->is_error) {
       $files{$file} = -1;
       warn "$file failed " . $ret->status_line . "\n" if ($progress or $verbose);
-      push (@errlog, "Download of $file failed: ".$ret->status_line."\n");
+      push(@errlog, "Download of $file failed: ".$ret->status_line."\n");
       $num_errors++;
     } elsif ($progress || $verbose) {
       print "ok\n";
@@ -1627,7 +1627,7 @@ sub ftp_get {
     } else {
       $files{$file} = -1;
       warn " failed:".$ftp->message if ($progress or $verbose);
-      push (@errlog, "Download of $file failed: ".$ftp->message."\n");
+      push(@errlog, "Download of $file failed: ".$ftp->message."\n");
       $num_errors++;
     }
   }
@@ -1653,7 +1653,7 @@ sub rsync_get {
     return 1;
   } else {
     $files{$file} = -1;
-    push (@errlog, "Download of $file failed\n");
+    push(@errlog, "Download of $file failed\n");
     $num_errors++;
     return 0;
   }
@@ -1718,10 +1718,10 @@ sub rsync_extra_get {
       ($dirname) = ($line =~ m:(.*/):);
       @dir = split(/\//, $dirname);
       for (1..$#dir) {
-	push (@result, "" . join('/', @dir[0..$_]) . "/");
+	push(@result, "" . join('/', @dir[0..$_]) . "/");
       }
     }
-    push (@result, "$line");
+    push(@result, "$line");
   }
   for (@result) {
     print $fh "$_\n";
@@ -1761,7 +1761,7 @@ sub get_release {
   if (!$ignore_release_gpg) {
     if (system("gpgv --version >/dev/null 2>/dev/null")) {
       say("gpgv failed: --ignore-release-gpg or gpgv binary missing?");
-      push (@errlog, "gpgv failed: --ignore-release-gpg or gpgv binary missing?\n");
+      push(@errlog, "gpgv failed: --ignore-release-gpg or gpgv binary missing?\n");
       $num_errors++;
     }
     # Verify Release signature
@@ -1780,12 +1780,12 @@ sub get_release {
       }
       if ($gpgv_res eq "failed") {
 	say("Release signature does not verify.");
-	push (@errlog, "Release signature does not verify\n");
+	push(@errlog, "Release signature does not verify\n");
 	$num_errors++;
       }
     } else {
       say("Release signature does not verify, file missing.");
-      push (@errlog, "Release signature does not verify\n");
+      push(@errlog, "Release signature does not verify\n");
       $num_errors++;
     }
   }
@@ -1826,14 +1826,14 @@ sub name_release {
       $codename = $suite;
     } else {
       say("Invalid Ubuntu Release file.");
-      push (@errlog, "Invalid Ubuntu Release file.\n");
+      push(@errlog, "Invalid Ubuntu Release file.\n");
       $num_errors++;
       next;
     }
   } elsif ($codename) {
     if ($dist_raw ne $codename && $dist_raw ne $suite) {
       say("Broken Release file: neither Codename nor Suite matches $dist.");
-      push (@errlog, "Broken Release file: neither Codename nor Suite matches $dist\n");
+      push(@errlog, "Broken Release file: neither Codename nor Suite matches $dist\n");
       $num_errors++;
       next;
     }
@@ -1875,14 +1875,14 @@ sub get_index {
   make_dir("$tempdir/$subdir");
 
   if (!($diff_mode eq "none") && exists $file_lists{"$tempdir/$subdir/$file.diff/Index"}) {
-    if (!check_lists ("$tempdir/$subdir/$file.diff/Index")) {
+    if (!check_lists("$tempdir/$subdir/$file.diff/Index")) {
       make_dir("$tempdir/$subdir/$file.diff");
       say("$subdir/$file.diff/Index needs fetch");
       if (!remote_get("$subdir/$file.diff/Index")) {
-	push (@errlog, "$subdir/$file.diff/Index failed md5sum check, removing\n");
+	push(@errlog, "$subdir/$file.diff/Index failed md5sum check, removing\n");
       } else {
 	fetch_and_apply_diffs(0, $subdir, $file);
-	if (check_lists ("$tempdir/$subdir/$file")) {
+	if (check_lists("$tempdir/$subdir/$file")) {
 	  system_redirect_io("gzip -9 -n", "$tempdir/$subdir/$file", "$tempdir/$subdir/$file.gz");
 	  system_redirect_io("bzip2", "$tempdir/$subdir/$file", "$tempdir/$subdir/$file.bz2");
 	}
@@ -1890,7 +1890,7 @@ sub get_index {
     } else {
       $bytes_gotten += $file_lists{"$tempdir/$subdir/$file.diff/Index"}{size};
       fetch_and_apply_diffs(0, $subdir, "$file");
-      if (check_lists ("$tempdir/$subdir/$file")) {
+      if (check_lists("$tempdir/$subdir/$file")) {
 	system_redirect_io("gzip -9 -n", "$tempdir/$subdir/$file", "$tempdir/$subdir/$file.gz");
 	system_redirect_io("bzip2", "$tempdir/$subdir/$file", "$tempdir/$subdir/$file.bz2");
       }
@@ -1900,13 +1900,13 @@ sub get_index {
   }
 
   if (exists $file_lists{"$tempdir/$subdir/$file.gz"}{size}) {
-    if (!check_lists ("$tempdir/$subdir/$file.gz")) {
+    if (!check_lists("$tempdir/$subdir/$file.gz")) {
       say("$subdir/$file.gz needs fetch");
       if (remote_get("$subdir/$file.gz")) {
 	system_redirect_io("gzip -d", "$tempdir/$subdir/$file.gz", "$tempdir/$subdir/$file");
 	system_redirect_io("bzip2", "$tempdir/$subdir/$file", "$tempdir/$subdir/$file.bz2");
       } else {
-	push (@errlog, "$subdir/$file.gz failed md5sum check\n");
+	push(@errlog, "$subdir/$file.gz failed md5sum check\n");
 	$num_errors++;
       }
     } else {
@@ -1914,7 +1914,7 @@ sub get_index {
     }
   } elsif ($ignore_release) {
     say("Ignoring missing Release file for $subdir/$file.gz");
-    push (@errlog, "Ignoring missing Release file for $subdir/$file.gz\n");
+    push(@errlog, "Ignoring missing Release file for $subdir/$file.gz\n");
     say("$subdir/$file.gz needs fetch");
     if (remote_get("$subdir/$file.gz")) {
       system_redirect_io("gzip -d", "$tempdir/$subdir/$file.gz", "$tempdir/$subdir/$file");
@@ -1928,12 +1928,12 @@ sub get_index {
     }
   }
   if (exists $file_lists{"$tempdir/$subdir/$file"}) {
-    if (!check_lists ("$tempdir/$subdir/$file")) {
+    if (!check_lists("$tempdir/$subdir/$file")) {
       say("$subdir/$file needs fetch");
       if (remote_get("$subdir/$file")) {
 	system_redirect_io("bzip2", "$tempdir/$subdir/$file", "$tempdir/$subdir/$file.bz2");
       } else {
-	push (@errlog, "$subdir/$file failed md5sum check\n");
+	push(@errlog, "$subdir/$file failed md5sum check\n");
 	$num_errors++;
       }
     } else {
@@ -1941,20 +1941,20 @@ sub get_index {
     }
   }
   if (exists $file_lists{"$tempdir/$subdir/$file.bz2"}) {
-    if (!check_lists ("$tempdir/$subdir/$file.bz2")) {
+    if (!check_lists("$tempdir/$subdir/$file.bz2")) {
       say("$subdir/$file.bz2 needs fetch");
       if (!remote_get("$subdir/$file.bz2")) {
-	push (@errlog, "$subdir/$file.bz2 failed md5sum check, removing\n");
+	push(@errlog, "$subdir/$file.bz2 failed md5sum check, removing\n");
       }
     } else {
       $bytes_gotten += $file_lists{"$tempdir/$subdir/$file.bz2"}{size};
     }
   }
   if (exists $file_lists{"$tempdir/$subdir/Release"}) {
-    if (!check_lists ("$tempdir/$subdir/Release")) {
+    if (!check_lists("$tempdir/$subdir/Release")) {
       say("$subdir/Release needs fetch");
       if (!remote_get("$subdir/Release")) {
-	push (@errlog, "$subdir/Release failed md5sum check, removing\n");
+	push(@errlog, "$subdir/Release failed md5sum check, removing\n");
       }
     } else {
       $bytes_gotten += $file_lists{"$tempdir/$subdir/Release"}{size};
@@ -1987,11 +1987,11 @@ sub update_contents {
 
   # Get the Index file for the diffs
   if (exists $file_lists{"$tempdir/$subdir/$file.diff/Index"}) {
-    if (!check_lists ("$tempdir/$subdir/$file.diff/Index")) {
+    if (!check_lists("$tempdir/$subdir/$file.diff/Index")) {
       make_dir("$tempdir/$subdir/$file.diff");
       say("$subdir/$file.diff/Index needs fetch");
       if (!remote_get("$subdir/$file.diff/Index")) {
-	push (@errlog, "$subdir/$file.diff/Index failed md5sum check, removing\n");
+	push(@errlog, "$subdir/$file.diff/Index failed md5sum check, removing\n");
 	return $file_ok;
       }
 #FIXME: before download
@@ -2032,7 +2032,7 @@ sub get_contents_files {
       next if $dist =~ /experimental/;
       next if $dist =~ /.*-proposed-updates/;
       next if $arch =~ /source/;
-      if (!check_lists ("$tempdir/dists/$dist/Contents-$arch.gz")) {
+      if (!check_lists("$tempdir/dists/$dist/Contents-$arch.gz")) {
 	if ($first) {
 	  say("Get Contents files.");
 	  $first = 0;
@@ -2051,10 +2051,10 @@ sub get_i18n_index {
     make_dir($subdir);
     make_dir("$tempdir/$subdir");
 
-    if (!check_lists ("$tempdir/$subdir/Index")) {
+    if (!check_lists("$tempdir/$subdir/Index")) {
       say("$subdir/Release needs fetch");
       if (!remote_get("$subdir/Index")) {
-	push (@errlog, "$subdir/Index failed md5sum check, removing\n");
+	push(@errlog, "$subdir/Index failed md5sum check, removing\n");
       }
     } else {
       $bytes_gotten += $file_lists{"$tempdir/$subdir/Index"}{size};
@@ -2150,7 +2150,7 @@ sub fetch_and_apply_diffs {
       }
       if (!check_diff("$tempdir/$subdir/$type.diff/$file", $diff_size{$file}, $diff_sha1{$file})) {
 	say("$subdir/$type.diff/$file.gz failed sha1sum check, removing");
-	push (@errlog, "$subdir/$type.diff/$file.gz failed sha1sum check, removing\n");
+	push(@errlog, "$subdir/$type.diff/$file.gz failed sha1sum check, removing\n");
 	unlink "$tempdir/$subdir/$type.diff/$file.gz";
 	$ret = 0;
       }
@@ -2183,7 +2183,7 @@ sub fetch_and_apply_diffs {
   }
   if (!($sha1 eq $current_sha1 && $size eq $current_size)) {
     say("$subdir/$type failed sha1sum check, removing");
-    push (@errlog, "$subdir/$type failed sha1sum check, removing\n");
+    push(@errlog, "$subdir/$type failed sha1sum check, removing\n");
     unlink "$tempdir/$subdir/$type";
   }
 }
@@ -2201,7 +2201,7 @@ sub fetch_and_apply_diffs {
       $current .= "$part/";
       if (! $seen{$current}) {
 	if (! -d $current) {
-	  mkdir ($current, 0755) or die "mkdir failed: $!";
+	  mkdir($current, 0755) or die "mkdir failed: $!";
 	  debug("Created directory: $current");
 	}
 	$seen{$current} = 1;
