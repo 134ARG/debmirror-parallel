@@ -272,15 +272,18 @@ Don't fail if the F<Release.gpg> file is missing.
 
 =item --ignore=regex
 
-Never delete any files whose filenames match the regex. May be used multiple times.
+Never delete any files whose filenames match the regex.
+May be used multiple times.
 
 =item --exclude=regex
 
-Never download any files whose filenames match the regex. May be used multiple times.
+Never download any files whose filenames match the regex.
+May be used multiple times.
 
 =item --include=regex
 
-Don't exclude any files whose filenames match the regex. May be used multiple times.
+Don't exclude any files whose filenames match the regex.
+May be used multiple times.
 
 =item --exclude-deb-section=regex
 
@@ -701,7 +704,8 @@ say("Checking md5sums.") if $check_md5sums;
 say("Passive mode on.") if $passive;
 say("Proxy: $proxy") if $proxy;
 say("Download at most $max_batch files.") if ($max_batch > 0);
-say("Download at most $rsync_batch files per rsync call.") if ($download_method eq "rsync");
+say("Download at most $rsync_batch files per rsync call.")
+  if ($download_method eq "rsync");
 if ($post_cleanup) {
   say("Will clean up AFTER mirroring.");
 } else {
@@ -834,12 +838,11 @@ foreach my $dist (keys %distset) {
   # Parse the Release
   if (open RELEASE, "<$tempdir/dists/$dist/Release") {
     while (<RELEASE>) {
-	last if /^MD5Sum:/;
+      last if /^MD5Sum:/;
     }
     $_ = <RELEASE>;
     while (defined $_ && $_ =~ /^ /) {
-      my ($md5sum, $size, $filename) =
-	(/ ([a-z0-9]+) +(\d+) +(.*)$/);
+      my ($md5sum, $size, $filename) = (/ ([a-z0-9]+) +(\d+) +(.*)$/);
       $file_lists{"$tempdir/dists/$dist/$filename"}{md5} = $md5sum;
       $file_lists{"$tempdir/dists/$dist/$filename"}{size} = $size;
       $_ = <RELEASE>;
@@ -873,7 +876,8 @@ $bytes_gotten = $bytes_meta;
 
 sub add_bytes {
   my $name = shift;
-  $bytes_to_get +=  $file_lists{"$tempdir/$name"}{size} if exists $file_lists{"$tempdir/$name"};
+  $bytes_to_get +=  $file_lists{"$tempdir/$name"}{size}
+    if exists $file_lists{"$tempdir/$name"};
 }
 foreach my $dist (keys %distset) {
   next unless exists $distset{$dist}{mirror};
@@ -883,7 +887,8 @@ foreach my $dist (keys %distset) {
       add_bytes("dists/$dist/$section/binary-$arch/Packages.gz");
       add_bytes("dists/$dist/$section/binary-$arch/Packages.bz2");
       add_bytes("dists/$dist/$section/binary-$arch/Release");
-      add_bytes("dists/$dist/$section/binary-$arch/Packages.diff/Index") unless ($diff_mode eq "none");
+      add_bytes("dists/$dist/$section/binary-$arch/Packages.diff/Index")
+	unless ($diff_mode eq "none");
     }
     # d-i does not have separate source sections
     if ($do_source && $section !~ /debian-installer/) {
@@ -891,7 +896,8 @@ foreach my $dist (keys %distset) {
       add_bytes("dists/$dist/$section/source/Sources.gz");
       add_bytes("dists/$dist/$section/source/Sources.bz2");
       add_bytes("dists/$dist/$section/source/Release");
-      add_bytes("dists/$dist/$section/source/Sources.diff/Index") unless ($diff_mode eq "none");
+      add_bytes("dists/$dist/$section/source/Sources.diff/Index")
+	unless ($diff_mode eq "none");
     }
     add_bytes("dists/$dist/$section/i18n/Index") if $i18n;
   }
@@ -1001,17 +1007,16 @@ say("Parse Packages and Sources files and add to the file list everything therei
 {
   local $/ = "\n\n"; # Set input separator to read entire package
 
-  my ($filename, $size, $md5sum, $directory, $exclude, $include,
-      $architecture, $exclude_deb_section, $limit_priority, $deb_section,
-      $deb_priority);
+  my ($filename, $size, $md5sum, $directory, $exclude, $include, $architecture,
+      $exclude_deb_section, $limit_priority, $deb_section, $deb_priority);
   my $empty_mirror = 1;
 
   my %arches = map { $_ => 1 } (@arches, "all");
 
   $include = "(".join("|", @includes).")" if @includes;
   $exclude = "(".join("|", @excludes).")" if @excludes;
-  $exclude_deb_section =
-    "(".join("|", @excludes_deb_section).")" if @excludes_deb_section;
+  $exclude_deb_section = "(".join("|", @excludes_deb_section).")"
+    if @excludes_deb_section;
   $limit_priority = "(".join("|", @limit_priority).")" if @limit_priority;
   foreach my $file (@package_files) {
     next if (! -f $file);
@@ -1329,10 +1334,12 @@ if (! $omit_suite_symlinks && ! $dry_run) {
     next if (! -d "dists/$dist");
     my $suite = $distset{$dist}{suite};
     if (! exists $suites{$suite}) {
-      symlink("$dist", "dists/$suite") or die "Failed to create symlink dists/$suite: $!";
+      symlink("$dist", "dists/$suite")
+	or die "Failed to create symlink dists/$suite: $!";
     }
     if ($suite eq "proposed-updates"&& ! exists $suites{"stable-$suite"}) {
-      symlink("$dist", "dists/stable-$suite") or die "Failed to create symlink dists/stable-$suite: $!";
+      symlink("$dist", "dists/stable-$suite")
+	or die "Failed to create symlink dists/stable-$suite: $!";
     }
   }
 }
@@ -1355,7 +1362,8 @@ if (! $use_cache && ($cleanup || $post_cleanup)) {
   # makes directories.. Sort so they are removable in bottom-up
   # order.
   chdir($mirrordir) or die "chdir $mirrordir: $!";
-  system("find . -depth -type d ! -name . ! -name .. -print0 | xargs -0 rmdir 2>/dev/null") if (! $dry_run);
+  system("find . -depth -type d ! -name . ! -name .. -print0 | xargs -0 rmdir 2>/dev/null")
+    if (! $dry_run);
 }
 
 if ($res != 0) {
@@ -1406,8 +1414,7 @@ sub check_file {
   my ($filename, $size, $md5sum) = @_;
   if (-f $filename and ($size == -s _ || $size == -1)) {
     if ($check_md5sums || $size == -1) {
-      open HANDLE, $filename or
-	die "$filename: $!";
+      open HANDLE, $filename or die "$filename: $!";
       $md5->addfile(*HANDLE);
       my $digest = $md5->hexdigest;
       return ($md5sum eq $digest);
@@ -1559,7 +1566,8 @@ sub http_get {
   my $percent = 0;
   my $url = "http://${host}/${remoteroot}/${file}";
   my $ret = 1;
-  $percent = sprintf("%3.0f", (($bytes_gotten/$bytes_to_get)*100)) unless ($bytes_to_get == 0);
+  $percent = sprintf("%3.0f", (($bytes_gotten/$bytes_to_get)*100))
+    unless ($bytes_to_get == 0);
 
   print "$url => " if ($debug);
   if ($progress || $verbose) {
@@ -1598,7 +1606,8 @@ sub ftp_get {
   my $file = shift;
   my $percent = 0;
   my $mtime;
-  $percent = sprintf("%3.0f", (($bytes_gotten/$bytes_to_get)*100)) unless ($bytes_to_get == 0);
+  $percent = sprintf("%3.0f", (($bytes_gotten/$bytes_to_get)*100))
+    unless ($bytes_to_get == 0);
 
   my @stat = stat $file;
   if (@stat) { # already have the file?
@@ -2112,7 +2121,8 @@ sub fetch_and_apply_diffs {
   my $t = $num_errors;
 
   # Parse DiffIndex file
-  open(INDEX, "$tempdir/$subdir/$type.diff/Index") or die "$tempdir/$subdir/$type.diff/Index: $!";
+  open(INDEX, "$tempdir/$subdir/$type.diff/Index")
+    or die "$tempdir/$subdir/$type.diff/Index: $!";
   $_ = <INDEX>;
   while (defined($_)) {
     if (m/^SHA1-Current:/m) {
@@ -2307,7 +2317,8 @@ sub di_add_files {
 
       local $/;
       undef $/; # Read whole file
-      open(FILE, "<", "$tdir/$image_dir/MD5SUMS") or die "$tdir/$image_dir/MD5SUMS: $!";
+      open(FILE, "<", "$tdir/$image_dir/MD5SUMS")
+	or die "$tdir/$image_dir/MD5SUMS: $!";
       $_ = <FILE>;
       while (m/^([A-Za-z0-9]{32}  .*)/mg) {
 	my ($md5sum, $filename) = split(' ', $1, 3);
@@ -2412,7 +2423,8 @@ sub download_finished {
     say("Download completed in ".$total_time."s.");
   } else {
     my $avg_speed = 0;
-    $avg_speed = sprintf("%3.0f", ($bytes_gotten / $total_time)) unless ($total_time == 0);
+    $avg_speed = sprintf("%3.0f", ($bytes_gotten / $total_time))
+      unless ($total_time == 0);
     say("Downloaded ".print_dl_size($bytes_gotten)." in ".$total_time."s at ".(int($avg_speed/1024*100)/100)." kiB/s.");
   }
 }
