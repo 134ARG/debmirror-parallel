@@ -1412,7 +1412,7 @@ sub add_bytes_gotten {
 # It will return true if the tests show the file matches.
 sub check_file {
   my ($filename, $size, $md5sum) = @_;
-  if (-f $filename and ($size == -s _ || $size == -1)) {
+  if (-f $filename && ($size == -s _ || $size == -1)) {
     if ($check_md5sums || $size == -1) {
       open HANDLE, $filename or die "$filename: $!";
       $md5->addfile(*HANDLE);
@@ -1434,7 +1434,7 @@ sub check_i18n {
   my $digest = Digest::SHA1->new;
   my $ret = 0;
 
-  if (-f "$filename" and ($size == -s _)) {
+  if (-f "$filename" && ($size == -s _)) {
     open HANDLE, $filename or die "$filename: $!";
     $digest->addfile(*HANDLE);
     $ret = ($sha1 eq $digest->hexdigest);
@@ -1544,7 +1544,7 @@ sub hftp_get {
     print $ret->status_line . "\n" if ($debug);
     if ($ret->is_error) {
       $files{$file} = -1;
-      warn "$file failed " . $ret->status_line . "\n" if ($progress or $verbose);
+      warn "$file failed " . $ret->status_line . "\n" if ($progress || $verbose);
       push(@errlog, "Download of $file failed: ".$ret->status_line."\n");
       $num_errors++;
     } elsif ($progress || $verbose) {
@@ -1579,7 +1579,7 @@ sub http_get {
     print $ret->status_line . "\n" if ($debug);
     if ($ret->is_error) {
       $files{$file} = -1;
-      warn "$file failed " . $ret->status_line . "\n" if ($progress or $verbose);
+      warn "$file failed " . $ret->status_line . "\n" if ($progress || $verbose);
       push(@errlog, "Download of $file failed: ".$ret->status_line."\n");
       $num_errors++;
     } elsif ($progress || $verbose) {
@@ -1634,7 +1634,7 @@ sub ftp_get {
       utime($mtime, $mtime, $file) if defined $mtime;
     } else {
       $files{$file} = -1;
-      warn " failed:".$ftp->message if ($progress or $verbose);
+      warn " failed:".$ftp->message if ($progress || $verbose);
       push(@errlog, "Download of $file failed: ".$ftp->message."\n");
       $num_errors++;
     }
@@ -1642,7 +1642,7 @@ sub ftp_get {
   my $size = $ftp->size($file);
   add_bytes_gotten($size) if $size;
   $| = $oldautoflush;
-  print "\n" if (($verbose and not $progress) or ($dry_run and $progress));
+  print "\n" if (($verbose && ! $progress) || ($dry_run && $progress));
   return $ret;
 }
 
@@ -2223,7 +2223,7 @@ sub fetch_and_apply_diffs {
 # This subroutine is called on pre- and post-cleanup and takes no arguments.
 # It uses some global variables like $files, $mirrordir, @ignores
 sub cleanup_unknown_files {
-  print("Cleanup mirror") if ($verbose or $progress);
+  print("Cleanup mirror") if ($verbose || $progress);
   if ($use_cache) {
     say(": using cache.");
     foreach my $file (sort keys %files) {
@@ -2526,7 +2526,7 @@ sub load_state_cache {
 }
 
 sub say {
-  print join(' ', @_)."\n" if ($verbose or $progress);
+  print join(' ', @_)."\n" if ($verbose || $progress);
 }
 
 sub debug {
