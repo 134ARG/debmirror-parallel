@@ -1029,7 +1029,7 @@ say("Parse Packages and Sources files and add to the file list everything therei
       ($deb_priority) = m/^Priority:\s+(.*)/im;
       ($architecture) = m/^Architecture:\s+(.*)/im;
       next if (! $arches{$architecture});
-      if(! (defined($include) && ($filename =~ /$include/o))) {
+      if (! (defined($include) && ($filename =~ /$include/o))) {
 	next if (defined($exclude) && $filename =~ /$exclude/o);
 	next if (defined($exclude_deb_section) && defined($deb_section)
 		 && $deb_section =~ /$exclude_deb_section/o);
@@ -1081,7 +1081,7 @@ say("Parse Packages and Sources files and add to the file list everything therei
 	($md5sum, $size, $filename) = split(' ', $1, 3);
 	$filename = "$directory/$filename";
 	$filename =~ s:/+:/:;	# remove redundant slashes in paths
-	if(! (defined($include) && $filename =~ /$include/o)) {
+	if (! (defined($include) && $filename =~ /$include/o)) {
 	  next if (defined($exclude) && $filename =~ /$exclude/o);
 	}
 	# File was listed in state cache, or file occurs multiple times
@@ -1559,7 +1559,7 @@ sub http_get {
   my $percent = 0;
   my $url = "http://${host}/${remoteroot}/${file}";
   my $ret = 1;
-  $percent = sprintf("%3.0f", (($bytes_gotten/$bytes_to_get)*100)) unless($bytes_to_get == 0);
+  $percent = sprintf("%3.0f", (($bytes_gotten/$bytes_to_get)*100)) unless ($bytes_to_get == 0);
 
   print "$url => " if ($debug);
   if ($progress || $verbose) {
@@ -1598,7 +1598,7 @@ sub ftp_get {
   my $file = shift;
   my $percent = 0;
   my $mtime;
-  $percent = sprintf("%3.0f", (($bytes_gotten/$bytes_to_get)*100)) unless($bytes_to_get == 0);
+  $percent = sprintf("%3.0f", (($bytes_gotten/$bytes_to_get)*100)) unless ($bytes_to_get == 0);
 
   my @stat = stat $file;
   if (@stat) { # already have the file?
@@ -2079,7 +2079,7 @@ sub parse_i18n_index {
       next unless /^ /;
 
       my ($sha1, $size, $filename) = (/ ([a-z0-9]+) +(\d+) +(.*)$/);
-      if(! (defined($include) && ($subdir."/".$filename) =~ /$include/o)) {
+      if (! (defined($include) && ($subdir."/".$filename) =~ /$include/o)) {
 	next if (defined($exclude) && ($subdir."/".$filename) =~ /$exclude/o);
       }
 
@@ -2312,7 +2312,7 @@ sub di_add_files {
       while (m/^([A-Za-z0-9]{32}  .*)/mg) {
 	my ($md5sum, $filename) = split(' ', $1, 3);
 	$filename =~ s:^\./::;
-	if(! (defined($include) && ($image_dir."/".$filename) =~ /$include/o)) {
+	if (! (defined($include) && ($image_dir."/".$filename) =~ /$include/o)) {
 	  next if (defined($exclude) && ($image_dir."/".$filename) =~ /$exclude/o);
 	}
 
