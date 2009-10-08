@@ -640,7 +640,7 @@ usage if $help;
 my $mirrordir = shift or usage("mirrordir not specified");
 
 # Check for patch binary if needed
-if (!($diff_mode eq "none")) {
+if (! ($diff_mode eq "none")) {
   if (system("patch --version 2>/dev/null >/dev/null")) {
     say("Patch binary missing, falling back to --diff=none");
     push(@errlog,"Patch binary missing, falling back to --diff=none\n");
@@ -670,9 +670,9 @@ $remoteroot =~ s%^[:/]%%;
 @rsync_extra = split(/,/, join(',', @rsync_extra));
 if (@di_dists) {
   @di_dists = @dists if ($di_dists[0] eq "dists");
-  @di_arches = @arches if (!@di_arches || $di_arches[0] eq "arches");
+  @di_arches = @arches if (! @di_arches || $di_arches[0] eq "arches");
 } elsif (@di_arches) {
-  @di_dists = @dists if (!@di_dists);
+  @di_dists = @dists if (! @di_dists);
   @di_arches = @arches if ($di_arches[0] eq "arches");
 }
 $cleanup = 0 if ($no_cleanup);
@@ -976,10 +976,10 @@ if ($getcontents) {
       next if $dist =~ /.*-proposed-updates/;
       next if $arch =~ /source/;
       if ($diff_mode ne "none") {
-	if (!update_contents("dists/$dist", "Contents-$arch")) {
+	if (! update_contents("dists/$dist", "Contents-$arch")) {
 	  add_bytes("dists/$dist/Contents-$arch.gz");
 	}
-      } elsif (!check_lists("$tempdir/dists/$dist/Contents-$arch.gz")) {
+      } elsif (! check_lists("$tempdir/dists/$dist/Contents-$arch.gz")) {
 	add_bytes("dists/$dist/Contents-$arch.gz");
       }
     }
@@ -1014,7 +1014,7 @@ say("Parse Packages and Sources files and add to the file list everything therei
     "(".join("|", @excludes_deb_section).")" if @excludes_deb_section;
   $limit_priority = "(".join("|", @limit_priority).")" if @limit_priority;
   foreach my $file (@package_files) {
-    next if (!-f $file);
+    next if (! -f $file);
     open(FILE, "<", $file) or die "$file: $!";
     for (;;) {
       my $buf;
@@ -1028,8 +1028,8 @@ say("Parse Packages and Sources files and add to the file list everything therei
       ($deb_section) = m/^Section:\s+(.*)/im;
       ($deb_priority) = m/^Priority:\s+(.*)/im;
       ($architecture) = m/^Architecture:\s+(.*)/im;
-      next if (!$arches{$architecture});
-      if(!(defined($include) && ($filename =~ /$include/o))) {
+      next if (! $arches{$architecture});
+      if(! (defined($include) && ($filename =~ /$include/o))) {
 	next if (defined($exclude) && $filename =~ /$exclude/o);
 	next if (defined($exclude_deb_section) && defined($deb_section)
 		 && $deb_section =~ /$exclude_deb_section/o);
@@ -1061,7 +1061,7 @@ say("Parse Packages and Sources files and add to the file list everything therei
     close(FILE);
   }
   foreach my $file (@source_files) {
-    next if (!-f $file);
+    next if (! -f $file);
     open(FILE, "<", $file) or die "$file: $!";
     for (;;) {
       my $buf = "";
@@ -1081,7 +1081,7 @@ say("Parse Packages and Sources files and add to the file list everything therei
 	($md5sum, $size, $filename) = split(' ', $1, 3);
 	$filename = "$directory/$filename";
 	$filename =~ s:/+:/:;	# remove redundant slashes in paths
-	if(!(defined($include) && $filename =~ /$include/o)) {
+	if(! (defined($include) && $filename =~ /$include/o)) {
 	  next if (defined($exclude) && $filename =~ /$exclude/o);
 	}
 	# File was listed in state cache, or file occurs multiple times
@@ -1136,7 +1136,7 @@ DOWNLOAD: {
     my $dirname;
     my $i = 0;
     foreach my $file (sort keys %files) {
-      if (!$files{$file}) {
+      if (! $files{$file}) {
 	if (($dirname) = $file =~ m:(.*)/:) {
 	  make_dir($dirname);
 	}
@@ -1157,7 +1157,7 @@ DOWNLOAD: {
     my $dirname;
     my $i = 0;
     foreach my $file (sort keys %files) {
-      if (!$files{$file}) {
+      if (! $files{$file}) {
 	if (($dirname) = $file =~ m:(.*)/:) {
 	  make_dir($dirname);
 	}
@@ -1177,7 +1177,7 @@ DOWNLOAD: {
     my $dirname;
     my $i = 0;
     foreach my $file (sort keys %files) {
-      if (!$files{$file}) {
+      if (! $files{$file}) {
 	if (($dirname) = $file =~ m:(.*)/:) {
 	  make_dir($dirname);
 	}
@@ -1204,7 +1204,7 @@ DOWNLOAD: {
     $opt = "$opt -v" if $debug;
     $opt = "$opt -n" if $dry_run;
     foreach my $file (sort keys %files) {
-      if (!$files{$file}) {
+      if (! $files{$file}) {
 	my $dirname;
 	my @dir;
 	($dirname) = $file =~ m:(.*/):;
@@ -1229,11 +1229,11 @@ DOWNLOAD: {
 	  unlink $rsynctempfile;
 	  foreach my $dest (@result) {
 	    if (-f $dest) {
-	      if (!check_lists($dest)) {
+	      if (! check_lists($dest)) {
 		say("$dest failed md5sum check");
 		$num_errors++;
 	      }
-	    } elsif (!-d $dest) {
+	    } elsif (! -d $dest) {
 	      say("$dest missing");
 	      $num_errors++;
 	    }
@@ -1260,11 +1260,11 @@ DOWNLOAD: {
       close $fh;
       foreach my $dest (@result) {
 	if (-f $dest) {
-	  if (!check_lists($dest)) {
+	  if (! check_lists($dest)) {
 	    say("$dest failed md5sum check");
 	    $num_errors++;
 	  }
-	} elsif (!-d $dest) {
+	} elsif (! -d $dest) {
 	  say("$dest missing");
 	  $num_errors++;
 	}
@@ -1285,13 +1285,13 @@ foreach my $file (`find . -type f`) {
   chomp $file;
   $file =~ s:^\./::;
   # this skips diff files if unwanted
-  next if (!exists $files{$file});
+  next if (! exists $files{$file});
   print("Moving $file\n") if ($debug);
   if (! $dry_run) {
     $res &= unlink($mirrordir."/".$file) if ($mirrordir."/".$file);
     "$file" =~ m,(^.*)/,;
     make_dir("$mirrordir/$1");
-    if (!link($file, $mirrordir."/".$file)) {
+    if (! link($file, $mirrordir."/".$file)) {
       $res &= system("cp $file $mirrordir/$file");
     }
   }
@@ -1311,7 +1311,7 @@ if (@di_dists) {
 if (! $omit_suite_symlinks && ! $dry_run) {
   my %suites;
   opendir (DIR, 'dists') or die "Can't open dists/: $!\n";
-  foreach my $file (grep (!/^\.\.?$/, readdir (DIR))) {
+  foreach my $file (grep (! /^\.\.?$/, readdir (DIR))) {
     if (-l "dists/$file") {
       my $cur = readlink("dists/$file") or die "Error reading symlink dists/$file: $!";
       if (exists $distset{$cur}{suite} &&
@@ -1326,12 +1326,12 @@ if (! $omit_suite_symlinks && ! $dry_run) {
 
   foreach my $dist (keys %distset) {
     next if (! exists $distset{$dist}{suite});
-    next if (!-d "dists/$dist");
+    next if (! -d "dists/$dist");
     my $suite = $distset{$dist}{suite};
     if (! exists $suites{$suite}) {
       symlink("$dist", "dists/$suite") or die "Failed to create symlink dists/$suite: $!";
     }
-    if ($suite eq "proposed-updates"&& !exists $suites{"stable-$suite"}) {
+    if ($suite eq "proposed-updates"&& ! exists $suites{"stable-$suite"}) {
       symlink("$dist", "dists/stable-$suite") or die "Failed to create symlink dists/stable-$suite: $!";
     }
   }
@@ -1363,14 +1363,14 @@ if ($res != 0) {
 }
 
 # Save the state cache.
-save_state_cache() if $state_cache_days && !$dry_run;
+save_state_cache() if $state_cache_days && ! $dry_run;
 
 say("All done.");
 $lock->release;
 print "Errors:\n ".join(" ", @errlog) if (@errlog);
 if ($num_errors != 0) {
   print "Failed to download files ($num_errors errors)!\n";
-  exit 1 if (!$ignore_small_errors);
+  exit 1 if (! $ignore_small_errors);
 }
 
 exit;
@@ -1481,7 +1481,7 @@ sub remote_get {
     /^hftp$/ && do {
       $res = hftp_get($file);
       $res = $res && check_lists($file);
-      if (!$res) {
+      if (! $res) {
 	say("$file failed md5sum check, removing");
 	unlink($file) if (-f $file);
       }
@@ -1490,7 +1490,7 @@ sub remote_get {
     /^http$/ && do {
       $res = http_get($file);
       $res = $res && check_lists($file);
-      if (!$res) {
+      if (! $res) {
 	say("$file failed md5sum check, removing");
 	unlink($file) if (-f $file);
       }
@@ -1499,7 +1499,7 @@ sub remote_get {
     /^ftp$/ && do {
       $res = ftp_get($file);
       $res = $res && check_lists($file);
-      if (!$res) {
+      if (! $res) {
 	say("$file failed md5sum check, removing");
 	unlink($file) if (-f $file);
       }
@@ -1508,7 +1508,7 @@ sub remote_get {
     /^rsync$/ && do {
       $res = rsync_get($file);
       $res = $res && check_lists($file);
-      if (!$res) {
+      if (! $res) {
 	say("$file failed md5sum check");
 	# FIXME: make sure the size doesn't match so it gets retried
       }
@@ -1693,7 +1693,7 @@ sub rsync_extra {
   }
   return if (! @includes);
   if (! $early) {
-    @extras = grep(!/^trace$/, @extras); # drop 'trace' from list
+    @extras = grep(! /^trace$/, @extras); # drop 'trace' from list
     say("Update extra files (using rsync): @extras.");
   }
   rsync_extra_get(@includes);
@@ -1758,7 +1758,7 @@ sub get_release {
   my $t = $num_errors;
   return 0 unless remote_get("dists/$dist/Release.gpg", "$tempdir/.tmp");
   # Check for gpg
-  if (!$ignore_release_gpg) {
+  if (! $ignore_release_gpg) {
     if (system("gpgv --version >/dev/null 2>/dev/null")) {
       say("gpgv failed: --ignore-release-gpg or gpgv binary missing?");
       push(@errlog, "gpgv failed: --ignore-release-gpg or gpgv binary missing?\n");
@@ -1775,7 +1775,7 @@ sub get_release {
       if ($gpgv_res eq "failed" || $debug) {
 	system("gpgv --status-fd 1 $tdir/Release.gpg $tdir/Release");
       }
-      if ($verbose && !$debug) {
+      if ($verbose && ! $debug) {
 	system("gpgv --status-fd 1 $tdir/Release.gpg $tdir/Release >/dev/null");
       }
       if ($gpgv_res eq "failed") {
@@ -1856,10 +1856,10 @@ sub name_release {
 
   # This should be a one-time conversion only
   if ($suite) {
-    if (-d "$tempdir/dists/$suite" && !-l "$tempdir/dists/$suite") {
+    if (-d "$tempdir/dists/$suite" && ! -l "$tempdir/dists/$suite") {
       rename_distdir("$tempdir/dists", $codename, $suite);
     }
-    if (-d "dists/$suite" && !-l "dists/$suite") {
+    if (-d "dists/$suite" && ! -l "dists/$suite") {
       rename_distdir("dists", $codename, $suite);
     }
   }
@@ -1874,11 +1874,11 @@ sub get_index {
   make_dir($subdir);
   make_dir("$tempdir/$subdir");
 
-  if (!($diff_mode eq "none") && exists $file_lists{"$tempdir/$subdir/$file.diff/Index"}) {
-    if (!check_lists("$tempdir/$subdir/$file.diff/Index")) {
+  if (! ($diff_mode eq "none") && exists $file_lists{"$tempdir/$subdir/$file.diff/Index"}) {
+    if (! check_lists("$tempdir/$subdir/$file.diff/Index")) {
       make_dir("$tempdir/$subdir/$file.diff");
       say("$subdir/$file.diff/Index needs fetch");
-      if (!remote_get("$subdir/$file.diff/Index")) {
+      if (! remote_get("$subdir/$file.diff/Index")) {
 	push(@errlog, "$subdir/$file.diff/Index failed md5sum check, removing\n");
       } else {
 	fetch_and_apply_diffs(0, $subdir, $file);
@@ -1900,7 +1900,7 @@ sub get_index {
   }
 
   if (exists $file_lists{"$tempdir/$subdir/$file.gz"}{size}) {
-    if (!check_lists("$tempdir/$subdir/$file.gz")) {
+    if (! check_lists("$tempdir/$subdir/$file.gz")) {
       say("$subdir/$file.gz needs fetch");
       if (remote_get("$subdir/$file.gz")) {
 	system_redirect_io("gzip -d", "$tempdir/$subdir/$file.gz", "$tempdir/$subdir/$file");
@@ -1928,7 +1928,7 @@ sub get_index {
     }
   }
   if (exists $file_lists{"$tempdir/$subdir/$file"}) {
-    if (!check_lists("$tempdir/$subdir/$file")) {
+    if (! check_lists("$tempdir/$subdir/$file")) {
       say("$subdir/$file needs fetch");
       if (remote_get("$subdir/$file")) {
 	system_redirect_io("bzip2", "$tempdir/$subdir/$file", "$tempdir/$subdir/$file.bz2");
@@ -1941,9 +1941,9 @@ sub get_index {
     }
   }
   if (exists $file_lists{"$tempdir/$subdir/$file.bz2"}) {
-    if (!check_lists("$tempdir/$subdir/$file.bz2")) {
+    if (! check_lists("$tempdir/$subdir/$file.bz2")) {
       say("$subdir/$file.bz2 needs fetch");
-      if (!remote_get("$subdir/$file.bz2")) {
+      if (! remote_get("$subdir/$file.bz2")) {
 	push(@errlog, "$subdir/$file.bz2 failed md5sum check, removing\n");
       }
     } else {
@@ -1951,9 +1951,9 @@ sub get_index {
     }
   }
   if (exists $file_lists{"$tempdir/$subdir/Release"}) {
-    if (!check_lists("$tempdir/$subdir/Release")) {
+    if (! check_lists("$tempdir/$subdir/Release")) {
       say("$subdir/Release needs fetch");
-      if (!remote_get("$subdir/Release")) {
+      if (! remote_get("$subdir/Release")) {
 	push(@errlog, "$subdir/Release failed md5sum check, removing\n");
       }
     } else {
@@ -1987,10 +1987,10 @@ sub update_contents {
 
   # Get the Index file for the diffs
   if (exists $file_lists{"$tempdir/$subdir/$file.diff/Index"}) {
-    if (!check_lists("$tempdir/$subdir/$file.diff/Index")) {
+    if (! check_lists("$tempdir/$subdir/$file.diff/Index")) {
       make_dir("$tempdir/$subdir/$file.diff");
       say("$subdir/$file.diff/Index needs fetch");
-      if (!remote_get("$subdir/$file.diff/Index")) {
+      if (! remote_get("$subdir/$file.diff/Index")) {
 	push(@errlog, "$subdir/$file.diff/Index failed md5sum check, removing\n");
 	return $file_ok;
       }
@@ -2032,7 +2032,7 @@ sub get_contents_files {
       next if $dist =~ /experimental/;
       next if $dist =~ /.*-proposed-updates/;
       next if $arch =~ /source/;
-      if (!check_lists("$tempdir/dists/$dist/Contents-$arch.gz")) {
+      if (! check_lists("$tempdir/dists/$dist/Contents-$arch.gz")) {
 	if ($first) {
 	  say("Get Contents files.");
 	  $first = 0;
@@ -2051,9 +2051,9 @@ sub get_i18n_index {
     make_dir($subdir);
     make_dir("$tempdir/$subdir");
 
-    if (!check_lists("$tempdir/$subdir/Index")) {
+    if (! check_lists("$tempdir/$subdir/Index")) {
       say("$subdir/Release needs fetch");
-      if (!remote_get("$subdir/Index")) {
+      if (! remote_get("$subdir/Index")) {
 	push(@errlog, "$subdir/Index failed md5sum check, removing\n");
       }
     } else {
@@ -2079,7 +2079,7 @@ sub parse_i18n_index {
       next unless /^ /;
 
       my ($sha1, $size, $filename) = (/ ([a-z0-9]+) +(\d+) +(.*)$/);
-      if(!(defined($include) && ($subdir."/".$filename) =~ /$include/o)) {
+      if(! (defined($include) && ($subdir."/".$filename) =~ /$include/o)) {
 	next if (defined($exclude) && ($subdir."/".$filename) =~ /$exclude/o);
       }
 
@@ -2121,7 +2121,7 @@ sub fetch_and_apply_diffs {
     }
     elsif (m/^SHA1-History:/m) {
       while (defined($_ = <INDEX>)) {
-	last if (!m/^\s/m);
+	last if (! m/^\s/m);
 	($sha1, $size, $file) = m/^\s+([A-Za-z0-9]+)\s+(\d+)\s+(.*)/m;
 	$history_sha1{$file} = $sha1;
 	$history_size{$file} = $size;
@@ -2129,7 +2129,7 @@ sub fetch_and_apply_diffs {
     }
     elsif (m/^SHA1-Patches:/m) {
       while (defined($_ = <INDEX>)) {
-	last if (!m/^\s/m);
+	last if (! m/^\s/m);
 	($sha1, $size, $file) = m/^\s+([A-Za-z0-9]+)\s+(\d+)\s+(.*)/m;
 	$diff_sha1{$file} = $sha1;
 	$diff_size{$file} = $size;
@@ -2141,14 +2141,14 @@ sub fetch_and_apply_diffs {
   # Download diff files as necessary
   $ret = 1;
   foreach $file (sort keys %diff_sha1) {
-    if (!check_diff("$tempdir/$subdir/$type.diff/$file", $diff_size{$file}, $diff_sha1{$file})) {
+    if (! check_diff("$tempdir/$subdir/$type.diff/$file", $diff_size{$file}, $diff_sha1{$file})) {
       say("$subdir/$type.diff/$file.gz needs fetch");
       remote_get("$subdir/$type.diff/$file.gz");
 #FIXME: before download
       if (-f "$tempdir/$subdir/$type.diff/$file.gz") {
 	$bytes_to_get += -s "$tempdir/$subdir/$type.diff/$file.gz";
       }
-      if (!check_diff("$tempdir/$subdir/$type.diff/$file", $diff_size{$file}, $diff_sha1{$file})) {
+      if (! check_diff("$tempdir/$subdir/$type.diff/$file", $diff_size{$file}, $diff_sha1{$file})) {
 	say("$subdir/$type.diff/$file.gz failed sha1sum check, removing");
 	push(@errlog, "$subdir/$type.diff/$file.gz failed sha1sum check, removing\n");
 	unlink "$tempdir/$subdir/$type.diff/$file.gz";
@@ -2181,7 +2181,7 @@ sub fetch_and_apply_diffs {
     $size = -s "$tempdir/$subdir/$type";
     say("$subdir/$type patched with $subdir/$type.diff/$file.gz");
   }
-  if (!($sha1 eq $current_sha1 && $size eq $current_size)) {
+  if (! ($sha1 eq $current_sha1 && $size eq $current_size)) {
     say("$subdir/$type failed sha1sum check, removing");
     push(@errlog, "$subdir/$type failed sha1sum check, removing\n");
     unlink "$tempdir/$subdir/$type";
@@ -2297,7 +2297,7 @@ sub di_add_files {
 
       my $image_dir = "dists/$dist/main/installer-$arch/current/images";
       make_dir ("$tdir/$image_dir");
-      if (!remote_get("$image_dir/MD5SUMS", $tdir)) {
+      if (! remote_get("$image_dir/MD5SUMS", $tdir)) {
 	say("Failed to download $image_dir/MD5SUMS; skipping.");
 	return;
       }
@@ -2312,7 +2312,7 @@ sub di_add_files {
       while (m/^([A-Za-z0-9]{32}  .*)/mg) {
 	my ($md5sum, $filename) = split(' ', $1, 3);
 	$filename =~ s:^\./::;
-	if(!(defined($include) && ($image_dir."/".$filename) =~ /$include/o)) {
+	if(! (defined($include) && ($image_dir."/".$filename) =~ /$include/o)) {
 	  next if (defined($exclude) && ($image_dir."/".$filename) =~ /$exclude/o);
 	}
 
@@ -2344,8 +2344,8 @@ sub di_get_files {
       # Fetch images into a temporary location
       $file =~ m:(^.*)/:;
       make_dir ("$tdir/$image_dir/$1") if $1;
-      if (!remote_get("$image_dir/$file", $tdir) ||
-          !check_file("$tdir/$image_dir/$file", -1, $di_files{$image_dir}{$file}{md5sum})) {
+      if (! remote_get("$image_dir/$file", $tdir) ||
+          ! check_file("$tdir/$image_dir/$file", -1, $di_files{$image_dir}{$file}{md5sum})) {
 	$lres = 0;
 	last if (! $dry_run);
       }
@@ -2420,7 +2420,7 @@ sub download_finished {
 sub rename_distdir {
   my ($dir, $codename, $suite) = @_;
   say("The directory for a dist should be its codename, not a suite.");
-  if (!$allow_dist_rename) {
+  if (! $allow_dist_rename) {
     die("Use --allow-dist-rename to have debmirror do the conversion automatically.\n");
   }
   say("Starting conversion - renaming '$dir/$suite' to '$dir/$codename':");
