@@ -546,8 +546,16 @@ my $HOME;
 require "/etc/debmirror.conf" if -r "/etc/debmirror.conf";
 require "$HOME/.debmirror.conf" if -r "$HOME/.debmirror.conf";
 
-# This hash contains the releases to mirror. The codename is the key and
-# the value is the name of the suite.
+# This hash contains the releases to mirror. If both codename and suite can be
+# determined from the Release file, the codename is used in the key. If not,
+# it can also be a suite (or whatever was requested by the user).
+# The hash has tree subtypes:
+# - suite: if both codename and suite could be determined from the Release file,
+#   the codename is the key and the value is the name of the suitei - used to
+#   update the suite -> codename symlinks;
+# - mirror: set to 1 if the package archive should be mirrored for the dist;
+# - d-i: set to 1 if D-I images should be mirrored for the dist.
+# For the last two subtypes the key can also include a subdir.
 my %distset=();
 
 # This hash holds all the files we know about. Values are:
