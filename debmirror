@@ -771,7 +771,7 @@ sub init_connection {
 
   /^http$/ && do {
     # LWP stuff[
-    $ua = new LWP::UserAgent;
+    $ua = new LWP::UserAgent(keep_alive => 1);
     $ua->proxy('http', $ENV{http_proxy}) if ($ENV{http_proxy});
     $ua->proxy('http', $proxy) if ($proxy);
     return;

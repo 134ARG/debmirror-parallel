@@ -5,6 +5,8 @@ debmirror (1:2.4.1) UNRELEASED; urgency=low
     - add example for setting "extra rsync directories"
   * Rename variables so that @dists can be set again in a configuration file.
     Closes: #549952.
+  * Enable LWP::ConnCache for the http transfer method. Closes: #395538.
+    Thanks to Gregor Herrmann for pointing out the option.
 
  -- Frans Pop <fjp@debian.org>  Wed, 07 Oct 2009 21:01:48 +0200
 
