@@ -1289,7 +1289,7 @@ foreach my $file (`find . -type f`) {
   print("Moving $file\n") if ($debug);
   if (! $dry_run) {
     $res &= unlink($mirrordir."/".$file) if ($mirrordir."/".$file);
-    "$file" =~ m,(^.*)/,;
+    "$file" =~ m:(^.*)/:;
     make_dir("$mirrordir/$1");
     if (! link($file, $mirrordir."/".$file)) {
       $res &= system("cp $file $mirrordir/$file");
