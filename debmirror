@@ -824,9 +824,9 @@ foreach my $dist (@dists) {
     rename("$tdir/Release.gpg", "$tempdir/dists/$codename$dist_sdir/Release.gpg")
       or die "Error while moving $tdir/Release.gpg: $!\n";
     $files{"dists/$codename$dist_sdir/Release"} = 1;
-    $files{$tempdir."/"."dists/$codename$dist_sdir/Release"} = 1;
+    $files{"$tempdir/dists/$codename$dist_sdir/Release"} = 1;
     $files{"dists/$codename$dist_sdir/Release.gpg"} = 1;
-    $files{$tempdir."/"."dists/$codename$dist_sdir/Release.gpg"} = 1;
+    $files{"$tempdir/dists/$codename$dist_sdir/Release.gpg"} = 1;
   }
 }
 
@@ -1293,10 +1293,10 @@ foreach my $file (`find . -type f`) {
   next if (! exists $files{$file});
   print("Moving $file\n") if ($debug);
   if (! $dry_run) {
-    $res &= unlink($mirrordir."/".$file) if ($mirrordir."/".$file);
+    $res &= unlink("$mirrordir/$file") if ("$mirrordir/$file");
     "$file" =~ m:(^.*)/:;
     make_dir("$mirrordir/$1");
-    if (! link($file, $mirrordir."/".$file)) {
+    if (! link($file, "$mirrordir/$file")) {
       $res &= system("cp $file $mirrordir/$file");
     }
   }
@@ -2048,7 +2048,7 @@ sub get_contents_files {
 	remote_get("dists/$dist/Contents-$arch.gz");
       }
       $files{"dists/$dist/Contents-$arch.gz"} = 1;
-      $files{$tempdir."/"."dists/$dist/Contents-$arch.gz"} = 1;
+      $files{"$tempdir/dists/$dist/Contents-$arch.gz"} = 1;
     }
   }
 }
@@ -2087,12 +2087,12 @@ sub parse_i18n_index {
       next unless /^ /;
 
       my ($sha1, $size, $filename) = (/ ([a-z0-9]+) +(\d+) +(.*)$/);
-      if (! (defined($include) && ($subdir."/".$filename) =~ /$include/o)) {
-	next if (defined($exclude) && ($subdir."/".$filename) =~ /$exclude/o);
+      if (! (defined($include) && ("$subdir/$filename") =~ /$include/o)) {
+	next if (defined($exclude) && ("$subdir/$filename") =~ /$exclude/o);
       }
 
       $files{"$subdir/$filename"} = 1;
-      $files{$tempdir."/"."$subdir/$filename"} = 1;
+      $files{"$tempdir/$subdir/$filename"} = 1;
       if (! check_i18n("$tempdir/$subdir/$filename", $size, $sha1)) {
 	$bytes_to_get += $size;
 	$i18n_get{"$subdir/$filename"}{sha1} = $sha1;
@@ -2322,8 +2322,8 @@ sub di_add_files {
       while (m/^([A-Za-z0-9]{32}  .*)/mg) {
 	my ($md5sum, $filename) = split(' ', $1, 3);
 	$filename =~ s:^\./::;
-	if (! (defined($include) && ($image_dir."/".$filename) =~ /$include/o)) {
-	  next if (defined($exclude) && ($image_dir."/".$filename) =~ /$exclude/o);
+	if (! (defined($include) && ("$image_dir/$filename") =~ /$include/o)) {
+	  next if (defined($exclude) && ("$image_dir/$filename") =~ /$exclude/o);
 	}
 
 	$di_files{$image_dir}{$filename}{md5sum} = $md5sum;
