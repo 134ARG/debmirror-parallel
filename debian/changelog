@@ -1,4 +1,4 @@
-debmirror (1:2.4.1) UNRELEASED; urgency=low
+debmirror (1:2.3.1) unstable; urgency=low
 
   * Update example configuration (closes: #549955):
     - fix error in variable names for setting D-I dists & arches
@@ -8,7 +8,7 @@ debmirror (1:2.4.1) UNRELEASED; urgency=low
   * Enable LWP::ConnCache for the http transfer method. Closes: #395538.
     Thanks to Gregor Herrmann for pointing out the option.
 
- -- Frans Pop <fjp@debian.org>  Wed, 07 Oct 2009 21:01:48 +0200
+ -- Frans Pop <fjp@debian.org>  Thu, 08 Oct 2009 19:39:41 +0200
 
 debmirror (1:2.3) unstable; urgency=low
 
