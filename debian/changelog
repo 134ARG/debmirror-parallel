@@ -7,6 +7,8 @@ debmirror (1:2.4) UNRELEASED; urgency=low
     This change may cause unnecessary download of the gzipped Packages/Sources
     files for other archives that provide pdiffs but don't have rsyncable
     gzipped files; this can be fixed using the new option --gzip-options.
+  * Fix mirroring of archives without a Release.gpg file. Closes: #561533.
+    Thanks to Loïc Minier for tracing the issue.
 
  -- Frans Pop <fjp@debian.org>  Sat, 19 Dec 2009 21:01:34 +0100
 
