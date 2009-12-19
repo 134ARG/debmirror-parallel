@@ -657,6 +657,7 @@ GetOptions('debug'                  => \$debug,
 	   'help'                   => \$help,
 ) or usage;
 usage if $help;
+usage("invalid number of arguments") if $ARGV[1];
 
 # This parameter is so important that it is the only required parameter,
 # unless specified in a configuration file.
