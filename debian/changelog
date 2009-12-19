@@ -1,4 +1,4 @@
-debmirror (1:2.4) UNRELEASED; urgency=low
+debmirror (1:2.4) unstable; urgency=low
 
   * The main Debian archive has started to use rsyncable gzip files.
     Use the --rsyncable flag when compressing Packages/Sources files using
@@ -14,7 +14,7 @@ debmirror (1:2.4) UNRELEASED; urgency=low
   * Add versioned dependency on perl (>= 5.10). Closes: #551878.
   * Improve dependencies on gpgv/gnupg.
 
- -- Frans Pop <fjp@debian.org>  Sat, 19 Dec 2009 21:01:34 +0100
+ -- Frans Pop <fjp@debian.org>  Sat, 19 Dec 2009 22:21:38 +0100
 
 debmirror (1:2.3.1) unstable; urgency=low
 
