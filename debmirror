@@ -83,10 +83,10 @@ EOF
 
 =item <mirrordir>
 
-This required parameter specifies where the local mirror directory is. If the
-directory does not exist, it will be created. Be careful; telling this
-program that your home directory is the mirrordir is guaranteed to replace
-your home directory with a Debian mirror!
+This required (unless defined in a configuration file) parameter specifies
+where the local mirror directory is. If the directory does not exist, it will
+be created. Be careful; telling this program that your home directory is the
+mirrordir is guaranteed to replace your home directory with a Debian mirror!
 
 =item --progress -p
 
@@ -522,6 +522,7 @@ use Digest::SHA1;
 use LWP::UserAgent;
 
 # Yeah, I use too many global variables in this program.
+our $mirrordir;
 our ($debug, $progress, $verbose, $passive, $skippackages, $getcontents, $i18n);
 our ($ua, $proxy);
 our (@dists, @sections, @arches, @extra_dirs, @ignores, @excludes, @includes);
@@ -657,8 +658,10 @@ GetOptions('debug'                  => \$debug,
 ) or usage;
 usage if $help;
 
-# This parameter is so important that it is the only required parameter.
-my $mirrordir=shift or usage("mirrordir not specified");
+# This parameter is so important that it is the only required parameter,
+# unless specified in a configuration file.
+$mirrordir = shift if $ARGV[0];
+usage("mirrordir not specified") unless defined $mirrordir;
 
 # Check for patch binary if needed
 if (!($diff_mode eq "none")) {
