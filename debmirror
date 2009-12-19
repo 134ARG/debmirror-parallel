@@ -349,6 +349,11 @@ Specifying --diff=mirror does the same as 'use', but will also include
 the downloaded diff files in the local mirror. Specify --diff=none to
 completely ignore diff files.
 
+Note that if rsync is used as method to download files and the archive
+being mirrored has "rsyncable" gzipped meta files, then using --diff=none
+may be the most efficient way to download them. See the gzip(1) man page
+for information about its rsyncable option.
+
 =item --gzip-options=options
 
 Specify alternative options to be used when calling gzip to compress meta
