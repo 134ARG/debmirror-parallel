@@ -1504,7 +1504,7 @@ sub remote_get {
     /^hftp$/ && do {
       $res=hftp_get($file);
       $res=$res && check_lists($file);
-      if (!$res) {
+      if (-f $file && !$res) {
 	say("$file failed md5sum check, removing");
 	unlink($file) if (-f $file);
       }
@@ -1513,7 +1513,7 @@ sub remote_get {
     /^http$/ && do {
       $res=http_get($file);
       $res=$res && check_lists($file);
-      if (!$res) {
+      if (-f $file && !$res) {
 	say("$file failed md5sum check, removing");
 	unlink($file) if (-f $file);
       }
@@ -1522,7 +1522,7 @@ sub remote_get {
     /^ftp$/ && do {
       $res=ftp_get($file);
       $res=$res && check_lists($file);
-      if (!$res) {
+      if (-f $file && !$res) {
 	say("$file failed md5sum check, removing");
 	unlink($file) if (-f $file);
       }
@@ -1531,7 +1531,7 @@ sub remote_get {
     /^rsync$/ && do {
       $res=rsync_get($file);
       $res=$res && check_lists($file);
-      if (!$res) {
+      if (-f $file && !$res) {
 	say("$file failed md5sum check");
 	# FIXME: make sure the size doesn't match so it gets retried
       }
