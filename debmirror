@@ -67,7 +67,8 @@ Usage: $0 [--progress] [--verbose] [--debug] [--dry-run] [--help]
           [--timeout=seconds] [--max-batch=number]
           [--rsync-batch=number] [--rsync-options=options]
           [--postcleanup|--cleanup|--nocleanup] [--skippackages]
-          [--diff=use|mirror|none] [--state-cache-days=number]
+          [--diff=use|mirror|none] [--gzip-options=options]
+          [--state-cache-days=number]
           [--ignore-small-errors] [--allow-dist-rename]
           <mirrordir>
 
@@ -348,6 +349,18 @@ Specifying --diff=mirror does the same as 'use', but will also include
 the downloaded diff files in the local mirror. Specify --diff=none to
 completely ignore diff files.
 
+=item --gzip-options=options
+
+Specify alternative options to be used when calling gzip to compress meta
+files after applying diffs. The default options are "-9 -n --rsyncable"
+which corresponds with the options used to gzip meta files for the main
+Debian archive.
+
+These options may need to be modified if the md5sum of the file as gzipped
+by debmirror does not match the md5sum listed in the Release file (which
+will result in the gzipped file being downloaded unnecessarily after diffs
+were successfully applied).
+
 =item --state-cache-days=number
 
 Save the state of the mirror in a cache file between runs. The cache will
@@ -536,6 +549,7 @@ our $dry_run_var=0;
 our $rsync_options="-aIL --partial";
 our $ignore_small_errors=0;
 our $diff_mode="use";
+our $gzip_options="-9 -n --rsyncable";
 our $omit_suite_symlinks=0;
 our $allow_dist_rename=0;
 my @errlog;
@@ -628,6 +642,7 @@ GetOptions('debug'                  => \$debug,
 	   'dry-run'                => \$dry_run_var,
 	   'proxy=s'                => \$proxy,
 	   'rsync-options=s'        => \$rsync_options,
+	   'gzip-options=s'         => \$gzip_options,
 	   'ignore-small-errors'    => \$ignore_small_errors,
 	   'diff=s'                 => \$diff_mode,
 	   'omit-suite-symlinks'    => \$omit_suite_symlinks,
@@ -1883,7 +1898,7 @@ sub get_index {
       } else {
 	fetch_and_apply_diffs(0, $subdir, $file);
 	if (check_lists ("$tempdir/$subdir/$file")) {
-	  system_redirect_io("gzip -9 -n", "$tempdir/$subdir/$file", "$tempdir/$subdir/$file.gz");
+	  system_redirect_io("gzip $gzip_options", "$tempdir/$subdir/$file", "$tempdir/$subdir/$file.gz");
 	  system_redirect_io("bzip2", "$tempdir/$subdir/$file", "$tempdir/$subdir/$file.bz2");
 	}
       }
@@ -1891,7 +1906,7 @@ sub get_index {
       $bytes_gotten += $file_lists{"$tempdir/$subdir/$file.diff/Index"}{size};
       fetch_and_apply_diffs(0, $subdir, "$file");
       if (check_lists ("$tempdir/$subdir/$file")) {
-	system_redirect_io("gzip -9 -n", "$tempdir/$subdir/$file", "$tempdir/$subdir/$file.gz");
+	system_redirect_io("gzip $gzip_options", "$tempdir/$subdir/$file", "$tempdir/$subdir/$file.gz");
 	system_redirect_io("bzip2", "$tempdir/$subdir/$file", "$tempdir/$subdir/$file.bz2");
       }
     }
@@ -2017,7 +2032,7 @@ sub update_contents {
   fetch_and_apply_diffs(0, $subdir, $file);
   # And compress it again
   if (-f "$tempdir/$subdir/$file") {
-    system_redirect_io("gzip -9 -n", "$tempdir/$subdir/$file", "$tempdir/$subdir/$file.gz");
+    system_redirect_io("gzip $gzip_options", "$tempdir/$subdir/$file", "$tempdir/$subdir/$file.gz");
     unlink "$tempdir/$subdir/$file";
   }
 

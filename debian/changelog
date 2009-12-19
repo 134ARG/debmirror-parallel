@@ -1,3 +1,15 @@
+debmirror (1:2.4) UNRELEASED; urgency=low
+
+  * The main Debian archive has started to use rsyncable gzip files.
+    Use the --rsyncable flag when compressing Packages/Sources files using
+    gzip after applying pdiffs to ensure the md5sum of the file matches the
+    one in the Release file again. Closes: #560326.
+    This change may cause unnecessary download of the gzipped Packages/Sources
+    files for other archives that provide pdiffs but don't have rsyncable
+    gzipped files; this can be fixed using the new option --gzip-options.
+
+ -- Frans Pop <fjp@debian.org>  Sat, 19 Dec 2009 21:01:34 +0100
+
 debmirror (1:2.3.1) unstable; urgency=low
 
   * Update example configuration (closes: #549955):
