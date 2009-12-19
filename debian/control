@@ -10,7 +10,8 @@ Vcs-Browser: http://svn.debian.org/wsvn/debmirror/trunk/
 Package: debmirror
 Architecture: all
 Depends: ${misc:Depends}, perl (>= 5.10), libnet-perl, libdigest-md5-perl, libdigest-sha1-perl, liblockfile-simple-perl, rsync, libcompress-zlib-perl, bzip2, libwww-perl
-Recommends: gnupg, patch, ed
+Recommends: gpgv, patch, ed
+Suggests: gnupg
 Description: Debian partial mirror script, with ftp and package pool support
  This program downloads and maintains a partial local Debian mirror.
  It can mirror any combination of architectures, distributions and
