@@ -11,6 +11,7 @@ debmirror (1:2.4) UNRELEASED; urgency=low
     Thanks to Loïc Minier for tracing the issue.
   * Allow to specify the local mirror directory in config files.
     Closes: #544141.
+  * Add versioned dependency on perl (>= 5.10). Closes: #551878.
 
  -- Frans Pop <fjp@debian.org>  Sat, 19 Dec 2009 21:01:34 +0100
 
