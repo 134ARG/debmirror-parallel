@@ -1,6 +1,7 @@
 debmirror (1:2.4.1) UNRELEASED; urgency=low
 
   * Typo fixes in NEWS.Debian file spotted by Geoff Simmons. Closes: #566377.
+  * Allow for Release files without Origin field. Closes: #565593.
 
  -- Frans Pop <fjp@debian.org>  Sun, 24 Jan 2010 06:56:52 +0100
 
