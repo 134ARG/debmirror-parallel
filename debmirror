@@ -1843,7 +1843,7 @@ sub name_release {
     }
 
     $_ = $buf;
-    ($origin) = m/^Origin:\s+(.*)/im;
+    ($origin) = m/^Origin:\s+(.*)/im if (/^Origin:/im);
     ($codename) = m/^Codename:\s+(.*)/im;
     ($suite) = m/^Suite:\s+(.*)/im;
   } elsif ($ignore_release) {
