@@ -1,3 +1,10 @@
+debmirror (1:2.4.3) UNRELEASED; urgency=low
+
+  * Don't delete Contents and Translation files if mirror cleanup is done
+    early. Closes: #568613.
+
+ -- Frans Pop <fjp@debian.org>  Sat, 06 Feb 2010 14:03:27 +0100
+
 debmirror (1:2.4.2) unstable; urgency=low
 
   * Really allow for Release files without Origin field. Closes: #565593.

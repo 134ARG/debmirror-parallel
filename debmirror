@@ -1142,15 +1142,31 @@ say("Parse Packages and Sources files and add to the file list everything therei
   }
 }
 
-# Pre-mirror cleanup
-cleanup_unknown_files() if ($cleanup && ! $post_cleanup);
+# With pre-mirror cleanup Contents and Translation files need to be
+# downloaded before the cleanup as otherwise they would be deleted
+# because they haven't been registered yet.
+# With post-mirror cleanup it's more neat to do all downloads together.
+# This could be simplified if we could register the files earlier.
 
-say("Download all files that we need to get (".print_dl_size($bytes_to_get - $bytes_gotten).").");
 init_connection;
+
+if (! ($cleanup && ! $post_cleanup)) {
+  say("Download all files that we need to get (".print_dl_size($bytes_to_get - $bytes_gotten).").");
+}
 
 # Download Contents and Translation files.
 get_contents_files() if ($getcontents);
 get_i18n_files() if ($i18n);
+
+# Pre-mirror cleanup.
+if ($cleanup && ! $post_cleanup) {
+  # close ftp connection during cleanup to avoid timeouts
+  if ($download_method eq 'ftp') { $ftp->quit; }
+  cleanup_unknown_files();
+  init_connection;
+
+  say("Download all files that we need to get (".print_dl_size($bytes_to_get - $bytes_gotten).").");
+}
 
 # Download all package files that we need to get.
 say("Get package files.");
