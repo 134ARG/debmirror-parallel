@@ -1158,7 +1158,7 @@ if (! ($cleanup && ! $post_cleanup)) {
 get_contents_files() if ($getcontents);
 get_i18n_files() if ($i18n);
 
-# Pre-mirror cleanup.
+# Pre-mirror cleanup
 if ($cleanup && ! $post_cleanup) {
   # close ftp connection during cleanup to avoid timeouts
   if ($download_method eq 'ftp') { $ftp->quit; }
@@ -1350,7 +1350,7 @@ if (@di_dists) {
   download_finished();
 }
 
-# Update suite->codename symlinks
+# Update suite->codename symlinks.
 if (! $omit_suite_symlinks && ! $dry_run) {
   my %suites;
   opendir (DIR, 'dists') or die "Can't open dists/: $!\n";
@@ -1388,10 +1388,10 @@ if (! $dry_run) {
   close OUT;
 }
 
-# Post mirror cleanup
+# Post mirror cleanup.
 cleanup_unknown_files() if ($post_cleanup);
 
-# mirror cleanup for directories
+# Mirror cleanup for directories.
 if (! $use_cache && ($cleanup || $post_cleanup)) {
   # Remove all empty directories. Not done as part of main cleanup
   # to prevent race problems with pool download code, which
@@ -2264,7 +2264,7 @@ sub fetch_and_apply_diffs {
 
 # Mirror cleanup for unknown files that cannot be found in Packages files.
 # This subroutine is called on pre- and post-cleanup and takes no arguments.
-# It uses some global variables like $files, $mirrordir, @ignores
+# It uses some global variables like $files, $mirrordir, @ignores.
 sub cleanup_unknown_files {
   print("Cleanup mirror") if ($verbose or $progress);
   if ($use_cache) {
@@ -2297,7 +2297,7 @@ sub cleanup_unknown_files {
       }
     }
   }
-  # Clean up obsolete files of D-I images.
+  # Clean up obsolete files of D-I images
   di_cleanup() if @di_dists;
 }
 
