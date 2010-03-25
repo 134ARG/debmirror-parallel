@@ -133,7 +133,7 @@ foreach my $arch (@arches) {
 }
 
 my @ts=gmtime(time());
-printf("\nAll numbers reflect the state of te archive per %i %s %i.\n", $ts[3],
+printf("\nAll numbers reflect the state of the archive per %i %s %i.\n", $ts[3],
        (qw(Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec))[$ts[4]], $ts[5] + 1900);
 
 ### Functions
