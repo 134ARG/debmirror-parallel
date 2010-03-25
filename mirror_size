@@ -30,4 +30,4 @@ sparc      |   5245 |   7751 (+  7605) |   9832 (+  8792) |  10846 (+  4004) |  
 kbsd-i386  |        |                  |   7549 (+  7549) |   8042 (+  2878) |  10428
 kbsd-amd64 |        |                  |   7779 (+  7779) |   8059 (+  2751) |  10530
 
-All numbers reflect the state of te archive per 19 Dec 2009.
+All numbers reflect the state of the archive per 19 Dec 2009.
