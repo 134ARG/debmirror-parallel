@@ -1,6 +1,8 @@
 debmirror (1:2.4.4) UNRELEASED; urgency=low
 
   * Fix typo in mirror_size. Closes: #575352.
+  * Change internal use of dry-run variables so that setting $dry_run in
+    the config file actually works. Closes: #569348.
 
  -- Frans Pop <fjp@debian.org>  Thu, 25 Mar 2010 18:42:51 +0100
 

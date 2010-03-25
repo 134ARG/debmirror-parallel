@@ -552,7 +552,7 @@ our $ignore_release=0;
 our $ignore_release_gpg=0;
 our $start_time = time;
 our $dry_run=0;
-our $dry_run_var=0;
+our $do_dry_run=0;
 our $rsync_options="-aIL --partial";
 our $ignore_small_errors=0;
 our $diff_mode="use";
@@ -646,7 +646,7 @@ GetOptions('debug'                  => \$debug,
 	   'state-cache-days=s'     => \$state_cache_days,
 	   'ignore-missing-release' => \$ignore_release,
 	   'ignore-release-gpg'     => \$ignore_release_gpg,
-	   'dry-run'                => \$dry_run_var,
+	   'dry-run'                => \$dry_run,
 	   'proxy=s'                => \$proxy,
 	   'rsync-options=s'        => \$rsync_options,
 	   'gzip-options=s'         => \$gzip_options,
@@ -732,7 +732,7 @@ if ($post_cleanup) {
 } else {
   say("Will NOT clean up.") unless $cleanup;
 }
-say("Dry run.") if $dry_run_var;
+say("Dry run.") if $dry_run;
 
 my $md5;
 $md5=Digest::MD5->new;
@@ -987,9 +987,9 @@ if ($num_errors != 0) {
   die "Failed to download some Package, Sources or Release files!\n";
 }
 
-# Really set dry-run option now if it was given. This delay is needed
+# Activate dry-run option now if it was given. This delay is needed
 # for the ftp method.
-$dry_run = $dry_run_var;
+$do_dry_run = $dry_run;
 
 # Determine size of Contents and Translation files to get.
 if ($getcontents) {
@@ -1245,7 +1245,7 @@ DOWNLOAD: {
     $opt = "$opt --progress" if $progress;
     $opt = "$opt -v" if $verbose;
     $opt = "$opt -v" if $debug;
-    $opt = "$opt -n" if $dry_run;
+    $opt = "$opt -n" if $do_dry_run;
     foreach my $file (sort keys %files) {
       if (!$files{$file}) {
 	my $dirname;
@@ -1330,7 +1330,7 @@ foreach my $file (`find . -type f`) {
   # this skips diff files if unwanted
   next if (!exists $files{$file});
   print("Moving $file\n") if ($debug);
-  if (! $dry_run) {
+  if (! $do_dry_run) {
     $res &= unlink($mirrordir."/".$file) if ($mirrordir."/".$file);
     "$file" =~ m,(^.*)/,;
     make_dir("$mirrordir/$1");
@@ -1351,7 +1351,7 @@ if (@di_dists) {
 }
 
 # Update suite->codename symlinks.
-if (! $omit_suite_symlinks && ! $dry_run) {
+if (! $omit_suite_symlinks && ! $do_dry_run) {
   my %suites;
   opendir (DIR, 'dists') or die "Can't open dists/: $!\n";
   foreach my $file (grep (!/^\.\.?$/, readdir (DIR))) {
@@ -1381,7 +1381,7 @@ if (! $omit_suite_symlinks && ! $dry_run) {
 }
 
 # Write out trace file.
-if (! $dry_run) {
+if (! $do_dry_run) {
   make_dir("project/trace");
   open OUT, ">$tracefile" or die "$tracefile: $!";
   print OUT `date -u`;
@@ -1398,7 +1398,7 @@ if (! $use_cache && ($cleanup || $post_cleanup)) {
   # makes directories.. Sort so they are removable in bottom-up
   # order.
   chdir($mirrordir) or die "chdir $mirrordir: $!";
-  system("find . -depth -type d ! -name . ! -name .. -print0 | xargs -0 rmdir 2>/dev/null") if (! $dry_run);
+  system("find . -depth -type d ! -name . ! -name .. -print0 | xargs -0 rmdir 2>/dev/null") if (! $do_dry_run);
 }
 
 if ($res != 0) {
@@ -1406,7 +1406,7 @@ if ($res != 0) {
 }
 
 # Save the state cache.
-save_state_cache() if $state_cache_days && !$dry_run;
+save_state_cache() if $state_cache_days && !$do_dry_run;
 
 say("All done.");
 $lock->release;
@@ -1574,7 +1574,7 @@ sub hftp_get {
   if ($progress || $verbose) {
     print "Getting: $file... ";
   }
-  if (! $dry_run) {
+  if (! $do_dry_run) {
     unlink($file) if (-f $file);
     $ret = $ua->mirror($url, $file);
     print $ret->status_line . "\n" if ($debug);
@@ -1608,7 +1608,7 @@ sub http_get {
   if ($progress || $verbose) {
     print "[$percent%] Getting: $file... ";
   }
-  if (! $dry_run) {
+  if (! $do_dry_run) {
     unlink($file) if (-f $file);
     $ret = $ua->mirror($url, $file);
     print $ret->status_line . "\n" if ($debug);
@@ -1661,7 +1661,7 @@ sub ftp_get {
     print "[$percent%] Getting: $file";
   }
   my $ret=1;
-  if (! $dry_run) {
+  if (! $do_dry_run) {
     unlink($file) if (-f $file);
     $ret = $ftp->get($file, $file);
     if ($ret) {
@@ -1677,7 +1677,7 @@ sub ftp_get {
   my $size=$ftp->size($file);
   add_bytes_gotten($size) if $size;
   $| = $oldautoflush;
-  print "\n" if (($verbose and not $progress) or ($dry_run and $progress));
+  print "\n" if (($verbose and not $progress) or ($do_dry_run and $progress));
   return $ret;
 }
 
@@ -1751,7 +1751,7 @@ sub rsync_extra_get {
   $opt = "$opt --progress" if $progress;
   $opt = "$opt -v" if $verbose;
   $opt = "$opt -v" if $debug;
-  $opt = "$opt -n" if $dry_run;
+  $opt = "$opt -n" if $do_dry_run;
 
   ($fh, $rsynctempfile) = tempfile();
   foreach my $line (@includes) {
@@ -2273,7 +2273,7 @@ sub cleanup_unknown_files {
       next if (@di_dists && $file =~ m:installer-\w+/current/images/:);
       if ($files{$file} == 2 && -f $file) {
 	say("deleting $file") if ($verbose);
-	if (! $dry_run) {
+	if (! $do_dry_run) {
 	  unlink $file or die "unlink $file: $!";
 	}
       }
@@ -2291,7 +2291,7 @@ sub cleanup_unknown_files {
       unless ((exists $files{$file} && $files{$file} != 2) or
 	      (defined($ignore) && $file=~/$ignore/o)) {
 	say("deleting $file") if ($verbose);
-	if (! $dry_run) {
+	if (! $do_dry_run) {
 	  unlink $file or die "unlink $file: $!";
 	}
       }
@@ -2399,7 +2399,7 @@ sub di_get_files {
       if (!remote_get("$image_dir/$file", $tdir) ||
           !check_file("$tdir/$image_dir/$file", -1, $di_files{$image_dir}{$file}{md5sum})) {
 	$lres = 0;
-	last if (! $dry_run);
+	last if (! $do_dry_run);
       }
       if (-f "$tdir/$image_dir/$file") {
 	$bytes_to_get += -s _; # As we did not have the size in add_di_files()
@@ -2407,7 +2407,7 @@ sub di_get_files {
     }
 
     # Move images in place on mirror
-    if ($lres && ! $dry_run) {
+    if ($lres && ! $do_dry_run) {
       foreach my $file (sort keys %{ $di_files{$image_dir} }) {
 	next unless $di_files{$image_dir}{$file}{status} == 0;
 	$file =~ m:(^.*)/:;
@@ -2419,7 +2419,7 @@ sub di_get_files {
       }
       # Move the MD5SUMS file in place on mirror
       link("$tdir/$image_dir/MD5SUMS", "$image_dir/MD5SUMS");
-    } elsif (! $dry_run) {
+    } elsif (! $do_dry_run) {
       say("Failed to download some files in $image_dir; not updating images.");
     }
   }
@@ -2437,7 +2437,7 @@ sub di_cleanup {
       if (! exists $di_files{$image_dir} || ! exists $di_files{$image_dir}{$file}) {
 	next if (exists $di_files{$image_dir} && $file eq "MD5SUMS");
 	say("deleting $image_dir/$file") if ($verbose);
-	if (! $dry_run) {
+	if (! $do_dry_run) {
 	  unlink "$file" or die "unlink $image_dir/$file: $!\n";
 	}
       }
@@ -2559,7 +2559,7 @@ sub load_state_cache {
   %files = %$rfiles;
   $use_cache = 1;
   # Preserve state cache during dry runs
-  if ($dry_run_var) {
+  if ($dry_run) {
     $files{$cache_file} = 1;
   } else {
     unlink $cache_file if -f $cache_file;
