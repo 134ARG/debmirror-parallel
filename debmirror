@@ -58,7 +58,7 @@ Usage: $0 [--progress] [--verbose] [--debug] [--dry-run] [--help]
           [--proxy=http://user:pass\@url:port/]
           [--dist=foo[,bar,..] ...] [--omit-suite-symlinks]
           [--section=foo[,bar,..] ...] [--arch=foo[,bar,..] ...]
-          [--adddir=directory] [--rsync-extra=foo[,bar,..] ...]
+          [--rsync-extra=foo[,bar,..] ...]
           [--di-dist=foo[,bar,..] ...] [--di-arch=foo[,bar,..] ...]
           [--source|--nosource] [--i18n] [--getcontents] [--md5sums]
           [--ignore-missing-release] [--ignore-release-gpg]
@@ -171,13 +171,6 @@ main,contrib,non-free,main/debian-installer.
 
 Specify the architectures to mirror. The default is --arch=i386.
 Specifying --arch=none will mirror no archs.
-
-=item --adddir directory
-
-Also download Packages and Sources files from the specified directory
-on the remote host (the directory is relative to the root of the
-Debian archive). This feature is now obsolete and may be removed in
-a future release.
 
 =item --rsync-extra=foo[,bar,..]
 
@@ -525,7 +518,7 @@ use LWP::UserAgent;
 our $mirrordir;
 our ($debug, $progress, $verbose, $passive, $skippackages, $getcontents, $i18n);
 our ($ua, $proxy);
-our (@dists, @sections, @arches, @extra_dirs, @ignores, @excludes, @includes);
+our (@dists, @sections, @arches, @ignores, @excludes, @includes);
 our (@excludes_deb_section, @limit_priority);
 our (@di_dists, @di_arches, @rsync_extra);
 our $state_cache_days = 0;
@@ -624,7 +617,6 @@ GetOptions('debug'                  => \$debug,
 	   'dist|d=s'               => \@dists,
 	   'section|s=s'            => \@sections,
 	   'arch|a=s'               => \@arches,
-	   'adddir=s'               => \@extra_dirs,
 	   'di-dist=s'              => \@di_dists,
 	   'di-arch=s'              => \@di_arches,
 	   'rsync-extra=s'          => \@rsync_extra,
@@ -923,19 +915,6 @@ foreach my $dist (keys %distset) {
     add_bytes("dists/$dist/$section/i18n/Index") if $i18n;
   }
 }
-foreach (@extra_dirs) {
-  add_bytes("$_/Packages");
-  add_bytes("$_/Packages.gz");
-  add_bytes("$_/Packages.bz2");
-  add_bytes("$_/Release");
-  add_bytes("$_/Packages.diff/Index");
-  if ($do_source) {
-    add_bytes("$_/Sources");
-    add_bytes("$_/Sources.gz");
-    add_bytes("$_/Sources.bz2");
-    add_bytes("$_/Sources.diff/Index");
-  }
-}
 
 # Get and parse MD5SUMS files for D-I images.
 di_add_files() if @di_dists;
@@ -961,10 +940,6 @@ foreach my $dist (keys %distset) {
     }
     get_i18n_index("dists/$dist/$section/i18n") if $i18n;
   }
-}
-foreach (@extra_dirs) {
-  get_packages($_, "Packages");
-  get_sources($_, "Sources") if ($do_source);
 }
 
 # Set download size for meta files to actual values
