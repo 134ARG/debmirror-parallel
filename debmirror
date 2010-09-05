@@ -1,8 +1,5 @@
 #!/usr/bin/perl -w
 
-# TODO: I'd like to be able to tell it to get some extra files, by name.
-# I'm thinking Contents files. It would be really nice if it could pull
-# a whole directory -- think project/trace, or disks-i386...
 # TODO: It would probably be cleaner and easier to learn if it took
 # apt-style lines to tell where to mirror from and what portions to use.
 
