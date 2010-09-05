@@ -4,8 +4,8 @@ Priority: extra
 Maintainer: Joey Hess <joeyh@debian.org>
 Build-Depends: debhelper (>= 7.0.50)
 Standards-Version: 3.9.1
-Vcs-Svn: svn://svn.debian.org/debmirror/trunk/
-Vcs-Browser: http://svn.debian.org/wsvn/debmirror/trunk/
+Vcs-Git: git://git.debian.org/collab-maint/debmirror.git
+Vcs-Browser: http://git.debian.org/?p=collab-maint/debmirror.git
 
 Package: debmirror
 Architecture: all
