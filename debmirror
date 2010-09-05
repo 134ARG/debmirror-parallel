@@ -431,7 +431,7 @@ There are no progress updates displayed for D-I images.
 
 =head2 Archive size
 
-The tables in the file F</usr/share/doc/debmirror/archive_size> give an
+The tables in the file F</usr/share/doc/debmirror/mirror_size> give an
 indication of the space needed to mirror the Debian archive. They are
 particularly useful if you wish to set up a partial mirror.
 Only the size of source and binary packages is included. You should allow

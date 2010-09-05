@@ -4,6 +4,7 @@ debmirror (1:2.4.6) UNRELEASED; urgency=low
     Closes: #595690
   * Moved to git; grafted in debmirror's original development
     history from my home directory. Closes: #594976
+  * Fix filename of mirror_size file in man page. Closes: #594975
 
  -- Joey Hess <joeyh@debian.org>  Sun, 05 Sep 2010 18:08:23 -0400
 
