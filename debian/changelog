@@ -1,3 +1,12 @@
+debmirror (1:2.4.6) UNRELEASED; urgency=low
+
+  * New maintainer. Frans, we'll miss you.
+    Closes: #595690
+  * Moved to git; grafted in debmirror's original development
+    history from my home directory. Closes: #594976
+
+ -- Joey Hess <joeyh@debian.org>  Sun, 05 Sep 2010 18:08:23 -0400
+
 debmirror (1:2.4.5) unstable; urgency=low
 
   * Drop support for the --adddir option which was obsoleted log ago.

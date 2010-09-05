@@ -1,7 +1,7 @@
 Source: debmirror
 Section: net
 Priority: extra
-Maintainer: Frans Pop <fjp@debian.org>
+Maintainer: Joey Hess <joeyh@debian.org>
 Build-Depends: debhelper (>= 7.0.50)
 Standards-Version: 3.8.4
 Vcs-Svn: svn://svn.debian.org/debmirror/trunk/
