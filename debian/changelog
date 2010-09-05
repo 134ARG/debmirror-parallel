@@ -1,3 +1,9 @@
+debmirror (1:2.4.7) UNRELEASED; urgency=low
+
+  * Apply program return code checking patch by Kees Cook.
+
+ -- Joey Hess <joeyh@debian.org>  Sun, 05 Sep 2010 19:02:16 -0400
+
 debmirror (1:2.4.6) unstable; urgency=low
 
   * New maintainer. Frans, we'll miss you.
