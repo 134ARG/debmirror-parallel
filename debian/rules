@@ -1,10 +1,3 @@
 #!/usr/bin/make -f
 %:
 	dh $@
-
-override_dh_installman:
-	dh_installman debmirror.1
-
-override_dh_clean:
-	dh_clean
-	rm -f debian/debhelper.log
