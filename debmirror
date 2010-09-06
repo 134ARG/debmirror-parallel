@@ -738,7 +738,7 @@ $mirrordir = cwd();
 my $hostname=`hostname -f 2>/dev/null || hostname`;
 chomp $hostname;
 my $lockfile="Archive-Update-in-Progress-$hostname";
-say("Attempting to get lock, this might take 2 minutes before it fails.");
+say("Attempting to get lock ...");
 my $lockmgr = LockFile::Simple->make(-format => "%f/$lockfile", -max => 12,
 				     -delay => 10, -nfs => 1, -autoclean => 1,
 				     -warn => 1, -stale => 1, -hold => 0);
@@ -817,7 +817,6 @@ if (! ($user eq 'anonymous')) {
 # Update the remote trace files; also update ignores for @rsync_extra.
 rsync_extra(1, @rsync_extra);
 
-say("Get Release files.");
 # Get Release files without caching for http
 $ua->default_header( "Cache-Control" => "max-age=0" ) if ($ua);
 foreach my $dist (@dists) {
@@ -916,7 +915,6 @@ foreach my $dist (keys %distset) {
 # Get and parse MD5SUMS files for D-I images.
 di_add_files() if @di_dists;
 
-say("Get Packages and Sources files and other miscellany.");
 # Get Packages and Sources files and other miscellany.
 my (@package_files, @source_files);
 foreach my $dist (keys %distset) {
@@ -996,7 +994,7 @@ if ($i18n) {
 # close ftp connection to avoid timeouts, will reopen later
 if ($download_method eq 'ftp') { $ftp->quit; }
 
-say("Parse Packages and Sources files and add to the file list everything therein.");
+say("Parsing Packages and Sources files ...");
 {
   local $/="\n\n"; # Set input separator to read entire package
 
@@ -1293,7 +1291,7 @@ if (! @di_dists) {
   download_finished();
 }
 
-say("Everything OK. Moving meta files.");
+say("Everything OK. Moving meta files ...");
 chdir($tempdir) or die "unable to chdir($tempdir): $!\n";
 my $res=0;
 foreach my $file (`find . -type f`) {
@@ -1901,7 +1899,6 @@ sub get_index {
   if (!($diff_mode eq "none") && exists $file_lists{"$tempdir/$subdir/$file.diff/Index"}) {
     if (!check_lists ("$tempdir/$subdir/$file.diff/Index")) {
       make_dir("$tempdir/$subdir/$file.diff");
-      say("$subdir/$file.diff/Index needs fetch");
       if (!remote_get("$subdir/$file.diff/Index")) {
 	push (@errlog,"$subdir/$file.diff/Index failed md5sum check, removing\n");
       } else {
@@ -1925,7 +1922,6 @@ sub get_index {
 
   if (exists $file_lists{"$tempdir/$subdir/$file.gz"}{size}) {
     if (!check_lists ("$tempdir/$subdir/$file.gz")) {
-      say("$subdir/$file.gz needs fetch");
       if (remote_get("$subdir/$file.gz")) {
 	system_redirect_io("gzip -d", "$tempdir/$subdir/$file.gz", "$tempdir/$subdir/$file");
 	system_redirect_io("bzip2", "$tempdir/$subdir/$file", "$tempdir/$subdir/$file.bz2");
@@ -1939,7 +1935,6 @@ sub get_index {
   } elsif ($ignore_release) {
     say("Ignoring missing Release file for $subdir/$file.gz");
     push (@errlog,"Ignoring missing Release file for $subdir/$file.gz\n");
-    say("$subdir/$file.gz needs fetch");
     if (remote_get("$subdir/$file.gz")) {
       system_redirect_io("gzip -d", "$tempdir/$subdir/$file.gz", "$tempdir/$subdir/$file");
     }
@@ -1953,7 +1948,6 @@ sub get_index {
   }
   if (exists $file_lists{"$tempdir/$subdir/$file"}) {
     if (!check_lists ("$tempdir/$subdir/$file")) {
-      say("$subdir/$file needs fetch");
       if (remote_get("$subdir/$file")) {
 	system_redirect_io("bzip2", "$tempdir/$subdir/$file", "$tempdir/$subdir/$file.bz2");
       } else {
@@ -1966,7 +1960,6 @@ sub get_index {
   }
   if (exists $file_lists{"$tempdir/$subdir/$file.bz2"}) {
     if (!check_lists ("$tempdir/$subdir/$file.bz2")) {
-      say("$subdir/$file.bz2 needs fetch");
       if (!remote_get("$subdir/$file.bz2")) {
 	push (@errlog,"$subdir/$file.bz2 failed md5sum check, removing\n");
       }
@@ -1976,7 +1969,6 @@ sub get_index {
   }
   if (exists $file_lists{"$tempdir/$subdir/Release"}) {
     if (!check_lists ("$tempdir/$subdir/Release")) {
-      say("$subdir/Release needs fetch");
       if (!remote_get("$subdir/Release")) {
 	push (@errlog,"$subdir/Release failed md5sum check, removing\n");
       }
@@ -2013,7 +2005,6 @@ sub update_contents {
   if (exists $file_lists{"$tempdir/$subdir/$file.diff/Index"}) {
     if (!check_lists ("$tempdir/$subdir/$file.diff/Index")) {
       make_dir("$tempdir/$subdir/$file.diff");
-      say("$subdir/$file.diff/Index needs fetch");
       if (!remote_get("$subdir/$file.diff/Index")) {
 	push (@errlog,"$subdir/$file.diff/Index failed md5sum check, removing\n");
 	return $file_ok;
@@ -2076,7 +2067,6 @@ sub get_i18n_index {
     make_dir("$tempdir/$subdir");
 
     if (!check_lists ("$tempdir/$subdir/Index")) {
-      say("$subdir/Release needs fetch");
       if (!remote_get("$subdir/Index")) {
 	push (@errlog,"$subdir/Index failed md5sum check, removing\n");
       }
@@ -2120,7 +2110,7 @@ sub parse_i18n_index {
 }
 
 sub get_i18n_files {
-  say("Get Translation files.");
+  say("Get Translation files ...");
   foreach my $file (sort keys %i18n_get) {
     if (! check_i18n("$tempdir/$file", $i18n_get{$file}{size}, $i18n_get{$file}{sha1})) {
       remote_get("$file");
@@ -2166,7 +2156,6 @@ sub fetch_and_apply_diffs {
   $ret = 1;
   foreach $file (sort keys %diff_sha1) {
     if (!check_diff("$tempdir/$subdir/$type.diff/$file", $diff_size{$file}, $diff_sha1{$file})) {
-      say("$subdir/$type.diff/$file.gz needs fetch");
       remote_get("$subdir/$type.diff/$file.gz");
 #FIXME: before download
       if (-f "$tempdir/$subdir/$type.diff/$file.gz") {
