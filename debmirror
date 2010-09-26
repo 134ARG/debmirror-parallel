@@ -48,27 +48,7 @@ Any necessary files are downloaded.
 sub usage {
   warn join(" ", @_)."\n" if @_;
   warn <<EOF;
-Usage: $0 [--progress] [--verbose] [--debug] [--dry-run] [--help]
-          [--host=remotehost] [--root=directory]
-          [--method=ftp|hftp|http|rsync] [--passive]
-          [--user=remoteusername] [--passwd=remoteuserpassword]
-          [--proxy=http://user:pass\@url:port/]
-          [--dist=foo[,bar,..] ...] [--omit-suite-symlinks]
-          [--section=foo[,bar,..] ...] [--arch=foo[,bar,..] ...]
-          [--rsync-extra=foo[,bar,..] ...]
-          [--di-dist=foo[,bar,..] ...] [--di-arch=foo[,bar,..] ...]
-          [--source|--nosource] [--i18n] [--getcontents] [--md5sums]
-          [--ignore-missing-release] [--ignore-release-gpg]
-          [--ignore=regex] [--exclude=regex] [--include=regex]
-          [--exclude-deb-section=regex] [--limit-priority=regex]
-          [--timeout=seconds] [--max-batch=number]
-          [--rsync-batch=number] [--rsync-options=options]
-          [--postcleanup|--cleanup|--nocleanup] [--skippackages]
-          [--diff=use|mirror|none] [--gzip-options=options]
-          [--state-cache-days=number]
-          [--ignore-small-errors] [--allow-dist-rename]
-	  [--slow-cpu]
-          <mirrordir>
+Usage: $0 [options] <mirrordir>
 
 For details, see man page.
 EOF
@@ -311,14 +291,15 @@ bandwidth of your link.
 Clean up the local mirror but only after mirroring is complete and
 only if there was no error. This is the default.
 
-=item --cleanup
+=item --precleanup
 
-Do clean up any unknown files and directories on the local mirror (see
-step 2 above).
+Clean up the local mirror before starting mirroring.
+
+The deprecated --cleanup option also enables this mode.
 
 =item --nocleanup
 
-Do not clean up the local mirror after mirroring is complete.
+Do not clean up the local mirror.
 
 =item --skippackages
 
@@ -528,7 +509,7 @@ our (@di_dists, @di_arches, @rsync_extra);
 our $state_cache_days = 0;
 our $check_md5sums = 0;
 our $check_downloads = 0;
-our $cleanup=0;
+our $pre_cleanup=0;
 our $post_cleanup=1;
 our $no_cleanup=0;
 our $do_source=1;
@@ -625,7 +606,8 @@ GetOptions('debug'                  => \$debug,
 	   'di-dist=s'              => \@di_dists,
 	   'di-arch=s'              => \@di_arches,
 	   'rsync-extra=s'          => \@rsync_extra,
-	   'cleanup'                => \$cleanup,
+	   'precleanup'             => \$pre_cleanup,
+	   'cleanup'                => \$pre_cleanup,
 	   'postcleanup'            => \$post_cleanup,
 	   'nocleanup'              => \$no_cleanup,
 	   'ignore=s'               => \@ignores,
@@ -700,9 +682,9 @@ if (@di_dists) {
   @di_dists = @dists if (!@di_dists);
   @di_arches = @arches if ($di_arches[0] eq "arches");
 }
-$cleanup=0 if ($no_cleanup);
+$pre_cleanup=0 if ($no_cleanup);
 $post_cleanup=0 if ($no_cleanup);
-$post_cleanup=0 if ($cleanup);
+$post_cleanup=0 if ($pre_cleanup);
 
 # Display configuration.
 $|=1 if $debug;
@@ -728,10 +710,13 @@ say("Passive mode on.") if $passive;
 say("Proxy: $proxy") if $proxy;
 say("Download at most $max_batch files.") if ($max_batch > 0);
 say("Download at most $rsync_batch files per rsync call.") if ($download_method eq "rsync");
+if ($pre_cleanup) {
+  say("Will clean up before mirroring.");
+}
 if ($post_cleanup) {
-  say("Will clean up AFTER mirroring.");
+  say("Will clean up after mirroring.");
 } else {
-  say("Will NOT clean up.") unless $cleanup;
+  say("Will NOT clean up.");
 }
 say("Dry run.") if $dry_run;
 
@@ -1130,7 +1115,7 @@ get_contents_files() if ($getcontents);
 get_i18n_files() if ($i18n);
 
 # Pre-mirror cleanup
-if ($cleanup && ! $post_cleanup) {
+if ($pre_cleanup) {
   # close ftp connection during cleanup to avoid timeouts
   if ($download_method eq 'ftp') { $ftp->quit; }
   cleanup_unknown_files();
@@ -1365,7 +1350,7 @@ if (! $do_dry_run) {
 cleanup_unknown_files() if ($post_cleanup);
 
 # Mirror cleanup for directories.
-if (! $use_cache && ($cleanup || $post_cleanup)) {
+if (! $use_cache && ($pre_cleanup || $post_cleanup)) {
   # Remove all empty directories. Not done as part of main cleanup
   # to prevent race problems with pool download code, which
   # makes directories.. Sort so they are removable in bottom-up
