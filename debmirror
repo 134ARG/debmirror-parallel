@@ -421,7 +421,7 @@ Debmirror will only mirror the "current" images that are on the remote
 mirror. At least one of the options --di-dist or --di-arch must be
 passed to enable mirroring of the images.
 
-The special values "dists" resp. "arches" can be used to tell debmirror
+The special values "dists" and "arches" can be used to tell debmirror
 to use the same dists and architectures for D-I images as for the archive,
 but it is also possible to specify different values. If either option is
 not set, it will default to the same values as for the archive.
