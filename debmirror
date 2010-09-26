@@ -2285,7 +2285,6 @@ sub cleanup_unknown_files {
 }
 
 sub di_check_dists {
-  say("Checking validity of D-I dists.");
   DI_DIST:
   for my $di_dist (@di_dists) {
     if (exists $distset{$di_dist}) {
