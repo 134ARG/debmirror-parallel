@@ -123,12 +123,9 @@ directory has a F<./dists> subdirectory.
 Specify the method to download files. Currently, supported methods are
 ftp, hftp (ftp over http proxy), http or rsync.
 
-Note: starting with version 1.1 it is no longer needed to add a ':' prefix
-for the root directory.
-
 =item --passive
 
-Download in passive mode.
+Download in passive mode when using ftp.
 
 =item --user=remoteusername -u
 
@@ -514,7 +511,7 @@ use LWP::UserAgent;
 # Yeah, I use too many global variables in this program.
 our $mirrordir;
 our ($debug, $progress, $verbose, $passive, $skippackages, $getcontents, $i18n);
-our ($ua, $proxy);
+our ($ua, $proxy, $ftp);
 our (@dists, @sections, @arches, @ignores, @excludes, @includes);
 our (@excludes_deb_section, @limit_priority);
 our (@di_dists, @di_arches, @rsync_extra);
@@ -760,10 +757,6 @@ my $tracefile="project/trace/$hostname";
 $files{$tracefile}=1;
 $files{$lockfile}=1;
 
-# Start up ftp.
-my $ftp;
-my %opts = (Debug => $debug, Passive => $passive, Timeout => $timeout);
-
 my $rsynctempfile;
 END { unlink $rsynctempfile if $rsynctempfile }
 
@@ -792,6 +785,7 @@ sub init_connection {
   };
 
   /^ftp$/ && do {
+    my %opts = (Debug => $debug, Passive => $passive, Timeout => $timeout);
     $ftp=Net::FTP->new($host, %opts) or die "$@\n";
     $ftp->login($user, $passwd) or die "login failed"; # anonymous
     $ftp->binary or die "could not set binary mode";
@@ -806,7 +800,7 @@ sub init_connection {
 
   usage("unknown download method: $_");
 }
-init_connection;
+init_connection();
 
 # determine remote root for rsync transfers
 my $rsyncremote = "$host\:\:$remoteroot/";
