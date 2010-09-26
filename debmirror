@@ -827,6 +827,7 @@ if (! ($user eq 'anonymous')) {
 rsync_extra(1, @rsync_extra);
 
 # Get Release files without caching for http
+say("Getting meta files ...");
 $ua->default_header( "Cache-Control" => "max-age=0" ) if ($ua);
 foreach my $dist (@dists) {
   my $tdir="$tempdir/.tmp/dists/$dist";
@@ -985,7 +986,7 @@ if ($getcontents) {
 	if (!update_contents("dists/$dist", "Contents-$arch")) {
 	  add_bytes("dists/$dist/Contents-$arch.gz");
 	}
-      } elsif (!check_lists ("$tempdir/dists/$dist/Contents-$arch.gz")) {
+      } elsif (!check_lists("$tempdir/dists/$dist/Contents-$arch.gz")) {
 	add_bytes("dists/$dist/Contents-$arch.gz");
       }
     }
@@ -1127,7 +1128,7 @@ say("Parsing Packages and Sources files ...");
 # With post-mirror cleanup it's more neat to do all downloads together.
 # This could be simplified if we could register the files earlier.
 
-init_connection;
+init_connection();
 
 if (! ($cleanup && ! $post_cleanup)) {
   say("Download all files that we need to get (".print_dl_size($bytes_to_get - $bytes_gotten).").");
@@ -1911,13 +1912,13 @@ sub get_index {
   make_dir("$tempdir/$subdir");
 
   if ($diff_mode ne "none" && exists $file_lists{"$tempdir/$subdir/$file.diff/Index"}) {
-    if (!check_lists ("$tempdir/$subdir/$file.diff/Index")) {
+    if (!check_lists("$tempdir/$subdir/$file.diff/Index")) {
       make_dir("$tempdir/$subdir/$file.diff");
       if (!remote_get("$subdir/$file.diff/Index")) {
 	push (@errlog,"$subdir/$file.diff/Index failed md5sum check, removing\n");
       } else {
 	fetch_and_apply_diffs(0, $subdir, $file);
-	if (check_lists ("$tempdir/$subdir/$file")) {
+	if (check_lists("$tempdir/$subdir/$file")) {
 	  if (! $slow_cpu) {
 	    system_redirect_io("gzip $gzip_options", "$tempdir/$subdir/$file", "$tempdir/$subdir/$file.gz");
 	    system_redirect_io("bzip2", "$tempdir/$subdir/$file", "$tempdir/$subdir/$file.bz2");
@@ -1927,7 +1928,7 @@ sub get_index {
     } else {
       $bytes_gotten += $file_lists{"$tempdir/$subdir/$file.diff/Index"}{size};
       fetch_and_apply_diffs(0, $subdir, "$file");
-      if (check_lists ("$tempdir/$subdir/$file")) {
+      if (check_lists("$tempdir/$subdir/$file")) {
 	if (! $slow_cpu) {
 	  system_redirect_io("gzip $gzip_options", "$tempdir/$subdir/$file", "$tempdir/$subdir/$file.gz");
 	  system_redirect_io("bzip2", "$tempdir/$subdir/$file", "$tempdir/$subdir/$file.bz2");
@@ -1939,7 +1940,7 @@ sub get_index {
   }
 
   if (exists $file_lists{"$tempdir/$subdir/$file.gz"}{size}) {
-    if (!check_lists ("$tempdir/$subdir/$file.gz")) {
+    if (!check_lists("$tempdir/$subdir/$file.gz")) {
       if (remote_get("$subdir/$file.gz")) {
 	if (! $slow_cpu) {
 	  system_redirect_io("gzip -d", "$tempdir/$subdir/$file.gz", "$tempdir/$subdir/$file");
@@ -1967,7 +1968,7 @@ sub get_index {
     }
   }
   if (exists $file_lists{"$tempdir/$subdir/$file"}) {
-    if (!check_lists ("$tempdir/$subdir/$file")) {
+    if (!check_lists("$tempdir/$subdir/$file")) {
       if (remote_get("$subdir/$file")) {
 	if (! $slow_cpu) {
 	  system_redirect_io("bzip2", "$tempdir/$subdir/$file", "$tempdir/$subdir/$file.bz2");
@@ -1981,7 +1982,7 @@ sub get_index {
     }
   }
   if (exists $file_lists{"$tempdir/$subdir/$file.bz2"}) {
-    if (!check_lists ("$tempdir/$subdir/$file.bz2")) {
+    if (!check_lists("$tempdir/$subdir/$file.bz2")) {
       if (!remote_get("$subdir/$file.bz2")) {
 	push (@errlog,"$subdir/$file.bz2 failed md5sum check, removing\n");
       }
@@ -1990,7 +1991,7 @@ sub get_index {
     }
   }
   if (exists $file_lists{"$tempdir/$subdir/Release"}) {
-    if (!check_lists ("$tempdir/$subdir/Release")) {
+    if (!check_lists("$tempdir/$subdir/Release")) {
       if (!remote_get("$subdir/Release")) {
 	push (@errlog,"$subdir/Release failed md5sum check, removing\n");
       }
@@ -2025,7 +2026,7 @@ sub update_contents {
 
   # Get the Index file for the diffs
   if (exists $file_lists{"$tempdir/$subdir/$file.diff/Index"}) {
-    if (!check_lists ("$tempdir/$subdir/$file.diff/Index")) {
+    if (!check_lists("$tempdir/$subdir/$file.diff/Index")) {
       make_dir("$tempdir/$subdir/$file.diff");
       if (!remote_get("$subdir/$file.diff/Index")) {
 	push (@errlog,"$subdir/$file.diff/Index failed md5sum check, removing\n");
@@ -2069,7 +2070,7 @@ sub get_contents_files {
       next if $dist=~/experimental/;
       next if $dist=~/.*-proposed-updates/;
       next if $arch=~/source/;
-      if (!check_lists ("$tempdir/dists/$dist/Contents-$arch.gz")) {
+      if (!check_lists("$tempdir/dists/$dist/Contents-$arch.gz")) {
 	if ($first) {
 	  say("Get Contents files.");
 	  $first = 0;
@@ -2088,7 +2089,7 @@ sub get_i18n_index {
     make_dir($subdir);
     make_dir("$tempdir/$subdir");
 
-    if (!check_lists ("$tempdir/$subdir/Index")) {
+    if (!check_lists("$tempdir/$subdir/Index")) {
       if (!remote_get("$subdir/Index")) {
 	push (@errlog,"$subdir/Index failed md5sum check, removing\n");
       }
@@ -2562,7 +2563,6 @@ etc, that this script may cause. See NO WARRANTY section of GPL.
    Joey Hess <joeyh@debian.org>
 
  Previous maintainers:
-   Joey Hess <joeyh@debian.org> (original author)
    Joerg Wendland <joergland@debian.org>
    Goswin von Brederlow <goswin-v-b@web.de>
    Frans Pop <fjp@debian.org>
