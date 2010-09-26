@@ -67,6 +67,7 @@ Usage: $0 [--progress] [--verbose] [--debug] [--dry-run] [--help]
           [--diff=use|mirror|none] [--gzip-options=options]
           [--state-cache-days=number]
           [--ignore-small-errors] [--allow-dist-rename]
+	  [--slow-cpu]
           <mirrordir>
 
 For details, see man page.
@@ -145,9 +146,9 @@ Specifies the http proxy (like Squid) to use for http and hftp method.
 
 Specify the distribution (etch, lenny, squeeze, sid) of Debian to
 mirror. This switch may be used multiple times, and multiple
-distributions may be specified at once, separated by commas. Using the
-links (stable, testing, unstable) does not have the expected results
-but you may add those links manually. Defaults to mirroring sid.
+distributions may be specified at once, separated by commas. 
+
+You may also use the stable, testing, unstable, names.
 
 =item --omit-suite-symlinks
 
@@ -354,6 +355,15 @@ by debmirror does not match the md5sum listed in the Release file (which
 will result in the gzipped file being downloaded unnecessarily after diffs
 were successfully applied).
 
+=item --slow-cpu
+
+By default debmirror saves some bandwidth by performing cpu-intensive
+tasks, such as compressing files to generate .gz and .bz2 files. Use this
+mode if the computer's CPU is slow, and it makes more sense to use more
+bandwidth and less CPU.
+
+This option implies --diff=none.
+
 =item --state-cache-days=number
 
 Save the state of the mirror in a cache file between runs. The cache will
@@ -546,6 +556,7 @@ our $diff_mode="use";
 our $gzip_options="-9 -n --rsyncable";
 our $omit_suite_symlinks=0;
 our $allow_dist_rename=0;
+our $slow_cpu=0;
 my @errlog;
 my $HOME;
 ($HOME = $ENV{'HOME'}) or die "HOME not defined in environment!\n";
@@ -640,6 +651,7 @@ GetOptions('debug'                  => \$debug,
 	   'diff=s'                 => \$diff_mode,
 	   'omit-suite-symlinks'    => \$omit_suite_symlinks,
 	   'allow-dist-rename'      => \$allow_dist_rename,
+	   'slow-cpu'               => \$slow_cpu,
 	   'help'                   => \$help,
 ) or usage;
 usage if $help;
@@ -649,6 +661,8 @@ usage("invalid number of arguments") if $ARGV[1];
 # unless specified in a configuration file.
 $mirrordir = shift if $ARGV[0];
 usage("mirrordir not specified") unless defined $mirrordir;
+
+$diff_mode="none" if $slow_cpu;
 
 # Check for patch binary if needed
 if (!($diff_mode eq "none")) {
@@ -708,6 +722,7 @@ say("Including source.") if $do_source;
 say("D-I arches: ".join(",", @di_arches)) if @di_arches;
 say("D-I dists: ".join(",", @di_dists)) if @di_dists;
 say("Pdiff mode: $diff_mode");
+say("Slow CPU mode.") if $slow_cpu;
 say("Checking md5sums.") if $check_md5sums;
 say("Passive mode on.") if $passive;
 say("Proxy: $proxy") if $proxy;
@@ -1895,7 +1910,7 @@ sub get_index {
   make_dir($subdir);
   make_dir("$tempdir/$subdir");
 
-  if (!($diff_mode eq "none") && exists $file_lists{"$tempdir/$subdir/$file.diff/Index"}) {
+  if ($diff_mode ne "none" && exists $file_lists{"$tempdir/$subdir/$file.diff/Index"}) {
     if (!check_lists ("$tempdir/$subdir/$file.diff/Index")) {
       make_dir("$tempdir/$subdir/$file.diff");
       if (!remote_get("$subdir/$file.diff/Index")) {
@@ -1903,16 +1918,20 @@ sub get_index {
       } else {
 	fetch_and_apply_diffs(0, $subdir, $file);
 	if (check_lists ("$tempdir/$subdir/$file")) {
-	  system_redirect_io("gzip $gzip_options", "$tempdir/$subdir/$file", "$tempdir/$subdir/$file.gz");
-	  system_redirect_io("bzip2", "$tempdir/$subdir/$file", "$tempdir/$subdir/$file.bz2");
+	  if (! $slow_cpu) {
+	    system_redirect_io("gzip $gzip_options", "$tempdir/$subdir/$file", "$tempdir/$subdir/$file.gz");
+	    system_redirect_io("bzip2", "$tempdir/$subdir/$file", "$tempdir/$subdir/$file.bz2");
+	  }
 	}
       }
     } else {
       $bytes_gotten += $file_lists{"$tempdir/$subdir/$file.diff/Index"}{size};
       fetch_and_apply_diffs(0, $subdir, "$file");
       if (check_lists ("$tempdir/$subdir/$file")) {
-	system_redirect_io("gzip $gzip_options", "$tempdir/$subdir/$file", "$tempdir/$subdir/$file.gz");
-	system_redirect_io("bzip2", "$tempdir/$subdir/$file", "$tempdir/$subdir/$file.bz2");
+	if (! $slow_cpu) {
+	  system_redirect_io("gzip $gzip_options", "$tempdir/$subdir/$file", "$tempdir/$subdir/$file.gz");
+	  system_redirect_io("bzip2", "$tempdir/$subdir/$file", "$tempdir/$subdir/$file.bz2");
+	}
       }
     }
     $files{"$subdir/$file.diff/Index"}=1 if ($diff_mode eq "mirror");
@@ -1922,8 +1941,10 @@ sub get_index {
   if (exists $file_lists{"$tempdir/$subdir/$file.gz"}{size}) {
     if (!check_lists ("$tempdir/$subdir/$file.gz")) {
       if (remote_get("$subdir/$file.gz")) {
-	system_redirect_io("gzip -d", "$tempdir/$subdir/$file.gz", "$tempdir/$subdir/$file");
-	system_redirect_io("bzip2", "$tempdir/$subdir/$file", "$tempdir/$subdir/$file.bz2");
+	if (! $slow_cpu) {
+	  system_redirect_io("gzip -d", "$tempdir/$subdir/$file.gz", "$tempdir/$subdir/$file");
+	  system_redirect_io("bzip2", "$tempdir/$subdir/$file", "$tempdir/$subdir/$file.bz2");
+	}
       } else {
 	push (@errlog,"$subdir/$file.gz failed md5sum check\n");
 	$num_errors++;
@@ -1948,7 +1969,9 @@ sub get_index {
   if (exists $file_lists{"$tempdir/$subdir/$file"}) {
     if (!check_lists ("$tempdir/$subdir/$file")) {
       if (remote_get("$subdir/$file")) {
-	system_redirect_io("bzip2", "$tempdir/$subdir/$file", "$tempdir/$subdir/$file.bz2");
+	if (! $slow_cpu) {
+	  system_redirect_io("bzip2", "$tempdir/$subdir/$file", "$tempdir/$subdir/$file.bz2");
+	}
       } else {
 	push (@errlog,"$subdir/$file failed md5sum check\n");
 	$num_errors++;
