@@ -5,6 +5,7 @@ debmirror (1:2.4.7) UNRELEASED; urgency=low
   * Allow umask to control directory permissions in mkdir. Closes: #589397
   * Add --slow-cpu option that avoids bzipping and gzipping files.
     Closes: #594948
+  * Various code cleanups.
 
  -- Joey Hess <joeyh@debian.org>  Sun, 05 Sep 2010 19:02:16 -0400
 

@@ -1024,12 +1024,10 @@ say("Parsing Packages and Sources files ...");
     next if (!-f $file);
     open(FILE, "<", $file) or die "$file: $!";
     for (;;) {
-      my $buf;
-      unless (defined( $buf = <FILE> )) {
+      unless (defined( $_ = <FILE> )) {
 	last if eof;
 	die "$file: $!" if $!;
       }
-      $_ = $buf;
       ($filename)=m/^Filename:\s+(.*)/im;
       $filename=~s:/+:/:;	# remove redundant slashes in paths
       ($deb_section)=m/^Section:\s+(.*)/im;
@@ -1071,12 +1069,10 @@ say("Parsing Packages and Sources files ...");
     next if (!-f $file);
     open(FILE, "<", $file) or die "$file: $!";
     for (;;) {
-      my $buf = "";
-      unless (defined( $buf = <FILE> )) {
+      unless (defined( $_ = <FILE> )) {
 	last if eof;
 	die "$file: $!" if $!;
       }
-      $_ = $buf;
       ($directory) = m/^Directory:\s+(.*)/im;
       ($deb_section)=m/^Section:\s+(.*)/im;
       ($deb_priority)=m/^Priority:\s+(.*)/im;
@@ -1128,13 +1124,8 @@ say("Parsing Packages and Sources files ...");
 # With post-mirror cleanup it's more neat to do all downloads together.
 # This could be simplified if we could register the files earlier.
 
-init_connection();
-
-if (! ($cleanup && ! $post_cleanup)) {
-  say("Download all files that we need to get (".print_dl_size($bytes_to_get - $bytes_gotten).").");
-}
-
 # Download Contents and Translation files.
+init_connection();
 get_contents_files() if ($getcontents);
 get_i18n_files() if ($i18n);
 
@@ -1143,13 +1134,12 @@ if ($cleanup && ! $post_cleanup) {
   # close ftp connection during cleanup to avoid timeouts
   if ($download_method eq 'ftp') { $ftp->quit; }
   cleanup_unknown_files();
-  init_connection;
-
-  say("Download all files that we need to get (".print_dl_size($bytes_to_get - $bytes_gotten).").");
+  init_connection();
 }
 
+say("Files to download: (".print_dl_size($bytes_to_get - $bytes_gotten).").");
+
 # Download all package files that we need to get.
-say("Get package files.");
 batch_get();
 
 sub batch_get {
