@@ -129,7 +129,7 @@ Download in passive mode when using ftp.
 
 =item --user=remoteusername -u
 
-Specify the remote user name to use to log to the remote host. Helpful when
+Specify the remote user name to use to log into the remote host. Helpful when
 dealing with brain damaged proxy servers. Defaults to anonymous.
 
 =item --passwd=remoteuserpassword
