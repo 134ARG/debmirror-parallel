@@ -2273,16 +2273,6 @@ sub cleanup_unknown_files {
   di_cleanup() if @di_dists;
 }
 
-# FIXME: does not work
-sub get_http_size {
-  my $file = shift;
-  my $url = "http://${host}/${remoteroot}/${file}";
-  my ($type, $size);
-  ($type, $size) = $ua->head($url);
-  say("$url -- $size");
-  return $size;
-}
-
 sub di_check_dists {
   say("Checking validity of D-I dists.");
   DI_DIST:
@@ -2341,7 +2331,6 @@ sub di_add_files {
 	}
 
 	$di_files{$image_dir}{$filename}{md5sum} = $md5sum;
-	#$di_files{$image_dir}{$filename}{size} = get_http_size("$image_dir/$filename");
 
 	# Check against the version currently on the mirror
 	if (check_file("$image_dir/$filename", -1, $md5sum)) {
