@@ -8,6 +8,7 @@ debmirror (1:2.4.7) UNRELEASED; urgency=low
   * Various code cleanups.
   * Deprecate --cleanup, which had become confusing since --postcleanup
     is the default, and add --precleanup.
+  * Add --check-gpg (the default) and --no-check-gpg options.
 
  -- Joey Hess <joeyh@debian.org>  Sun, 05 Sep 2010 19:02:16 -0400
 

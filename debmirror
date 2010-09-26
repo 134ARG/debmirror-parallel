@@ -235,6 +235,12 @@ to use these two options together.
 
 Don't fail if the F<Release> file is missing.
 
+=item --check-gpg
+=item --no-check-gpg
+
+Controls whether gpg signatures from the F<Release.gpg> file should be
+checked. The default is to check signatures.
+
 =item --ignore-release-gpg
 
 Don't fail if the F<Release.gpg> file is missing. If the file does exist, it
@@ -466,7 +472,8 @@ excluding the section 'debug' and the package 'foo-doc':
 
   ~/.gnupg/trustedkeys.gpg
 
-    Debmirror uses gpgv to verify Release and Release.gpg using the
+    When gpg checking is enabled,
+    debmirror uses gpgv to verify Release and Release.gpg using the
     default keying ~/.gnupg/trustedkeys.gpg. This can be changed by
     exporting GNUPGHOME resulting in $GNUPGHOME/trustedkeys.gpg being
     used.
@@ -538,6 +545,7 @@ our $gzip_options="-9 -n --rsyncable";
 our $omit_suite_symlinks=0;
 our $allow_dist_rename=0;
 our $slow_cpu=0;
+our $check_gpg=1;
 my @errlog;
 my $HOME;
 ($HOME = $ENV{'HOME'}) or die "HOME not defined in environment!\n";
@@ -625,6 +633,7 @@ GetOptions('debug'                  => \$debug,
 	   'state-cache-days=s'     => \$state_cache_days,
 	   'ignore-missing-release' => \$ignore_release,
 	   'ignore-release-gpg'     => \$ignore_release_gpg,
+	   'check-gpg!'             => \$check_gpg,
 	   'dry-run'                => \$dry_run,
 	   'proxy=s'                => \$proxy,
 	   'rsync-options=s'        => \$rsync_options,
@@ -706,6 +715,7 @@ say("D-I dists: ".join(",", @di_dists)) if @di_dists;
 say("Pdiff mode: $diff_mode");
 say("Slow CPU mode.") if $slow_cpu;
 say("Checking md5sums.") if $check_md5sums;
+say("Not checking Release gpg signatures.") if $check_gpg;
 say("Passive mode on.") if $passive;
 say("Proxy: $proxy") if $proxy;
 say("Download at most $max_batch files.") if ($max_batch > 0);
@@ -1122,7 +1132,7 @@ if ($pre_cleanup) {
   init_connection();
 }
 
-say("Files to download: (".print_dl_size($bytes_to_get - $bytes_gotten).").");
+say("Files to download: ".print_dl_size($bytes_to_get - $bytes_gotten));
 
 # Download all package files that we need to get.
 batch_get();
@@ -1765,7 +1775,10 @@ sub get_release {
   my $t_errors = $num_errors;
   remote_get("dists/$dist/Release.gpg", "$tempdir/.tmp");
 
-  if (-f "$tdir/Release" && -f "$tdir/Release.gpg") {
+  if (! $check_gpg) {
+    # Nothing to do.
+  }
+  elsif (-f "$tdir/Release" && -f "$tdir/Release.gpg") {
     # Check for gpg
     if (system("gpgv --version >/dev/null 2>/dev/null")) {
       say("gpgv failed: gpgv binary missing?");
@@ -1786,14 +1799,14 @@ sub get_release {
 	system("gpgv --status-fd 1 $tdir/Release.gpg $tdir/Release >/dev/null");
       }
       if (! $gpgv_res) {
-	say("Release signature does not verify.");
-	push (@errlog,"Release signature does not verify\n");
+	say("Release gpg signature does not verify.");
+	push (@errlog,"Release gpg signature does not verify\n");
 	$num_errors++;
       }
     }
   } else {
-    say("Release signature does not verify, file missing.");
-    push (@errlog,"Release signature does not verify\n");
+    say("Release gpg signature does not verify, file missing.");
+    push (@errlog,"Release gpg signature does not verify\n");
     $num_errors++;
   }
 
