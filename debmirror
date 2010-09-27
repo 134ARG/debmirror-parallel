@@ -151,14 +151,15 @@ Specifying --arch=none will mirror no archs.
 =item --rsync-extra=foo[,bar,..]
 
 Allows to also mirror files from a number of directories that are not part
-of the package archive itself. Debmirror will B<always> use rsync for the
-transfer of these files, irrespective of what transfer method is specified
-in the --method option.
+of the package archive itself.
 
-This option can therefore not be used if your remote mirror does not support
-rsync, or if the mirror needs a different --root option for rsync than for
-the main transfer method specified with --method. Excluding individual files
-in the directories is not supported.
+Debmirror will B<always> use rsync for the transfer of these files,
+irrespective of what transfer method is specified in the --method option. This
+will therefore not work if your remote mirror does not support rsync, or if
+the mirror needs a different --root option for rsync than for the main
+transfer method specified with --method.
+ 
+Note that excluding individual files in the directories is not supported.
 
 The following values are supported.
 
@@ -182,6 +183,11 @@ Download all files and subdirectories in F<./tools> directory.
 =item trace
 
 Download the remote mirror's trace files for the archive (F<./project/trace/*>).
+This is enabled by default.
+
+=item none
+
+This can be used to disable getting extra files with rsync.
 
 =back
 
@@ -189,7 +195,7 @@ If specified, the update of trace files will be done at the beginning of
 the mirror run; the other types are done near the end. 
 
 This switch may be used multiple times, and multiple values may be specified
-at once, separated by comma's; unknown values are ignored.
+at once, separated by commas; unknown values are ignored.
 
 =item --di-dist=dists | foo[,bar,..]
 
@@ -684,7 +690,6 @@ $remoteroot =~ s%^[:/]%%;
 @arches=() if (join(',',@arches) eq "none");
 @di_dists=split(/,/,join(',',@di_dists));
 @di_arches=split(/,/,join(',',@di_arches));
-@rsync_extra=split(/,/,join(',',@rsync_extra));
 if (@di_dists) {
   @di_dists = @dists if ($di_dists[0] eq "dists");
   @di_arches = @arches if (!@di_arches || $di_arches[0] eq "arches");
@@ -692,6 +697,9 @@ if (@di_dists) {
   @di_dists = @dists if (!@di_dists);
   @di_arches = @arches if ($di_arches[0] eq "arches");
 }
+@rsync_extra=split(/,/,join(',',@rsync_extra));
+@rsync_extra="trace" unless @rsync_extra;
+@rsync_extra=() if grep { $_ eq "none" } @rsync_extra;
 $pre_cleanup=0 if ($no_cleanup);
 $post_cleanup=0 if ($no_cleanup);
 $post_cleanup=0 if ($pre_cleanup);
@@ -1747,8 +1755,10 @@ sub rsync_extra_get {
   for (@result) {
     print $fh "$_\n";
   }
-  # intentionally not checked: mirror may not support rsync
-  system("rsync --timeout=$timeout $opt $rsyncremote --delete --include-from=$rsynctempfile --exclude='*' $mirrordir");
+  my $ret=system("rsync --timeout=$timeout $opt $rsyncremote --delete --include-from=$rsynctempfile --exclude='*' $mirrordir");
+  if ($ret != 0) {
+    print STDERR "Warning: failed to use rsync to download extra files.\n";
+  }
   close $fh;
   unlink $rsynctempfile;
 }
