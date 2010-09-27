@@ -1479,20 +1479,26 @@ sub remote_get {
   return $res;
 }
 
+sub print_percent {
+  my $message=shift;
+
+  my $percent = $bytes_to_get ? (($bytes_gotten / $bytes_to_get)*100) : 0;
+
+  printf "[%3.0f] %s", $percent, $message;
+}
+
 # Get a file via http, or possibly ftp if a proxy is being used with that
 # method. First displaying its filename if progress is on.
 sub http_get {
   my $oldautoflush = $|;
   $| = 1;
   my $file=shift;
-  my $percent = 0;
   my $url="$download_method://${host}/${remoteroot}/${file}";
   my $ret=1;
-  $percent = sprintf("%3.0f",(($bytes_gotten/$bytes_to_get)*100)) unless($bytes_to_get == 0);
 
   print "$url => " if ($debug);
   if ($progress || $verbose) {
-    print "[$percent%] Getting: $file... ";
+    print_percent "Getting: $file... ";
   }
   if (! $do_dry_run) {
     unlink($file) if (-f $file);
@@ -1523,9 +1529,7 @@ sub ftp_get {
   my $oldautoflush = $|;
   $| = 1;
   my $file=shift;
-  my $percent = 0;
   my $mtime;
-  $percent = sprintf("%3.0f",(($bytes_gotten/$bytes_to_get)*100)) unless($bytes_to_get == 0);
 
   my @stat = stat $file;
   if (@stat) { # already have the file?
@@ -1534,16 +1538,13 @@ sub ftp_get {
     if ($mtime && $size
 	&& $size == $stat[7]
 	&& $mtime == $stat[9]) { # size and time match
-      print "[$percent%] Keeping: $file\n" if ($progress || $verbose);
+      print_percent "Keeping: $file\n" if ($progress || $verbose);
       add_bytes_gotten($size);
       return 1;
     }
   }
-  if ($progress) {
-    print "[$percent%] Getting: $file\t #";
-  } elsif ($verbose) {
-    print "[$percent%] Getting: $file";
-  }
+  print_percent "Getting: $file";
+  print "\t #" if $progress;
   my $ret=1;
   if (! $do_dry_run) {
     unlink($file) if (-f $file);
