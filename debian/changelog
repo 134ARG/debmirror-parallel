@@ -10,8 +10,8 @@ debmirror (1:2.4.7) UNRELEASED; urgency=low
     is the default, and add --precleanup.
   * Add --check-gpg (the default) and --no-check-gpg options.
   * Added a warning message if rsync of extra files fails.
-  * Default to --rsync-extra=trace, unless the user specified 
-    --rsync-extra=none.
+  * Default to --rsync-extra=trace, and warn if --rsync-extra setting
+    disables trace.
   * Above will ensure that debmirror at least tries
     to get trace files by default, and warns if it cannot. Closes: #156564
   * A proxy specified with --proxy or ftp_proxy will now also be used

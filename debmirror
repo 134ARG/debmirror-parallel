@@ -703,6 +703,9 @@ if (@di_dists) {
 }
 @rsync_extra=split(/,/,join(',',@rsync_extra));
 @rsync_extra="trace" unless @rsync_extra;
+if (! grep { $_ eq 'trace' } @rsync_extra) {
+	print STDERR "Warning: --rsync-extra is not configured to mirror the trace files.\n";
+}
 @rsync_extra=() if grep { $_ eq "none" } @rsync_extra;
 $pre_cleanup=0 if ($no_cleanup);
 $post_cleanup=0 if ($no_cleanup);
