@@ -1484,7 +1484,7 @@ sub print_percent {
 
   my $percent = $bytes_to_get ? (($bytes_gotten / $bytes_to_get)*100) : 0;
 
-  printf "[%3.0f\%] %s", $percent, $message;
+  printf "[%3.0f%%] %s", $percent, $message;
 }
 
 # Get a file via http, or possibly ftp if a proxy is being used with that
