@@ -302,11 +302,17 @@ bandwidth of your link.
 =item --postcleanup
 
 Clean up the local mirror but only after mirroring is complete and
-only if there was no error. This is the default.
+only if there was no error. 
+
+This is the default, because it ensures that the mirror is consistent
+at all times.
 
 =item --precleanup
 
 Clean up the local mirror before starting mirroring.
+
+This option may be useful if you have limited disk space, but it will result
+in an inconsistent mirror when debmirror is running.
 
 The deprecated --cleanup option also enables this mode.
 

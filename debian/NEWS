@@ -1,3 +1,20 @@
+debmirror (1:2.5 UNRELEASED; urgency=low
+
+  The --cleanup option has been renamed to --precleanup for clarity.
+  (The old option name will continue to work for now.)
+
+  Debian mirror admins recommend that all mirrors include trace files.
+  So debmirror now defaults to --rsync-extra=trace. It will warn
+  if you specify a configuration that does not include trace files,
+  or if the trace files cannot be downloaded, using rsync, from
+  the specified mirror.
+
+  A proxy specified with --proxy or the ftp_proxy environment variable
+  will now be used for ftp mirroring. There is no need to use
+  --method=hftp to enable using ftp proxy, and that method is deprecated.
+
+ -- Joey Hess <joeyh@debian.org>  Sun, 26 Sep 2010 21:37:38 -0400
+
 debmirror (1:2.3) unstable; urgency=low
 
   * Use diff files to update Contents files; option --pdiff is now --diff
