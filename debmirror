@@ -705,6 +705,7 @@ if (@di_dists) {
 @rsync_extra="trace" unless @rsync_extra;
 if (! grep { $_ eq 'trace' } @rsync_extra) {
 	print STDERR "Warning: --rsync-extra is not configured to mirror the trace files.\n";
+	print STDERR "         This configuration is not recommended.\n";
 }
 @rsync_extra=() if grep { $_ eq "none" } @rsync_extra;
 $pre_cleanup=0 if ($no_cleanup);
@@ -1175,10 +1176,10 @@ sub batch_get {
     my @result;
     my $i=0;
     my $j=0;
-    $opt = "$opt --progress" if $progress;
-    $opt = "$opt -v" if $verbose;
-    $opt = "$opt -v" if $debug;
-    $opt = "$opt -n" if $do_dry_run;
+    $opt .= " --progress" if $progress;
+    $opt .= " -v" if $verbose or $debug;
+    $opt .= " -n" if $do_dry_run;
+    $opt .= " --no-motd" unless $verbose;
     foreach my $file (sort keys %files) {
       if (!$files{$file}) {
 	my $dirname;
@@ -1575,8 +1576,9 @@ sub rsync_get {
   for (0..$#dir) {
     $opt = "$opt --include=" . join('/', @dir[0..$_]) . "/";
   }
-  $opt = "$opt --progress" if $progress;
-  $opt = "$opt -v" if $debug;
+  $opt .= " --progress" if $progress;
+  $opt .= " -v" if $debug;
+  $opt .= " -no-motd" unless $verbose;
   system ("rsync --timeout=$timeout $opt $rsyncremote --include=$file --exclude='*' .");
   if ($? == 0 && -f $file) {
     return 1;
@@ -1634,10 +1636,10 @@ sub rsync_extra_get {
   my @result;
 
   my $opt=$rsync_options;
-  $opt = "$opt --progress" if $progress;
-  $opt = "$opt -v" if $verbose;
-  $opt = "$opt -v" if $debug;
-  $opt = "$opt -n" if $do_dry_run;
+  $opt .= " --progress" if $progress;
+  $opt .= " -v" if $verbose or $debug;
+  $opt .= " -n" if $do_dry_run;
+  $opt .= " --no-motd" unless $verbose;
 
   ($fh, $rsynctempfile) = tempfile();
   foreach my $line (@includes) {
