@@ -1,5 +1,0 @@
-#! /bin/sh
-set -e
-
-scp mirror-size merkel.debian.org:bin/
-ssh merkel.debian.org ~/bin/mirror-size >mirror_size
