@@ -14,7 +14,7 @@ debmirror (1:2.4.7) UNRELEASED; urgency=low
     --rsync-extra=none.
   * Above will ensure that debmirror at least tries
     to get trace files by default, and warns if it cannot. Closes: #156564
-  * A proxy specified with --proxy or http_proxy will now also be used
+  * A proxy specified with --proxy or ftp_proxy will now also be used
     for ftp connections.
   * Deprecate --method=hftp, just use --proxy with --method=ftp.
 
