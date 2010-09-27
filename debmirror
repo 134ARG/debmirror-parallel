@@ -1500,9 +1500,7 @@ sub http_get {
   my $ret=1;
 
   print "$url => " if ($debug);
-  if ($progress || $verbose) {
-    print_percent "Getting: $file... ";
-  }
+  print_percent "Getting: $file... " if $progress or $verbose;
   if (! $do_dry_run) {
     unlink($file) if (-f $file);
     $ret = $ua->mirror($url, $file);
@@ -1541,12 +1539,12 @@ sub ftp_get {
     if ($mtime && $size
 	&& $size == $stat[7]
 	&& $mtime == $stat[9]) { # size and time match
-      print_percent "Keeping: $file\n" if ($progress || $verbose);
+      print_percent "Keeping: $file\n" if $progress or $verbose;
       add_bytes_gotten($size);
       return 1;
     }
   }
-  print_percent "Getting: $file";
+  print_percent "Getting: $file" if $progress or $verbose;
   print "\t #" if $progress;
   my $ret=1;
   if (! $do_dry_run) {
