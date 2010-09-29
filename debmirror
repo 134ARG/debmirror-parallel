@@ -800,6 +800,7 @@ sub init_connection {
     $ua = LWP::UserAgent->new(keep_alive => 1);
     $ua->proxy('http', $ENV{http_proxy}) if $ENV{http_proxy};
     $ua->proxy('http', $proxy) if $proxy;
+    $ua->show_progress($progress);
     return;
   };
 
@@ -1507,7 +1508,8 @@ sub http_get {
   my $ret=1;
 
   print "$url => " if ($debug);
-  print_percent "Getting: $file... " if $progress or $verbose;
+  print_percent "Getting: $file" if $progress or $verbose;
+  print $progress ? "\t #" : "... ";
   if (! $do_dry_run) {
     unlink($file) if (-f $file);
     $ret = $ua->mirror($url, $file);
