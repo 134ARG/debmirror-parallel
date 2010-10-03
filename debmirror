@@ -1400,8 +1400,8 @@ sub check_file {
       $md5->addfile(*HANDLE);
       my $digest = $md5->hexdigest;
       return 1 if ($md5sum eq $digest);
-      say(sprintf("Mismatch '$filename': sum is %s, expected %s",$digest,$md5sum))
-        if $verbose;
+#      say(sprintf("Mismatch '$filename': sum is %s, expected %s",$digest,$md5sum))
+#        if $verbose;
     }
     else {
       # Assume it is ok, w/o md5 check.
@@ -1409,7 +1409,7 @@ sub check_file {
     }
   }
   elsif ($verbose) {
-    say(sprintf("Mismatch '$filename': size is %d, expected %d",$disksize,$size));
+#    say(sprintf("Mismatch '$filename': size is %d, expected %d",$disksize,$size));
   }
   return 0;
 }
