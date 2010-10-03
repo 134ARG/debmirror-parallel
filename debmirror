@@ -1861,8 +1861,8 @@ sub get_index {
   if (exists $file_lists{"$tempdir/$subdir/$file.gz"}{size}) {
     if (!check_lists("$tempdir/$subdir/$file.gz")) {
       if (remote_get("$subdir/$file.gz")) {
+	system_redirect_io("gzip -d", "$tempdir/$subdir/$file.gz", "$tempdir/$subdir/$file");
 	if (! $slow_cpu) {
-	  system_redirect_io("gzip -d", "$tempdir/$subdir/$file.gz", "$tempdir/$subdir/$file");
 	  system_redirect_io("bzip2", "$tempdir/$subdir/$file", "$tempdir/$subdir/$file.bz2");
 	}
       } else {
