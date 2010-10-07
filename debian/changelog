@@ -19,6 +19,7 @@ debmirror (1:2.5) UNRELEASED; urgency=low
   * Deprecate --method=hftp, just use --proxy with --method=ftp.
   * Run rsync with --no-motd except for in --verbose mode.
   * Support --progress for http. (Per #598382)
+  * Apply manpage markup patch from liw. Closes: #599414
 
  -- Joey Hess <joeyh@debian.org>  Sun, 05 Sep 2010 19:02:16 -0400
 
