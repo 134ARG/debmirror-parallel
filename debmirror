@@ -1845,6 +1845,15 @@ sub link_release_into_snapshot {
     or die "Error while linking $tempdir/dists/$codename$dist_sdir/Release.gpg: $!\n";
 }
 
+sub link_contents_into_snapshot {
+  my ($dist,$mirrordir,$dist,$arch,$tempdir) = @_;
+  my $next = get_nextlatest($dist);
+  unlink("$mirrordir/dists/$dist/$next/Contents-$arch.gz");
+  link("$tempdir/dists/$dist/Contents-$arch.gz",
+       "$mirrordir/dists/$dist/$next/Contents-$arch.gz")
+    or die "Error while linking $tempdir/dists/$dist/Contents-$arch.gz: $!\n";
+}
+
 sub get_release {
   my ($tdir, $dist) = @_;
 
@@ -2139,11 +2148,7 @@ sub get_contents_files {
       $files{"dists/$dist/Contents-$arch.gz"}=1;
       $files{$tempdir."/"."dists/$dist/Contents-$arch.gz"}=1;
       if ($debmarshal) {
-	my $next = get_nextlatest($dist);
-	unlink("$mirrordir/dists/$dist/$next/Contents-$arch.gz");
-	link("$tempdir/dists/$dist/Contents-$arch.gz",
-	     "$mirrordir/dists/$dist/$next/Contents-$arch.gz")
-	  or die "Error while linking $tempdir/dists/$dist/Contents-$arch.gz: $!\n";
+	link_contents_into_snapshot($dist,$mirrordir,$dist,$arch,$tempdir);
       }
     }
   }
