@@ -885,7 +885,7 @@ foreach my $dist (@dists) {
       $files{$tempdir."/"."dists/$codename$dist_sdir/Release.gpg"}=1;
       if ($debmarshal) {
 	link_release_into_snapshot($mirrordir,$dist,$next,$tempdir,
-				   $codename,$dist_sdir) = @_;
+				   $codename,$dist_sdir);
       }
     }
   }
