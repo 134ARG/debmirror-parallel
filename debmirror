@@ -1864,6 +1864,15 @@ sub link_index_into_snapshot {
     or die "Error while linking $tempdir/$subdir/Index: $!\n";
 }
 
+sub link_translation_into_snapshot {
+  my ($file,$dist,$distpath,$filename,$mirrordir,$tempdir) = @_;
+  my $next = get_nextlatest($dist);
+  say("linking $file");
+  unlink("$mirrordir/dists/$dist/$next/$distpath/$filename");
+  link("$tempdir/$file",
+       "$mirrordir/dists/$dist/$next/$distpath/$filename")
+    or die "Erorr while linking $tempdir/$file: $!";
+}
 
 sub get_release {
   my ($tdir, $dist) = @_;
@@ -2254,16 +2263,12 @@ sub get_i18n_files {
     if (! check_i18n("$tempdir/$file", $i18n_get{$file}{size}, $i18n_get{$file}{sha1})) {
       remote_get("$file");
       if ($debmarshal) {
-	my $dist = $i18n_get{$file}{dist};
-	my $distpath = $i18n_get{$file}{distpath};
-	my $filename = $i18n_get{$file}{filename};
-	my $next = get_nextlatest($dist);
-	say("linking $file");
-	unlink("$mirrordir/dists/$dist/$next/$distpath/$filename");
-	link("$tempdir/$file",
-	 "$mirrordir/dists/$dist/$next/$distpath/$filename")
-	  or die "Erorr while linking $tempdir/$file: $!";
-
+	link_translation_into_snapshot($file,
+				       $i18n_get{$file}{dist},
+				       $i18n_get{$file}{distpath},
+				       $i18n_get{$file}{filename},
+				       $mirrordir,
+				       $tempdir);
       }
     }
   }
