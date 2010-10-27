@@ -397,6 +397,9 @@ On each pull, keep the repository meta data from dists/* in a numbered
 subdirectory, and maintain a symlink latest to the most recent pull.
 This is similar to Debmarshal in tracking mode, see
 debmarshal.debian.net for examples and use.
+debmirror cleanup is disabled when this flag is specified.
+Separate pool and snapshot cleanup utilities are available at
+http://code.google.com/p/debmarshal/source/browse/#svn/trunk/repository2
 
 =back
 
