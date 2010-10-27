@@ -1846,13 +1846,24 @@ sub link_release_into_snapshot {
 }
 
 sub link_contents_into_snapshot {
-  my ($dist,$mirrordir,$dist,$arch,$tempdir) = @_;
+  my ($dist,$mirrordir,$arch,$tempdir) = @_;
   my $next = get_nextlatest($dist);
   unlink("$mirrordir/dists/$dist/$next/Contents-$arch.gz");
   link("$tempdir/dists/$dist/Contents-$arch.gz",
        "$mirrordir/dists/$dist/$next/Contents-$arch.gz")
     or die "Error while linking $tempdir/dists/$dist/Contents-$arch.gz: $!\n";
 }
+
+sub link_index_into_snapshot {
+  my ($dist,$mirrordir,$distpath,$subdir,$tempdir) = @_;
+  my $next = get_nextlatest($dist);
+  say("linking $mirrordir/dists/$dist/$next/$distpath/Index");
+  unlink("$mirrordir/dists/$dist/$next/$distpath/Index");
+  link("$tempdir/$subdir/Index",
+       "$mirrordir/dists/$dist/$next/$distpath/Index")
+    or die "Error while linking $tempdir/$subdir/Index: $!\n";
+}
+
 
 sub get_release {
   my ($tdir, $dist) = @_;
@@ -2148,7 +2159,7 @@ sub get_contents_files {
       $files{"dists/$dist/Contents-$arch.gz"}=1;
       $files{$tempdir."/"."dists/$dist/Contents-$arch.gz"}=1;
       if ($debmarshal) {
-	link_contents_into_snapshot($dist,$mirrordir,$dist,$arch,$tempdir);
+	link_contents_into_snapshot($dist,$mirrordir,$arch,$tempdir);
       }
     }
   }
@@ -2192,12 +2203,7 @@ sub get_i18n_index {
       if (!remote_get("$subdir/Index")) {
 	push (@errlog,"$subdir/Index failed md5sum check, removing\n");
       } elsif ($debmarshal) {
-	my $next = get_nextlatest($dist);
-	say("linking $mirrordir/dists/$dist/$next/$distpath/Index");
-	unlink("$mirrordir/dists/$dist/$next/$distpath/Index");
-	link("$tempdir/$subdir/Index",
-	     "$mirrordir/dists/$dist/$next/$distpath/Index")
-	  or die "Error while linking $tempdir/$subdir/Index: $!\n";
+	link_index_into_snapshot($dist,$mirrordir,$distpath,$subdir,$tempdir);
       }
     } else {
       $bytes_gotten += $file_lists{"$tempdir/$subdir/Index"}{size};
