@@ -1,16 +1,13 @@
 #!/usr/bin/perl -w
 
-# TODO: It would probably be cleaner and easier to learn if it took
-# apt-style lines to tell where to mirror from and what portions to use.
-
 =head1 NAME
 
-debmirror - Debian partial mirror script, with ftp, http, hftp or
+debmirror - Debian partial mirror script, with ftp, http or
 rsync and package pool support
 
 =head1 SYNOPSIS
 
-debmirror [options] <mirrordir>
+B<debmirror> [I<options>] I<mirrordir>
 
 =head1 DESCRIPTION
 
@@ -19,7 +16,11 @@ mirror any combination of architectures, distributions, and sections. Files
 are transferred by ftp, and package pools are fully supported. It also does
 locking and updates trace files.
 
-To support package pools, this program mirrors in three steps.
+The partial mirror created by this program is not suitable to be used as a
+public Debian mirror. If that is your aim, you should instead follow
+the instructions at L<http://www.debian.org/mirrors/ftpmirror>.
+
+This program mirrors in three steps.
 
 =over 4
 
@@ -28,18 +29,18 @@ To support package pools, this program mirrors in three steps.
 First it downloads all Packages and Sources files for the subset of Debian it
 was instructed to get.
 
-=item 2. clean up unknown files
-
-Any files and directories on the local mirror that are not in the list are
-removed.
-
-=item 3. download everything else
+=item 2. download everything else
 
 The Packages and Sources files are scanned, to build up a list of all the
 files they refer to. A few other miscellaneous files are added to the list.
 Then the program makes sure that each file in the list is present on the
 local mirror and is up-to-date, using file size (and optionally md5sum) checks.
 Any necessary files are downloaded.
+
+=item 3. clean up unknown files
+
+Any files and directories on the local mirror that are not in the list are
+removed.
 
 =back
 
@@ -48,26 +49,7 @@ Any necessary files are downloaded.
 sub usage {
   warn join(" ", @_)."\n" if @_;
   warn <<EOF;
-Usage: $0 [--progress] [--verbose] [--debug] [--dry-run] [--help]
-          [--host=remotehost] [--root=directory]
-          [--method=ftp|hftp|http|rsync] [--passive]
-          [--user=remoteusername] [--passwd=remoteuserpassword]
-          [--proxy=http://user:pass\@url:port/]
-          [--dist=foo[,bar,..] ...] [--omit-suite-symlinks]
-          [--section=foo[,bar,..] ...] [--arch=foo[,bar,..] ...]
-          [--rsync-extra=foo[,bar,..] ...]
-          [--di-dist=foo[,bar,..] ...] [--di-arch=foo[,bar,..] ...]
-          [--source|--nosource] [--i18n] [--getcontents] [--md5sums]
-          [--ignore-missing-release] [--ignore-release-gpg]
-          [--ignore=regex] [--exclude=regex] [--include=regex]
-          [--exclude-deb-section=regex] [--limit-priority=regex]
-          [--timeout=seconds] [--max-batch=number]
-          [--rsync-batch=number] [--rsync-options=options]
-          [--postcleanup|--cleanup|--nocleanup] [--skippackages]
-          [--diff=use|mirror|none] [--gzip-options=options]
-          [--state-cache-days=number]
-          [--ignore-small-errors] [--allow-dist-rename] [--debmarshal]
-          <mirrordir>
+Usage: $0 [options] <mirrordir>
 
 For details, see man page.
 EOF
@@ -78,131 +60,136 @@ EOF
 
 =over 4
 
-=item <mirrordir>
+=item I<mirrordir>
 
 This required (unless defined in a configuration file) parameter specifies
 where the local mirror directory is. If the directory does not exist, it will
 be created. Be careful; telling this program that your home directory is the
 mirrordir is guaranteed to replace your home directory with a Debian mirror!
 
-=item --progress -p
+=item B<-p>, B<--progress>
 
 Displays progress bars as files are downloaded.
 
-=item --verbose -v
+=item B<-v>, B<--verbose>
 
 Displays progress between file downloads.
 
-=item --debug
+=item B<--debug>
 
 Enables verbose debug output, including ftp protocol dump.
 
-=item --dry-run
+=item B<--dry-run>
 
 Simulate a mirror run. This will still download the meta files to the
 F<./.temp> working directory, but won't replace the old meta files, won't
 download debs and source files and only simulates cleanup.
 
-=item --help
+=item B<--help>
 
 Display a usage summary.
 
-=item --host=remotehost -h
+=item B<-h>, B<--host>=I<remotehost>
 
-Specify the remote host to mirror from. Defaults to 'ftp.debian.org',
+Specify the remote host to mirror from. Defaults to I<ftp.debian.org>,
 you are strongly encouraged to find a closer mirror.
 
-=item --root=directory -r directory
+=item B<-r>, B<--root>=I<directory>
 
 Specifies the directory on the remote host that is the root of the Debian
-archive. Defaults to "debian", which will work for most mirrors. The root
-directory has a F<./dists> subdirectory.
+archive. Defaults to F<debian>, which will work for most mirrors. The root
+directory has a F<dists> subdirectory.
 
-=item --method=ftp|hftp|http|rsync -e
+=item B<--method>=I<method>
 
 Specify the method to download files. Currently, supported methods are
-ftp, hftp (ftp over http proxy), http or rsync.
+B<ftp>, B<http>, and B<rsync>.
 
-Note: starting with version 1.1 it is no longer needed to add a ':' prefix
-for the root directory.
+=item B<--passive>
 
-=item --passive
+Download in passive mode when using ftp.
 
-Download in passive mode.
+=item B<-u>, B<--user>=I<remoteusername>
 
-=item --user=remoteusername -u
+Specify the remote user name to use to log into the remote host. Helpful when
+dealing with brain damaged proxy servers. Defaults to C<anonymous>.
 
-Specify the remote user name to use to log to the remote host. Helpful when
-dealing with brain damaged proxy servers. Defaults to anonymous.
-
-=item --passwd=remoteuserpassword
+=item B<--passwd>=I<remoteuserpassword>
 
 Specify the remote user password to use to log into the remote ftp host.
-It is used with --user and defaults to anonymous@.
+It is used with B<--user> and defaults to C<anonymous@>.
 
-=item --proxy=http://user:pass@url:port/
+=item B<--proxy>=I<http://user:pass@url:port/>
 
-Specifies the http proxy (like Squid) to use for http and hftp method.
+Specifies the http proxy (like Squid) to use for http or ftp methods.
 
-=item --dist=foo[,bar,..] -d foo
+=item B<-d>, B<--dist>=I<foo[,bar,..]>
 
 Specify the distribution (etch, lenny, squeeze, sid) of Debian to
 mirror. This switch may be used multiple times, and multiple
-distributions may be specified at once, separated by commas. Using the
-links (stable, testing, unstable) does not have the expected results
-but you may add those links manually. Defaults to mirroring sid.
+distributions may be specified at once, separated by commas. 
 
-=item --omit-suite-symlinks
+You may also use the stable, testing, unstable, names.
 
-With this option set, debmirror will not create the 'S<suite -E<gt> codename>'
-symlink. This is needed for example when mirroring archived Debian
-releases as they will all have either 'stable' or 'oldstable' as
+=item B<--omit-suite-symlinks>
+
+With this option set, B<debmirror> will not create the 
+symlink from I<suite> to I<codename>.
+This is needed for example when mirroring archived Debian
+releases as they will all have either C<stable> or C<oldstable> as
 suite in their F<Release> files.
 
-=item --section=foo[,bar,..] -s foo
+=item B<-s>, B<--section>=I<foo[,bar,..]>
 
 Specify the section of Debian to mirror. Defaults to
-main,contrib,non-free,main/debian-installer.
+C<main,contrib,non-free,main/debian-installer>.
 
-=item --arch=foo[,bar,..] -a foo
+=item B<-a>, B<--arch>=I<foo[,bar,..]>
 
-Specify the architectures to mirror. The default is --arch=i386.
-Specifying --arch=none will mirror no archs.
+Specify the architectures to mirror. The default is B<--arch=i386>.
+Specifying B<--arch=none> will mirror no archs.
 
-=item --rsync-extra=foo[,bar,..]
+=item B<--rsync-extra>=I<foo[,bar,..]>
 
 Allows to also mirror files from a number of directories that are not part
-of the package archive itself. Debmirror will B<always> use rsync for the
-transfer of these files, irrespective of what transfer method is specified
-in the --method option.
+of the package archive itself.
 
-This option can therefore not be used if your remote mirror does not support
-rsync, or if the mirror needs a different --root option for rsync than for
-the main transfer method specified with --method. Excluding individual files
-in the directories is not supported.
+B<Debmirror> will B<always> use rsync for the transfer of these files,
+irrespective of what transfer method is specified in the B<--method> option. 
+This
+will therefore not work if your remote mirror does not support rsync, or if
+the mirror needs a different B<--root> option for rsync than for the main
+transfer method specified with B<--method>.
+ 
+Note that excluding individual files in the directories is not supported.
 
 The following values are supported.
 
 =over 2
 
-=item doc
+=item B<doc>
 
-Download all files and subdirectories in F<./doc> directory, and all README
+Download all files and subdirectories in F<doc> directory, and all README
 files in the root directory of the archive.
 
-=item indices
+=item B<indices>
 
-Download all files and subdirectories in F<./indices> directory. Note that
+Download all files and subdirectories in F<indices> directory. Note that
 this directory can contain some rather large files; don't include this
 type unless you know you need these files.
 
-=item tools
+=item B<tools>
 
-Download all files and subdirectories in F<./tools> directory.
+Download all files and subdirectories in F<tools> directory.
 
-=item trace
+=item B<trace>
 
-Download the remote mirror's trace files for the archive (F<./project/trace/*>).
+Download the remote mirror's trace files for the archive (F<project/trace/*>).
+This is enabled by default.
+
+=item B<none>
+
+This can be used to disable getting extra files with rsync.
 
 =back
 
@@ -210,95 +197,102 @@ If specified, the update of trace files will be done at the beginning of
 the mirror run; the other types are done near the end. 
 
 This switch may be used multiple times, and multiple values may be specified
-at once, separated by comma's; unknown values are ignored.
+at once, separated by commas; unknown values are ignored.
 
-=item --di-dist=dists | foo[,bar,..]
+=item B<--di-dist>=I<dists | foo[,bar,..]>
 
-Mirror "current" Debian Installer images for the specified dists.
+Mirror current Debian Installer images for the specified dists.
 See further the section L<Mirroring Debian Installer images> below.
 
-=item --di-arch=arches | foo[,bar,..]
+=item B<--di-arch>=I<arches | foo[,bar,..]>
 
-Mirror "current" Debian Installer images for the specified architectures.
+Mirror current Debian Installer images for the specified architectures.
 See further the section L<Mirroring Debian Installer images> below.
 
-=item --source
+=item B<--source>
 
 Include source in the mirror (default).
 
-=item --nosource
+=item B<--nosource>
 
 Do not include source.
 
-=item --i18n
+=item B<--i18n>
 
 Additionally download F<Translation-E<lt>langE<gt>.bz2> files, which contain
 translations of package descriptions. Selection of specific translations is
-possible using the --include and --exclude options.
+possible using the B<--include> and B<--exclude> options.
 
-=item --getcontents
+=item B<--getcontents>
 
 Additionally download F<Contents.E<lt>archE<gt>.gz> files. Note that these
 files can be relatively big and can change frequently, especially for the
 testing and unstable suites. Use of the available diff files is strongly
-recommended (see the --diff option).
+recommended (see the B<--diff> option).
 
-=item --md5sums -m
+=item B<-m>, B<--md5sums>
 
-Use md5sums to determine if files on the local mirror that are the correct
+Use MD5 checksums to determine if files on the local mirror that are 
+the correct
 size actually have the correct content. Not enabled by default, because
 it is too paranoid, and too slow.
 
-When the state cache is used, debmirror will only check md5sums during runs
+When the state cache is used, B<debmirror> will only check checksums 
+during runs
 where the cache has expired or been invalidated, so it is worth considering
 to use these two options together.
 
-=item --ignore-missing-release
+=item B<--ignore-missing-release>
 
 Don't fail if the F<Release> file is missing.
 
-=item --ignore-release-gpg
+=item B<--check-gpg>, B<--no-check-gpg>
+
+Controls whether gpg signatures from the F<Release.gpg> file should be
+checked. The default is to check signatures.
+
+=item B<--ignore-release-gpg>
 
 Don't fail if the F<Release.gpg> file is missing. If the file does exist, it
 is mirrored and verified, but any errors are ignored.
 
-=item --ignore=regex
+=item B<--ignore>=I<regex>
 
 Never delete any files whose filenames match the regex. May be used multiple times.
 
-=item --exclude=regex
+=item B<--exclude>=B<regex>
 
 Never download any files whose filenames match the regex. May be used multiple times.
 
-=item --include=regex
+=item B<--include>=I<regex>
 
 Don't exclude any files whose filenames match the regex. May be used multiple times.
 
-=item --exclude-deb-section=regex
+=item B<--exclude-deb-section>=I<regex>
 
 Never download any files whose Debian Section (games, doc, oldlibs,
 science, ...) match the regex. May be used multiple times.
 
-=item --limit-priority=regex
+=item B<--limit-priority>=I<regex>
 
 Limit download to files whose Debian Priority (required, extra,
 optional, ...) match the regex. May be used multiple times.
 
-=item --timeout=seconds -t
+=item B<-t>, B<--timeout>=I<seconds>
 
 Specifies the timeout to use for network operations (either FTP or rsync).
 Set this to a higher value if you experience failed downloads. Defaults
 to 300 seconds.
 
-=item --max-batch=number
+=item B<--max-batch>=I<number>
 
 Download at most max-batch number of files (and ignore rest).
 
-=item --rsync-batch=number
+=item B<--rsync-batch>=I<number>
 
 Download at most number of files with each rsync call and then loop.
 
-=item --rsync-options=options
+=item B<--rsync-options>=I<options>
 
 Specify alternative rsync options to be used. Default options are
 "-aIL --partial". Care must be taken when specifying alternative
@@ -308,60 +302,77 @@ options.
 The most likely option to add is "--bwlimit=x" to avoid saturating the
 bandwidth of your link.
 
-=item --postcleanup
+=item B<--postcleanup>
 
 Clean up the local mirror but only after mirroring is complete and
-only if there was no error. This is the default.
+only if there was no error. 
 
-=item --cleanup
+This is the default, because it ensures that the mirror is consistent
+at all times.
 
-Do clean up any unknown files and directories on the local mirror (see
-step 2 above).
+=item B<--precleanup>
 
-=item --nocleanup
+Clean up the local mirror before starting mirroring.
 
-Do not clean up the local mirror after mirroring is complete.
+This option may be useful if you have limited disk space, but it will result
+in an inconsistent mirror when debmirror is running.
 
-=item --skippackages
+The deprecated B<--cleanup> option also enables this mode.
 
-Don't re-download Packages and Sources files. Useful if you know they are
-up-to-date.
+=item B<--nocleanup>
 
-=item --diff=use|mirror|none
+Do not clean up the local mirror.
 
-If --diff=use is specified and the F<Release> file contains entries for
-diff files, then debmirror will attempt to use them to update Packages,
-Sources and Contents files (which can significantly reduce the download
+=item B<--skippackages>
+
+Don't re-download F<Packages> and F<Sources> files. 
+Useful if you know they are up-to-date.
+
+=item B<--diff>=I<use|mirror|none>
+
+If B<--diff=use> is specified and the F<Release> file contains entries for
+diff files, then debmirror will attempt to use them to update F<Packages>,
+F<Sources>, and F<Contents> files (which can significantly reduce the download
 size for meta files), but will not include them in the mirror. This is
 the default behavior and avoids having time consuming diff files for a
 fast local mirror.
 
-Specifying --diff=mirror does the same as 'use', but will also include
-the downloaded diff files in the local mirror. Specify --diff=none to
+Specifying B<--diff=mirror> does the same as B<use>, but will also include
+the downloaded diff files in the local mirror. Specify B<--diff=none> to
 completely ignore diff files.
 
 Note that if rsync is used as method to download files and the archive
-being mirrored has "rsyncable" gzipped meta files, then using --diff=none
-may be the most efficient way to download them. See the gzip(1) man page
+being mirrored has "rsyncable" gzipped meta files, then using B<--diff=none>
+may be the most efficient way to download them. See the B<gzip>(1) man page
 for information about its rsyncable option.
 
-=item --gzip-options=options
+=item B<--gzip-options>=I<options>
 
-Specify alternative options to be used when calling gzip to compress meta
-files after applying diffs. The default options are "-9 -n --rsyncable"
+Specify alternative options to be used when calling B<gzip>(1) to compress meta
+files after applying diffs. The default options are C<-9 -n --rsyncable>
 which corresponds with the options used to gzip meta files for the main
 Debian archive.
 
-These options may need to be modified if the md5sum of the file as gzipped
-by debmirror does not match the md5sum listed in the Release file (which
+These options may need to be modified if the MD5 checksum of the file as 
+gzipped
+by debmirror does not match the md5sum listed in the F<Release> file (which
 will result in the gzipped file being downloaded unnecessarily after diffs
 were successfully applied).
 
-=item --state-cache-days=number
+=item B<--slow-cpu>
+
+By default debmirror saves some bandwidth by performing cpu-intensive
+tasks, such as compressing files to generate .gz and .bz2 files. Use this
+mode if the computer's CPU is slow, and it makes more sense to use more
+bandwidth and less CPU.
+
+This option implies B<--diff=none>.
+
+=item B<--state-cache-days>=I<number>
 
 Save the state of the mirror in a cache file between runs. The cache will
 expire after the specified number of days, at which time a full check and
-cleanup of the mirror will be done. While the cache is valid, debmirror
+cleanup of the mirror will be done. While the cache is valid, B<debmirror>
 will trust that the mirror is consistent with this cache.
 
 The cache is only used for files that have a unique name, i.e. binary
@@ -372,22 +383,23 @@ Main advantage of using the state cache is that it avoids a large amount
 of disk access while checking which files need to be fetched. It may also
 reduce the time required for mirror updates.
 
-=item --ignore-small-errors
+=item B<--ignore-small-errors>
 
-Normally debmirror will report an error if any deb files or sources
+Normally B<debmirror> will report an error if any deb files or sources
 fail to download and refuse to update the meta data to an inconsistent
 mirror. Normally this is a good things as it indicates something went
 wrong during download and should be retried. But sometimes the
-upstream mirror actually is broken. Specifying --ignore-small-errors
-causes debmirror to ignore missing or broken deb and source files but
+upstream mirror actually is broken. Specifying B<--ignore-small-errors>
+causes B<debmirror> to ignore missing or broken deb and source files but
 still be pedantic about checking meta files.
 
-=item --allow-dist-rename
+=item B<--allow-dist-rename>
 
 The directory name for a dist should be equal to its Codename and not to
 a Suite. If the local mirror currently has directories named after Suites,
-debmirror can rename them automatically.
-An existing symlink S<codename -E<gt> suite> will be removed, but debmirror
+B<debmirror> can rename them automatically.
+An existing symlink from I<codename> to I<suite> will be removed, 
+but B<debmirror>
 will automatically create a new symlink S<suite -E<gt> codename> (immediately
 after moving meta files in place). This conversion should only be needed once.
 
@@ -424,7 +436,7 @@ Debmirror will only mirror the "current" images that are on the remote
 mirror. At least one of the options --di-dist or --di-arch must be
 passed to enable mirroring of the images.
 
-The special values "dists" resp. "arches" can be used to tell debmirror
+The special values "dists" and "arches" can be used to tell debmirror
 to use the same dists and architectures for D-I images as for the archive,
 but it is also possible to specify different values. If either option is
 not set, it will default to the same values as for the archive.
@@ -488,7 +500,8 @@ excluding the section 'debug' and the package 'foo-doc':
 
   ~/.gnupg/trustedkeys.gpg
 
-    Debmirror uses gpgv to verify Release and Release.gpg using the
+    When gpg checking is enabled,
+    debmirror uses gpgv to verify Release and Release.gpg using the
     default keying ~/.gnupg/trustedkeys.gpg. This can be changed by
     exporting GNUPGHOME resulting in $GNUPGHOME/trustedkeys.gpg being
     used.
@@ -524,14 +537,14 @@ use LWP::UserAgent;
 # Yeah, I use too many global variables in this program.
 our $mirrordir;
 our ($debug, $progress, $verbose, $passive, $skippackages, $getcontents, $i18n);
-our ($ua, $proxy);
+our ($ua, $proxy, $ftp);
 our (@dists, @sections, @arches, @ignores, @excludes, @includes);
 our (@excludes_deb_section, @limit_priority);
 our (@di_dists, @di_arches, @rsync_extra);
 our $state_cache_days = 0;
 our $check_md5sums = 0;
 our $check_downloads = 0;
-our $cleanup=0;
+our $pre_cleanup=0;
 our $post_cleanup=1;
 our $no_cleanup=0;
 our $do_source=1;
@@ -560,6 +573,8 @@ our $gzip_options="-9 -n --rsyncable";
 our $omit_suite_symlinks=0;
 our $allow_dist_rename=0;
 our $debmarshal=0;
+our $slow_cpu=0;
+our $check_gpg=1;
 my @errlog;
 my $HOME;
 ($HOME = $ENV{'HOME'}) or die "HOME not defined in environment!\n";
@@ -628,7 +643,8 @@ GetOptions('debug'                  => \$debug,
 	   'di-dist=s'              => \@di_dists,
 	   'di-arch=s'              => \@di_arches,
 	   'rsync-extra=s'          => \@rsync_extra,
-	   'cleanup'                => \$cleanup,
+	   'precleanup'             => \$pre_cleanup,
+	   'cleanup'                => \$pre_cleanup,
 	   'postcleanup'            => \$post_cleanup,
 	   'nocleanup'              => \$no_cleanup,
 	   'ignore=s'               => \@ignores,
@@ -646,6 +662,7 @@ GetOptions('debug'                  => \$debug,
 	   'state-cache-days=s'     => \$state_cache_days,
 	   'ignore-missing-release' => \$ignore_release,
 	   'ignore-release-gpg'     => \$ignore_release_gpg,
+	   'check-gpg!'             => \$check_gpg,
 	   'dry-run'                => \$dry_run,
 	   'proxy=s'                => \$proxy,
 	   'rsync-options=s'        => \$rsync_options,
@@ -655,6 +672,7 @@ GetOptions('debug'                  => \$debug,
 	   'omit-suite-symlinks'    => \$omit_suite_symlinks,
 	   'allow-dist-rename'      => \$allow_dist_rename,
 	   'debmarshal'             => \$debmarshal,
+	   'slow-cpu'               => \$slow_cpu,
 	   'help'                   => \$help,
 ) or usage;
 usage if $help;
@@ -664,6 +682,12 @@ usage("invalid number of arguments") if $ARGV[1];
 # unless specified in a configuration file.
 $mirrordir = shift if $ARGV[0];
 usage("mirrordir not specified") unless defined $mirrordir;
+
+$diff_mode="none" if $slow_cpu;
+
+if ($download_method eq 'hftp') { # deprecated
+	$download_method='ftp';
+}
 
 # Check for patch binary if needed
 if (!($diff_mode eq "none")) {
@@ -693,7 +717,6 @@ $remoteroot =~ s%^[:/]%%;
 @arches=() if (join(',',@arches) eq "none");
 @di_dists=split(/,/,join(',',@di_dists));
 @di_arches=split(/,/,join(',',@di_arches));
-@rsync_extra=split(/,/,join(',',@rsync_extra));
 if (@di_dists) {
   @di_dists = @dists if ($di_dists[0] eq "dists");
   @di_arches = @arches if (!@di_arches || $di_arches[0] eq "arches");
@@ -701,9 +724,18 @@ if (@di_dists) {
   @di_dists = @dists if (!@di_dists);
   @di_arches = @arches if ($di_arches[0] eq "arches");
 }
-$cleanup=0 if ($no_cleanup);
+@rsync_extra=split(/,/,join(',',@rsync_extra));
+@rsync_extra="trace" unless @rsync_extra;
+if (! grep { $_ eq 'trace' } @rsync_extra) {
+	print STDERR "Warning: --rsync-extra is not configured to mirror the trace files.\n";
+	print STDERR "         This configuration is not recommended.\n";
+}
+@rsync_extra=() if grep { $_ eq "none" } @rsync_extra;
+$pre_cleanup=0 if ($no_cleanup);
+$pre_cleanup=0 if ($debmarshal);
 $post_cleanup=0 if ($no_cleanup);
-$post_cleanup=0 if ($cleanup);
+$post_cleanup=0 if ($pre_cleanup);
+$post_cleanup=0 if ($debmarshal);
 
 # Display configuration.
 $|=1 if $debug;
@@ -723,15 +755,20 @@ say("Including source.") if $do_source;
 say("D-I arches: ".join(",", @di_arches)) if @di_arches;
 say("D-I dists: ".join(",", @di_dists)) if @di_dists;
 say("Pdiff mode: $diff_mode");
+say("Slow CPU mode.") if $slow_cpu;
 say("Checking md5sums.") if $check_md5sums;
+say("Not checking Release gpg signatures.") if ! $check_gpg;
 say("Passive mode on.") if $passive;
 say("Proxy: $proxy") if $proxy;
 say("Download at most $max_batch files.") if ($max_batch > 0);
 say("Download at most $rsync_batch files per rsync call.") if ($download_method eq "rsync");
+if ($pre_cleanup) {
+  say("Will clean up before mirroring.");
+}
 if ($post_cleanup) {
-  say("Will clean up AFTER mirroring.");
+  say("Will clean up after mirroring.");
 } else {
-  say("Will NOT clean up.") unless $cleanup;
+  say("Will NOT clean up.");
 }
 say("Dry run.") if $dry_run;
 say("Debmarshal snapshots kept.") if $debmarshal;
@@ -773,43 +810,33 @@ my $tracefile="project/trace/$hostname";
 $files{$tracefile}=1;
 $files{$lockfile}=1;
 
-# Start up ftp.
-my $ftp;
-my %opts = (Debug => $debug, Passive => $passive, Timeout => $timeout);
-
 my $rsynctempfile;
 END { unlink $rsynctempfile if $rsynctempfile }
 
 sub init_connection {
   $_ = $download_method;
 
-  /^hftp$/  && do {
-    # LWP stuff
-    $ua = new LWP::UserAgent;
-    if ($proxy) {
-      $ua->proxy('ftp', $proxy);
-    } elsif ($ENV{ftp_proxy}) {
-      $ua->proxy('ftp', $ENV{ftp_proxy});
-    } else {
-      die("hftp method needs a proxy.");
-    }
-    return;
-  };
-
   /^http$/ && do {
-    # LWP stuff[
-    $ua = new LWP::UserAgent(keep_alive => 1);
-    $ua->proxy('http', $ENV{http_proxy}) if ($ENV{http_proxy});
-    $ua->proxy('http', $proxy) if ($proxy);
+    $ua = LWP::UserAgent->new(keep_alive => 1);
+    $ua->proxy('http', $ENV{http_proxy}) if $ENV{http_proxy};
+    $ua->proxy('http', $proxy) if $proxy;
+    $ua->show_progress($progress);
     return;
   };
 
   /^ftp$/ && do {
-    $ftp=Net::FTP->new($host, %opts) or die "$@\n";
-    $ftp->login($user, $passwd) or die "login failed"; # anonymous
-    $ftp->binary or die "could not set binary mode";
-    $ftp->cwd("/$remoteroot") or die "cwd to /$remoteroot failed";
-    $ftp->hash(\*STDOUT,102400) if $progress;
+    if ($proxy || $ENV{ftp_proxy}) {
+      $ua = LWP::UserAgent->new;
+      $ua->proxy('ftp', $proxy ? $proxy : $ENV{ftp_proxy});
+    }
+    else {
+      my %opts = (Debug => $debug, Passive => $passive, Timeout => $timeout);
+      $ftp=Net::FTP->new($host, %opts) or die "$@\n";
+      $ftp->login($user, $passwd) or die "login failed"; # anonymous
+      $ftp->binary or die "could not set binary mode";
+      $ftp->cwd("/$remoteroot") or die "cwd to /$remoteroot failed";
+      $ftp->hash(\*STDOUT,102400) if $progress;
+    }
     return;
   };
 
@@ -819,7 +846,7 @@ sub init_connection {
 
   usage("unknown download method: $_");
 }
-init_connection;
+init_connection();
 
 # determine remote root for rsync transfers
 my $rsyncremote = "$host\:\:$remoteroot/";
@@ -831,6 +858,7 @@ if (! ($user eq 'anonymous')) {
 rsync_extra(1, @rsync_extra);
 
 # Get Release files without caching for http
+say("Getting meta files ...");
 $ua->default_header( "Cache-Control" => "max-age=0" ) if ($ua);
 foreach my $dist (@dists) {
   my $tdir="$tempdir/.tmp/dists/$dist";
@@ -1000,7 +1028,7 @@ if ($getcontents) {
 	if (!update_contents("dists/$dist", "Contents-$arch")) {
 	  add_bytes("dists/$dist/Contents-$arch.gz");
 	}
-      } elsif (!check_lists ("$tempdir/dists/$dist/Contents-$arch.gz")) {
+      } elsif (!check_lists("$tempdir/dists/$dist/Contents-$arch.gz")) {
 	add_bytes("dists/$dist/Contents-$arch.gz");
       }
     }
@@ -1016,7 +1044,7 @@ if ($i18n) {
 }
 
 # close ftp connection to avoid timeouts, will reopen later
-if ($download_method eq 'ftp') { $ftp->quit; }
+if ($ftp) { $ftp->quit; }
 
 say("Parsing Packages and Sources files ...");
 {
@@ -1038,12 +1066,10 @@ say("Parsing Packages and Sources files ...");
     next if (!-f $file);
     open(FILE, "<", $file) or die "$file: $!";
     for (;;) {
-      my $buf;
-      unless (defined( $buf = <FILE> )) {
+      unless (defined( $_ = <FILE> )) {
 	last if eof;
 	die "$file: $!" if $!;
       }
-      $_ = $buf;
       ($filename)=m/^Filename:\s+(.*)/im;
       $filename=~s:/+:/:;	# remove redundant slashes in paths
       ($deb_section)=m/^Section:\s+(.*)/im;
@@ -1085,12 +1111,10 @@ say("Parsing Packages and Sources files ...");
     next if (!-f $file);
     open(FILE, "<", $file) or die "$file: $!";
     for (;;) {
-      my $buf = "";
-      unless (defined( $buf = <FILE> )) {
+      unless (defined( $_ = <FILE> )) {
 	last if eof;
 	die "$file: $!" if $!;
       }
-      $_ = $buf;
       ($directory) = m/^Directory:\s+(.*)/im;
       ($deb_section)=m/^Section:\s+(.*)/im;
       ($deb_priority)=m/^Priority:\s+(.*)/im;
@@ -1142,36 +1166,26 @@ say("Parsing Packages and Sources files ...");
 # With post-mirror cleanup it's more neat to do all downloads together.
 # This could be simplified if we could register the files earlier.
 
-init_connection;
-
-if (! ($cleanup && ! $post_cleanup)) {
-  say("Download all files that we need to get (".print_dl_size($bytes_to_get - $bytes_gotten).").");
-}
-
 # Download Contents and Translation files.
+init_connection();
 get_contents_files() if ($getcontents);
 get_i18n_files() if ($i18n);
 
 # Pre-mirror cleanup
-if ($cleanup && ! $post_cleanup && ! $debmarshal) {
+if ($pre_cleanup) {
   # close ftp connection during cleanup to avoid timeouts
-  if ($download_method eq 'ftp') { $ftp->quit; }
+  if ($ftp) { $ftp->quit; }
   cleanup_unknown_files();
-  init_connection;
-
-  say("Download all files that we need to get (".print_dl_size($bytes_to_get - $bytes_gotten).").");
+  init_connection();
 }
 
+say("Files to download: ".print_dl_size($bytes_to_get - $bytes_gotten));
+
 # Download all package files that we need to get.
-say("Get package files.");
 batch_get();
 
 sub batch_get {
-  $_ = $download_method;
-
-  # hftp (ftp using http mirror) method
-  /^hftp$/ && do {
-    # LWP stuff
+  if ($download_method eq 'ftp' || $download_method eq 'http') {
     my $dirname;
     my $i=0;
     foreach my $file (sort keys %files) {
@@ -1179,7 +1193,12 @@ sub batch_get {
 	if (($dirname) = $file =~ m:(.*)/:) {
 	  make_dir($dirname);
 	}
-	hftp_get($file);
+	if ($ftp) {
+		ftp_get($file);
+	}
+	else {
+		http_get($file);
+	}
 	if ($max_batch > 0 && ++$i >= $max_batch) {
 	  push (@errlog,"Batch limit exceeded, mirror run was partial\n");
 	  $num_errors++;
@@ -1188,60 +1207,17 @@ sub batch_get {
       }
     }
     return;
-  };
-
-  # http method
-  /^http$/ && do {
-    # LWP stuff
-    my $dirname;
-    my $i=0;
-    foreach my $file (sort keys %files) {
-      if (!$files{$file}) {
-	if (($dirname) = $file =~ m:(.*)/:) {
-	  make_dir($dirname);
-	}
-	http_get($file);
-	if ($max_batch > 0 && ++$i >= $max_batch) {
-	  push (@errlog,"Batch limit exceeded, mirror run was partial\n");
-	  $num_errors++;
-	  last;
-	}
-      }
-    }
-    return;
-  };
-
-  # ftp method
-  /^ftp$/ && do {
-    my $dirname;
-    my $i=0;
-    foreach my $file (sort keys %files) {
-      if (!$files{$file}) {
-	if (($dirname) = $file =~ m:(.*)/:) {
-	  make_dir($dirname);
-	}
-	ftp_get($file);
-	if ($max_batch > 0 && ++$i >= $max_batch) {
-	  push (@errlog,"Batch limit exceeded, mirror run was partial\n");
-	  $num_errors++;
-	  last;
-	}
-      }
-    }
-    return;
-  };
-
-  # rsync method
-  /^rsync$/ && do {
+  }
+  else {
     my $opt=$rsync_options;
     my $fh;
     my @result;
     my $i=0;
     my $j=0;
-    $opt = "$opt --progress" if $progress;
-    $opt = "$opt -v" if $verbose;
-    $opt = "$opt -v" if $debug;
-    $opt = "$opt -n" if $do_dry_run;
+    $opt .= " --progress" if $progress;
+    $opt .= " -v" if $verbose or $debug;
+    $opt .= " -n" if $do_dry_run;
+    $opt .= " --no-motd" unless $verbose;
     foreach my $file (sort keys %files) {
       if (!$files{$file}) {
 	my $dirname;
@@ -1311,7 +1287,7 @@ sub batch_get {
       }
     }
     return;
-  };
+  }
 }
 
 if (! @di_dists) {
@@ -1393,7 +1369,7 @@ if (! $do_dry_run) {
 cleanup_unknown_files() if ($post_cleanup && ! $debmarshal);
 
 # Mirror cleanup for directories.
-if (! $use_cache && ($cleanup || $post_cleanup)) {
+if (! $use_cache && ($pre_cleanup || $post_cleanup)) {
   # Remove all empty directories. Not done as part of main cleanup
   # to prevent race problems with pool download code, which
   # makes directories.. Sort so they are removable in bottom-up
@@ -1448,18 +1424,27 @@ sub add_bytes_gotten {
 # It will return true if the tests show the file matches.
 sub check_file {
   my ($filename, $size, $md5sum)=@_;
-  if (-f $filename and ($size == -s _ || $size == -1)) {
+  if (! -f $filename) {
+    return 0;
+  }
+  my $disksize = -s _;
+  if ($size == $disksize || $size == -1) {
     if ($check_md5sums || $size == -1) {
       open HANDLE, $filename or
 	die "$filename: $!";
       $md5->addfile(*HANDLE);
       my $digest = $md5->hexdigest;
-      return ($md5sum eq $digest);
+      return 1 if ($md5sum eq $digest);
+#      say(sprintf("Mismatch '$filename': sum is %s, expected %s",$digest,$md5sum))
+#        if $verbose;
     }
     else {
       # Assume it is ok, w/o md5 check.
       return 1;
     }
+  }
+  elsif ($verbose) {
+#    say(sprintf("Mismatch '$filename': size is %d, expected %d",$disksize,$size));
   }
   return 0;
 }
@@ -1519,96 +1504,47 @@ sub remote_get {
   $tdir=$tempdir unless $tdir;
   chdir($tdir) or die "unable to chdir($tdir): $!\n";
 
-  METHOD: {
-    $_ = $download_method;
-
-    /^hftp$/ && do {
-      $res=hftp_get($file);
-      $res=$res && check_lists($file);
-      if (-f $file && !$res) {
-	say("$file failed md5sum check, removing");
-	unlink($file) if (-f $file);
-      }
-    };
-
-    /^http$/ && do {
-      $res=http_get($file);
-      $res=$res && check_lists($file);
-      if (-f $file && !$res) {
-	say("$file failed md5sum check, removing");
-	unlink($file) if (-f $file);
-      }
-    };
-
-    /^ftp$/ && do {
-      $res=ftp_get($file);
-      $res=$res && check_lists($file);
-      if (-f $file && !$res) {
-	say("$file failed md5sum check, removing");
-	unlink($file) if (-f $file);
-      }
-    };
-
-    /^rsync$/ && do {
-      $res=rsync_get($file);
-      $res=$res && check_lists($file);
-      if (-f $file && !$res) {
-	say("$file failed md5sum check");
-	# FIXME: make sure the size doesn't match so it gets retried
-      }
-    };
+  if ($download_method eq 'ftp' || $download_method eq 'http') {
+    $res=$ftp ? ftp_get($file) : http_get($file);
+    $res=$res && check_lists($file);
+    if (-f $file && !$res) {
+      say("$file failed md5sum check, removing");
+      unlink($file) if (-f $file);
+    }
+  }
+  else {
+    $res=rsync_get($file);
+    $res=$res && check_lists($file);
+    if (-f $file && !$res) {
+      say("$file failed md5sum check");
+      # FIXME: make sure the size doesn't match so it gets retried
+    }
   }
 
   chdir($mirrordir) or die "unable to chdir($mirrordir): $!\n";
   return $res;
 }
 
-# Get a file via hftp, first displaying its filename if progress is on.
-sub hftp_get {
-  my $oldautoflush = $|;
-  $| = 1;
-  my $file=shift;
-  my $url="ftp://${host}/${remoteroot}/${file}";
-  my $ret=1;
+sub print_percent {
+  my $message=shift;
 
-  print "$url => " if ($debug);
-  if ($progress || $verbose) {
-    print "Getting: $file... ";
-  }
-  if (! $do_dry_run) {
-    unlink($file) if (-f $file);
-    $ret = $ua->mirror($url, $file);
-    print $ret->status_line . "\n" if ($debug);
-    if ($ret->is_error) {
-      $files{$file} = -1;
-      warn "$file failed " . $ret->status_line . "\n" if ($progress or $verbose);
-      push (@errlog,"Download of $file failed: ".$ret->status_line."\n");
-      $num_errors++;
-    } elsif ($progress || $verbose) {
-      print "ok\n";
-    }
-    $ret = not ( $ret->is_error );
-  } elsif ($progress || $verbose) {
-    print "ok\n";
-  }
-  $| = $oldautoflush;
-  return $ret;
+  my $percent = $bytes_to_get ? (($bytes_gotten / $bytes_to_get)*100) : 0;
+
+  printf "[%3.0f%%] %s", $percent, $message;
 }
 
-# Get a file via http, first displaying its filename if progress is on.
+# Get a file via http, or possibly ftp if a proxy is being used with that
+# method. First displaying its filename if progress is on.
 sub http_get {
   my $oldautoflush = $|;
   $| = 1;
   my $file=shift;
-  my $percent = 0;
-  my $url="http://${host}/${remoteroot}/${file}";
+  my $url="$download_method://${host}/${remoteroot}/${file}";
   my $ret=1;
-  $percent = sprintf("%3.0f",(($bytes_gotten/$bytes_to_get)*100)) unless($bytes_to_get == 0);
 
   print "$url => " if ($debug);
-  if ($progress || $verbose) {
-    print "[$percent%] Getting: $file... ";
-  }
+  print_percent "Getting: $file" if $progress or $verbose;
+  print $progress ? "\t #" : "... ";
   if (! $do_dry_run) {
     unlink($file) if (-f $file);
     $ret = $ua->mirror($url, $file);
@@ -1634,15 +1570,11 @@ sub http_get {
 }
 
 # Get a file via ftp, first displaying its filename if progress is on.
-# I should just be able to subclass Net::Ftp and override the get method,
-# but it's late.
 sub ftp_get {
   my $oldautoflush = $|;
   $| = 1;
   my $file=shift;
-  my $percent = 0;
   my $mtime;
-  $percent = sprintf("%3.0f",(($bytes_gotten/$bytes_to_get)*100)) unless($bytes_to_get == 0);
 
   my @stat = stat $file;
   if (@stat) { # already have the file?
@@ -1651,16 +1583,13 @@ sub ftp_get {
     if ($mtime && $size
 	&& $size == $stat[7]
 	&& $mtime == $stat[9]) { # size and time match
-      print "[$percent%] Keeping: $file\n" if ($progress || $verbose);
+      print_percent "Keeping: $file\n" if $progress or $verbose;
       add_bytes_gotten($size);
       return 1;
     }
   }
-  if ($progress) {
-    print "[$percent%] Getting: $file\t #";
-  } elsif ($verbose) {
-    print "[$percent%] Getting: $file";
-  }
+  print_percent "Getting: $file" if $progress or $verbose;
+  print "\t #" if $progress;
   my $ret=1;
   if (! $do_dry_run) {
     unlink($file) if (-f $file);
@@ -1690,8 +1619,9 @@ sub rsync_get {
   for (0..$#dir) {
     $opt = "$opt --include=" . join('/', @dir[0..$_]) . "/";
   }
-  $opt = "$opt --progress" if $progress;
-  $opt = "$opt -v" if $debug;
+  $opt .= " --progress" if $progress;
+  $opt .= " -v" if $debug;
+  $opt .= " --no-motd" unless $verbose;
   system ("rsync --timeout=$timeout $opt $rsyncremote --include=$file --exclude='*' .");
   if ($? == 0 && -f $file) {
     return 1;
@@ -1715,7 +1645,7 @@ sub rsync_extra {
 	push(@includes, "- /project/trace/$hostname");
 	push(@includes, "/project/trace/*");
 	push(@ignores, "^project/trace/");
-	say("Update remote trace files (using rsync).");
+	say("Updating remote trace files (using rsync) ...");
       } elsif ($type eq "doc") {
 	push(@ignores, "^doc/");
 	push(@ignores, "^README*");
@@ -1738,7 +1668,7 @@ sub rsync_extra {
   return if (! @includes);
   if (! $early) {
     @extras = grep(!/^trace$/, @extras); # drop 'trace' from list
-    say("Update extra files (using rsync): @extras.");
+    say("Updating extra files (using rsync): @extras.");
   }
   rsync_extra_get(@includes);
 }
@@ -1749,10 +1679,10 @@ sub rsync_extra_get {
   my @result;
 
   my $opt=$rsync_options;
-  $opt = "$opt --progress" if $progress;
-  $opt = "$opt -v" if $verbose;
-  $opt = "$opt -v" if $debug;
-  $opt = "$opt -n" if $do_dry_run;
+  $opt .= " --progress" if $progress;
+  $opt .= " -v" if $verbose or $debug;
+  $opt .= " -n" if $do_dry_run;
+  $opt .= " --no-motd" unless $verbose;
 
   ($fh, $rsynctempfile) = tempfile();
   foreach my $line (@includes) {
@@ -1770,7 +1700,10 @@ sub rsync_extra_get {
   for (@result) {
     print $fh "$_\n";
   }
-  system ("rsync --timeout=$timeout $opt $rsyncremote --delete --include-from=$rsynctempfile --exclude='*' $mirrordir");
+  my $ret=system("rsync --timeout=$timeout $opt $rsyncremote --delete --include-from=$rsynctempfile --exclude='*' $mirrordir");
+  if ($ret != 0) {
+    print STDERR "Warning: failed to use rsync to download extra files.\n";
+  }
   close $fh;
   unlink $rsynctempfile;
 }
@@ -1886,7 +1819,10 @@ sub get_release {
   my $t_errors = $num_errors;
   remote_get("dists/$dist/Release.gpg", "$tempdir/.tmp");
 
-  if (-f "$tdir/Release" && -f "$tdir/Release.gpg") {
+  if (! $check_gpg) {
+    # Nothing to do.
+  }
+  elsif (-f "$tdir/Release" && -f "$tdir/Release.gpg") {
     # Check for gpg
     if (system("gpgv --version >/dev/null 2>/dev/null")) {
       say("gpgv failed: gpgv binary missing?");
@@ -1907,14 +1843,14 @@ sub get_release {
 	system("gpgv --status-fd 1 $tdir/Release.gpg $tdir/Release >/dev/null");
       }
       if (! $gpgv_res) {
-	say("Release signature does not verify.");
-	push (@errlog,"Release signature does not verify\n");
+	say("Release gpg signature does not verify.");
+	push (@errlog,"Release gpg signature does not verify\n");
 	$num_errors++;
       }
     }
   } else {
-    say("Release signature does not verify, file missing.");
-    push (@errlog,"Release signature does not verify\n");
+    say("Release gpg signature does not verify, file missing.");
+    push (@errlog,"Release gpg signature does not verify\n");
     $num_errors++;
   }
 
@@ -2007,24 +1943,28 @@ sub get_index {
   make_dir($subdir);
   make_dir("$tempdir/$subdir");
 
-  if (!($diff_mode eq "none") && exists $file_lists{"$tempdir/$subdir/$file.diff/Index"}) {
-    if (!check_lists ("$tempdir/$subdir/$file.diff/Index")) {
+  if ($diff_mode ne "none" && exists $file_lists{"$tempdir/$subdir/$file.diff/Index"}) {
+    if (!check_lists("$tempdir/$subdir/$file.diff/Index")) {
       make_dir("$tempdir/$subdir/$file.diff");
       if (!remote_get("$subdir/$file.diff/Index")) {
 	push (@errlog,"$subdir/$file.diff/Index failed md5sum check, removing\n");
       } else {
 	fetch_and_apply_diffs(0, $subdir, $file);
-	if (check_lists ("$tempdir/$subdir/$file")) {
-	  system_redirect_io("gzip $gzip_options", "$tempdir/$subdir/$file", "$tempdir/$subdir/$file.gz");
-	  system_redirect_io("bzip2", "$tempdir/$subdir/$file", "$tempdir/$subdir/$file.bz2");
+	if (check_lists("$tempdir/$subdir/$file")) {
+	  if (! $slow_cpu) {
+	    system_redirect_io("gzip $gzip_options", "$tempdir/$subdir/$file", "$tempdir/$subdir/$file.gz");
+	    system_redirect_io("bzip2", "$tempdir/$subdir/$file", "$tempdir/$subdir/$file.bz2");
+	  }
 	}
       }
     } else {
       $bytes_gotten += $file_lists{"$tempdir/$subdir/$file.diff/Index"}{size};
       fetch_and_apply_diffs(0, $subdir, "$file");
-      if (check_lists ("$tempdir/$subdir/$file")) {
-	system_redirect_io("gzip $gzip_options", "$tempdir/$subdir/$file", "$tempdir/$subdir/$file.gz");
-	system_redirect_io("bzip2", "$tempdir/$subdir/$file", "$tempdir/$subdir/$file.bz2");
+      if (check_lists("$tempdir/$subdir/$file")) {
+	if (! $slow_cpu) {
+	  system_redirect_io("gzip $gzip_options", "$tempdir/$subdir/$file", "$tempdir/$subdir/$file.gz");
+	  system_redirect_io("bzip2", "$tempdir/$subdir/$file", "$tempdir/$subdir/$file.bz2");
+	}
       }
     }
     $files{"$subdir/$file.diff/Index"}=1 if ($diff_mode eq "mirror");
@@ -2032,10 +1972,12 @@ sub get_index {
   }
 
   if (exists $file_lists{"$tempdir/$subdir/$file.gz"}{size}) {
-    if (!check_lists ("$tempdir/$subdir/$file.gz")) {
+    if (!check_lists("$tempdir/$subdir/$file.gz")) {
       if (remote_get("$subdir/$file.gz")) {
 	system_redirect_io("gzip -d", "$tempdir/$subdir/$file.gz", "$tempdir/$subdir/$file");
-	system_redirect_io("bzip2", "$tempdir/$subdir/$file", "$tempdir/$subdir/$file.bz2");
+	if (! $slow_cpu) {
+	  system_redirect_io("bzip2", "$tempdir/$subdir/$file", "$tempdir/$subdir/$file.bz2");
+	}
       } else {
 	push (@errlog,"$subdir/$file.gz failed md5sum check\n");
 	$num_errors++;
@@ -2058,9 +2000,11 @@ sub get_index {
     }
   }
   if (exists $file_lists{"$tempdir/$subdir/$file"}) {
-    if (!check_lists ("$tempdir/$subdir/$file")) {
+    if (!check_lists("$tempdir/$subdir/$file")) {
       if (remote_get("$subdir/$file")) {
-	system_redirect_io("bzip2", "$tempdir/$subdir/$file", "$tempdir/$subdir/$file.bz2");
+	if (! $slow_cpu) {
+	  system_redirect_io("bzip2", "$tempdir/$subdir/$file", "$tempdir/$subdir/$file.bz2");
+	}
       } else {
 	push (@errlog,"$subdir/$file failed md5sum check\n");
 	$num_errors++;
@@ -2070,7 +2014,7 @@ sub get_index {
     }
   }
   if (exists $file_lists{"$tempdir/$subdir/$file.bz2"}) {
-    if (!check_lists ("$tempdir/$subdir/$file.bz2")) {
+    if (!check_lists("$tempdir/$subdir/$file.bz2")) {
       if (!remote_get("$subdir/$file.bz2")) {
 	push (@errlog,"$subdir/$file.bz2 failed md5sum check, removing\n");
       }
@@ -2079,7 +2023,7 @@ sub get_index {
     }
   }
   if (exists $file_lists{"$tempdir/$subdir/Release"}) {
-    if (!check_lists ("$tempdir/$subdir/Release")) {
+    if (!check_lists("$tempdir/$subdir/Release")) {
       if (!remote_get("$subdir/Release")) {
 	push (@errlog,"$subdir/Release failed md5sum check, removing\n");
       }
@@ -2114,7 +2058,7 @@ sub update_contents {
 
   # Get the Index file for the diffs
   if (exists $file_lists{"$tempdir/$subdir/$file.diff/Index"}) {
-    if (!check_lists ("$tempdir/$subdir/$file.diff/Index")) {
+    if (!check_lists("$tempdir/$subdir/$file.diff/Index")) {
       make_dir("$tempdir/$subdir/$file.diff");
       if (!remote_get("$subdir/$file.diff/Index")) {
 	push (@errlog,"$subdir/$file.diff/Index failed md5sum check, removing\n");
@@ -2158,7 +2102,7 @@ sub get_contents_files {
       next if $dist=~/experimental/;
       next if $dist=~/.*-proposed-updates/;
       next if $arch=~/source/;
-      if (!check_lists ("$tempdir/dists/$dist/Contents-$arch.gz")) {
+      if (!check_lists("$tempdir/dists/$dist/Contents-$arch.gz")) {
 	if ($first) {
 	  say("Get Contents files.");
 	  $first = 0;
@@ -2208,7 +2152,7 @@ sub get_i18n_index {
     make_dir($subdir);
     make_dir("$tempdir/$subdir");
 
-    if (!check_lists ("$tempdir/$subdir/Index")) {
+    if (!check_lists("$tempdir/$subdir/Index")) {
       if (!remote_get("$subdir/Index")) {
 	push (@errlog,"$subdir/Index failed md5sum check, removing\n");
       } elsif ($debmarshal) {
@@ -2419,7 +2363,6 @@ sub cleanup_unknown_files {
 }
 
 sub di_check_dists {
-  say("Checking validity of D-I dists.");
   DI_DIST:
   for my $di_dist (@di_dists) {
     if (exists $distset{$di_dist}) {
@@ -2562,7 +2505,7 @@ sub di_cleanup {
 }
 
 sub download_finished {
-  if ($download_method eq 'ftp') { $ftp->quit; }
+  if ($ftp) { $ftp->quit; }
 
   my $total_time = time - $start_time;
   if ($download_method eq 'rsync' || $bytes_gotten == 0) {
@@ -2681,11 +2624,12 @@ sub debug {
 
 =head1 COPYRIGHT
 
-This program is copyright 2000-2001 by Joey Hess <joeyh@debian.org>, under
+This program is copyright 2000-2001, 2010 by
+Joey Hess <joeyh@debian.org>, under
 the terms of the GNU GPL (either version 2 of the licence or, at your
 option, any later version), copyright 2001-2002 by Joerg Wendland
 <joergland@debian.org>, copyright 2003-2007 by Goswin von Brederlow
-<goswin-v-b@web.de> and copyright 2009 by Frans Pop <fjp@debian.org>.
+<goswin-v-b@web.de> and copyright 2009-2010 by Frans Pop <fjp@debian.org>.
 
 The author disclaims any responsibility for any mangling of your system,
 unexpected bandwidth usage bills, meltdown of the Debian mirror network,
@@ -2697,7 +2641,6 @@ etc, that this script may cause. See NO WARRANTY section of GPL.
    Joey Hess <joeyh@debian.org>
 
  Previous maintainers:
-   Joey Hess <joeyh@debian.org> (original author)
    Joerg Wendland <joergland@debian.org>
    Goswin von Brederlow <goswin-v-b@web.de>
    Frans Pop <fjp@debian.org>
