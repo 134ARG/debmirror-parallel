@@ -1296,7 +1296,7 @@ if (! @di_dists) {
 
 say("Everything OK. Moving meta files ...");
 if ($debmarshal) {
-  update_latest_links($mirrordir, $tempdir, @dists) = @_;
+  update_latest_links($mirrordir, $tempdir, @dists);
 }
 chdir($tempdir) or die "unable to chdir($tempdir): $!\n";
 my $res=0;
