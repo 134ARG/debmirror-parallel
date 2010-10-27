@@ -1796,7 +1796,7 @@ sub split_dist {
   return ($dist_raw, $dist_sdir);
 }
 
-sub get_nextlatest {
+sub get_next_snapshot {
   my ($dist) = @_;
   my $latest = readlink("$mirrordir/dists/$dist/latest");
   if (defined $latest) {
@@ -1810,7 +1810,7 @@ sub get_nextlatest {
 sub make_next_snapshot {
   my ($mirrordir, $dist, $codename, $dist_sdir, $tempdir) = @_;
 
-  my $next = get_nextlatest($dist);
+  my $next = get_next_snapshot($dist);
   make_dir("$mirrordir/dists/$dist/$next");
   unlink("$mirrordir/dists/$dist/$next/Release");
   link("$tempdir/dists/$codename$dist_sdir/Release",
@@ -1825,7 +1825,7 @@ sub update_latest_links {
     system("diff","-q","$mirrordir/dists/$dist/latest/Release",
 	   "$tempdir/dists/$dist/Release");
     if ($?) {
-      my $next = get_nextlatest($dist);
+      my $next = get_next_snapshot($dist);
       say("Updating $mirrordir/dists/$dist/latest to $next");
       unlink("$mirrordir/dists/$dist/latest");
       symlink($next,"$mirrordir/dists/$dist/latest")
@@ -1847,7 +1847,7 @@ sub link_release_into_snapshot {
 
 sub link_contents_into_snapshot {
   my ($dist,$mirrordir,$arch,$tempdir) = @_;
-  my $next = get_nextlatest($dist);
+  my $next = get_next_snapshot($dist);
   unlink("$mirrordir/dists/$dist/$next/Contents-$arch.gz");
   link("$tempdir/dists/$dist/Contents-$arch.gz",
        "$mirrordir/dists/$dist/$next/Contents-$arch.gz")
@@ -1856,7 +1856,7 @@ sub link_contents_into_snapshot {
 
 sub link_index_into_snapshot {
   my ($dist,$mirrordir,$distpath,$subdir,$tempdir) = @_;
-  my $next = get_nextlatest($dist);
+  my $next = get_next_snapshot($dist);
   say("linking $mirrordir/dists/$dist/$next/$distpath/Index");
   unlink("$mirrordir/dists/$dist/$next/$distpath/Index");
   link("$tempdir/$subdir/Index",
@@ -1866,7 +1866,7 @@ sub link_index_into_snapshot {
 
 sub link_translation_into_snapshot {
   my ($file,$dist,$distpath,$filename,$mirrordir,$tempdir) = @_;
-  my $next = get_nextlatest($dist);
+  my $next = get_next_snapshot($dist);
   say("linking $file");
   unlink("$mirrordir/dists/$dist/$next/$distpath/$filename");
   link("$tempdir/$file",
@@ -2185,7 +2185,7 @@ sub link_index {
     $file = "Packages";
     $archdir = "binary-$arch";
   }
-  my $next = get_nextlatest($dist);
+  my $next = get_next_snapshot($dist);
   make_dir("$mirrordir/dists/$dist/$next/$section/$archdir");
   unlink("$mirrordir/dists/$dist/$next/$section/$archdir/$file");
   link("$tempdir/dists/$dist/$section/$archdir/$file",
