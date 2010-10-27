@@ -844,12 +844,8 @@ foreach my $dist (@dists) {
     $files{"dists/$codename$dist_sdir/Release"}=1;
     $files{$tempdir."/"."dists/$codename$dist_sdir/Release"}=1;
     if ($debmarshal) {
-      $next = get_nextlatest($dist);
-      make_dir("$mirrordir/dists/$dist/$next");
-      unlink("$mirrordir/dists/$dist/$next/Release");
-      link("$tempdir/dists/$codename$dist_sdir/Release",
-	   "$mirrordir/dists/$dist/$next/Release")
-        or die "Error while linking $tempdir/dists/$codename$dist_sdir/Release: $!\n";
+      $next = make_next_snapshot($mirrordir,$dist,$codename,
+					    $dist_sdir,$tempdir);
     }
     if (-f "$tdir/Release.gpg") {
       rename("$tdir/Release.gpg", "$tempdir/dists/$codename$dist_sdir/Release.gpg")
@@ -857,10 +853,8 @@ foreach my $dist (@dists) {
       $files{"dists/$codename$dist_sdir/Release.gpg"}=1;
       $files{$tempdir."/"."dists/$codename$dist_sdir/Release.gpg"}=1;
       if ($debmarshal) {
-        unlink("$mirrordir/dists/$dist/$next/Release.gpg");
-	link("$tempdir/dists/$codename$dist_sdir/Release.gpg",
-	     "$mirrordir/dists/$dist/$next/Release.gpg")
-	  or die "Error while linking $tempdir/dists/$codename$dist_sdir/Release.gpg: $!\n";
+	link_release_into_snapshot($mirrordir,$dist,$next,$tempdir,
+				   $codename,$dist_sdir) = @_;
       }
     }
   }
@@ -1331,7 +1325,7 @@ if ($debmarshal) {
       say("Updating $mirrordir/dists/$dist/latest to $next");
       unlink("$mirrordir/dists/$dist/latest");
       symlink($next,"$mirrordir/dists/$dist/latest")
-       or die "Error while symlinking $mirrordir/dists/$dist/latest to $next: $
+       or die "Error while symlinking $mirrordir/dists/$dist/latest to $next: $\n";
     } else {
       say("Not updating $mirrordir/dists/$dist/latest");
     }
@@ -1820,6 +1814,27 @@ sub get_nextlatest {
     $latest = 0;
   }
   return $latest;
+}
+
+sub make_next_snapshot {
+  my ($mirrordir, $dist, $codename, $dist_sdir, $tempdir) = @_;
+
+  my $next = get_nextlatest($dist);
+  make_dir("$mirrordir/dists/$dist/$next");
+  unlink("$mirrordir/dists/$dist/$next/Release");
+  link("$tempdir/dists/$codename$dist_sdir/Release",
+       "$mirrordir/dists/$dist/$next/Release")
+    or die "Error while linking $tempdir/dists/$codename$dist_sdir/Release: $!\n";
+  return $next;
+}
+
+sub link_release_into_snapshot {
+  my ($mirrordir,$dist,$next,$tempdir,$codename,$dist_sdir) = @_;
+	
+  unlink("$mirrordir/dists/$dist/$next/Release.gpg");
+  link("$tempdir/dists/$codename$dist_sdir/Release.gpg",
+       "$mirrordir/dists/$dist/$next/Release.gpg")
+    or die "Error while linking $tempdir/dists/$codename$dist_sdir/Release.gpg: $!\n";
 }
 
 sub get_release {
