@@ -1317,19 +1317,7 @@ if (! @di_dists) {
 
 say("Everything OK. Moving meta files ...");
 if ($debmarshal) {
-  foreach my $dist (@dists) {
-    system("diff","-q","$mirrordir/dists/$dist/latest/Release",
-          "$tempdir/dists/$dist/Release");
-    if ($?) {
-      my $next = get_nextlatest($dist);
-      say("Updating $mirrordir/dists/$dist/latest to $next");
-      unlink("$mirrordir/dists/$dist/latest");
-      symlink($next,"$mirrordir/dists/$dist/latest")
-       or die "Error while symlinking $mirrordir/dists/$dist/latest to $next: $\n";
-    } else {
-      say("Not updating $mirrordir/dists/$dist/latest");
-    }
-  }
+  update_latest_links($mirrordir, $tempdir, @dists) = @_;
 }
 chdir($tempdir) or die "unable to chdir($tempdir): $!\n";
 my $res=0;
@@ -1826,6 +1814,23 @@ sub make_next_snapshot {
        "$mirrordir/dists/$dist/$next/Release")
     or die "Error while linking $tempdir/dists/$codename$dist_sdir/Release: $!\n";
   return $next;
+}
+
+sub update_latest_links {
+  my ($mirrordir, $tempdir, @dists) = @_;
+  foreach my $dist (@dists) {
+    system("diff","-q","$mirrordir/dists/$dist/latest/Release",
+	   "$tempdir/dists/$dist/Release");
+    if ($?) {
+      my $next = get_nextlatest($dist);
+      say("Updating $mirrordir/dists/$dist/latest to $next");
+      unlink("$mirrordir/dists/$dist/latest");
+      symlink($next,"$mirrordir/dists/$dist/latest")
+	or die "Error while symlinking $mirrordir/dists/$dist/latest to $next: $\n";
+    } else {
+      say("Not updating $mirrordir/dists/$dist/latest");
+    }
+  }
 }
 
 sub link_release_into_snapshot {
