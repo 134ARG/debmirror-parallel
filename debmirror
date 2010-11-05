@@ -1544,7 +1544,7 @@ sub http_get {
 
   print "$url => " if ($debug);
   print_percent "Getting: $file" if $progress or $verbose;
-  print $progress ? "\t #" : "... ";
+  print "\t #" if $progress;
   if (! $do_dry_run) {
     unlink($file) if (-f $file);
     $ret = $ua->mirror($url, $file);
