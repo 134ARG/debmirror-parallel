@@ -849,9 +849,16 @@ sub init_connection {
 init_connection();
 
 # determine remote root for rsync transfers
-my $rsyncremote = "$host\:\:$remoteroot/";
-if (! ($user eq 'anonymous')) {
-  $rsyncremote = "$user\@$rsyncremote";
+my $rsyncremote;
+if (length $remoteroot) {
+	if (! ($user eq 'anonymous')) {
+	  $rsyncremote = "$user\@$rsyncremote";
+	}
+}
+else {
+	if ($download_method eq 'rsync') {
+		die "rsync cannot be used with a root of $remoteroot/\n";
+	}
 }
 
 # Update the remote trace files; also update ignores for @rsync_extra.
@@ -1636,6 +1643,11 @@ sub rsync_get {
 sub rsync_extra {
   my ($early, @extras) = @_;
   my @includes;
+
+  if (! defined $rsyncremote) {
+	say("Not able to use rsync to update remote trace files ...");
+	return;
+  }
 
   # @ignores is updated during $early to prevent removal of files
   # if cleanup is done early.
