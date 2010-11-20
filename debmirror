@@ -851,8 +851,9 @@ init_connection();
 # determine remote root for rsync transfers
 my $rsyncremote;
 if (length $remoteroot) {
-	if (! ($user eq 'anonymous')) {
-	  $rsyncremote = "$user\@$rsyncremote";
+	$rsyncremote = "$host\:\:$remoteroot/";
+	if ($user ne 'anonymous') {
+		$rsyncremote = "$user\@$rsyncremote";
 	}
 }
 else {
