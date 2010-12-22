@@ -1849,11 +1849,12 @@ sub get_release {
 	$gpgv_res = 1 if /^\[GNUPG:\] VALIDSIG/;
       }
       close GPGV;
+      # In debug or verbose mode, display the gpg error message on stdout.
       if (! $gpgv_res || $debug) {
-	system("gpgv --status-fd 1 $tdir/Release.gpg $tdir/Release");
+	system("gpgv --status-fd 1 $tdir/Release.gpg $tdir/Release 2>&1");
       }
       if ($verbose && ! $debug) {
-	system("gpgv --status-fd 1 $tdir/Release.gpg $tdir/Release >/dev/null");
+	system("gpgv --status-fd 1 $tdir/Release.gpg $tdir/Release 2>&1 >/dev/null");
       }
       if (! $gpgv_res) {
 	say("Release gpg signature does not verify.");

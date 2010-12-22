@@ -24,6 +24,7 @@ debmirror (1:2.5) UNRELEASED; urgency=low
   * Apply manpage markup patch from liw. Closes: #599414
   * Fix typo in default rsync options. Closes: #599568
   * Add --debmarshal snapshot mode by Drake Diedrich. Closes: #550007
+  * Send verbose/debug mode gpgv error messages to stdout. Closes: #607099
 
  -- Joey Hess <joeyh@debian.org>  Sun, 05 Sep 2010 19:02:16 -0400
 
