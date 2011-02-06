@@ -1,4 +1,4 @@
-debmirror (1:2.5 UNRELEASED; urgency=low
+debmirror (1:2.5) unstable; urgency=low
 
   The --cleanup option has been renamed to --precleanup for clarity.
   (The old option name will continue to work for now.)
