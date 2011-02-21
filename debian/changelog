@@ -1,13 +1,13 @@
-debmirror (1:2.6) UNRELEASED; urgency=low
+debmirror (1:2.6) unstable; urgency=high
 
-  * Support all sizes of SHA checksums (that are supported by Digest::SHA)
-    in Release, Packages, and Sources files. Check SHA512, SHA256, or SHA1
-    in preference to MD5. Closes: #614383
+  * In Release, Packages, and Sources files, support all sizes of SHA
+    checksums that are supported by Digest::SHA. Closes: #614383
   * Now depends on libdigest-sha-perl.
+  * Check SHA512, SHA256, or SHA1 in preference to MD5.
   * Full checksum validation is now enabled by the --checksums switch.
-    (The old --md5sums switch is an alias to that for backwards compatability.)
+    (The old --md5sums switch is an alias to that for backwards compatibility.)
 
- -- Joey Hess <joeyh@debian.org>  Mon, 21 Feb 2011 15:01:12 -0400
+ -- Joey Hess <joeyh@debian.org>  Mon, 21 Feb 2011 19:28:07 -0400
 
 debmirror (1:2.5) unstable; urgency=low
 
