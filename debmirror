@@ -1098,7 +1098,7 @@ say("Parsing Packages and Sources files ...");
       }
       ($size)=m/^Size:\s+(\d+)/im;
       my %checksums;
-      while (m/^(MD5sum|SHA(?:\d+)):\s+([A-Za-z0-9]+)/img) {
+      while (m/^(MD5sum|SHA\d+):\s+([A-Za-z0-9]+)/img) {
 	      $checksums{$1}=$2;
       }
       if (check_file(filename => $filename, size => $size, %checksums)) {
@@ -1454,8 +1454,8 @@ sub check_file {
 		     $summer=Digest::MD5->new;
 	     }
 	     elsif ($checksum_type=~/^sha(\d+)$/i) {
-		     $summer=Digest::SHA($1);
 		     # returns undef on unknown/too large SHA type
+		     $summer=Digest::SHA->new($1);
 	     }
 	     if (defined $summer) {
 		     $checksum=$params{$checksum_type};
