@@ -1128,7 +1128,6 @@ SOURCE:  foreach my $file (@source_files) {
 	      my $checksum_type=shift;
 	      while (@lines && $lines[0] =~ m/^ ([A-Za-z0-9]+ .*)/) {
 		      my ($checksum, $size, $filename)=split(' ', $1, 3);
-		      print "source $checksum_type $filename = $checksum\n";
 		      $source_files{$filename}{size}=$size;
 		      $source_files{$filename}{$checksum_type}=$checksum;
 		      shift @lines;
