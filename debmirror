@@ -529,7 +529,7 @@ use File::Temp qw/ tempfile /;
 use LockFile::Simple;
 use Compress::Zlib;
 use Digest::MD5;
-use Digest::SHA1;
+use Digest::SHA;
 use LWP::UserAgent;
 
 # Yeah, I use too many global variables in this program.
@@ -769,9 +769,6 @@ if ($post_cleanup) {
 }
 say("Dry run.") if $dry_run;
 say("Debmarshal snapshots kept.") if $debmarshal;
-
-my $md5;
-$md5=Digest::MD5->new;
 
 # Set up mirror directory and resolve $mirrordir to a full path for
 # locking and rsync
@@ -1426,7 +1423,7 @@ sub add_bytes_gotten {
 
 # Pass this function a filename, a file size (bytes), a checksum,
 # and the type of checksum ("sha1", "md5", etc).
-# Size is always checked; checking the checksum is optional. However, if
+# Size is always checked; verifying the checksum is optional. However, if
 # a value of -1 is passed for size, a check of the checksum is forced.
 # It will return true if the tests show the file matches.
 sub check_file {
@@ -1441,6 +1438,8 @@ sub check_file {
 	die "$filename: $!";
       my $calculated_checksum;
       if ($checksum_type eq 'md5') {
+	      my $md5;
+	      $md5=Digest::MD5->new;
 	      $md5->addfile(*HANDLE);
 	      $calculated_checksum = $md5->hexdigest;
       }
@@ -1460,7 +1459,7 @@ sub check_file {
 # similar to what is done in check_lists, which forces verify_checksums).
 sub check_i18n {
   my ($filename, $size, $sha1)=@_;
-  my $digest = Digest::SHA1->new;
+  my $digest = Digest::SHA->new(1);
   my $ret = 0;
 
   if (-f "$filename" and ($size == -s _)) {
@@ -1474,7 +1473,7 @@ sub check_i18n {
 # Check uncompressed diff content against sha1sum from Index file.
 sub check_diff {
   my ($filename, $size, $sha1) = @_;
-  my $digest = Digest::SHA1->new;
+  my $digest = Digest::SHA->new(1);
   my $ret = 0;
 
   if (-f "$filename.gz") {
@@ -2289,7 +2288,7 @@ sub fetch_and_apply_diffs {
 
   # Apply diff files
   open(FILE, "$tempdir/$subdir/$type") or return;
-  $digest = Digest::SHA1->new;
+  $digest = Digest::SHA->new(1);
   $digest->addfile(*FILE);
   $sha1 = $digest->hexdigest;
   $size = -s "$tempdir/$subdir/$type";
@@ -2301,7 +2300,7 @@ sub fetch_and_apply_diffs {
       return;
     }
     open(FILE, "$tempdir/$subdir/$type") or return;
-    $digest = Digest::SHA1->new;
+    $digest = Digest::SHA->new(1);
     $digest->addfile(*FILE);
     $sha1 = $digest->hexdigest;
     $size = -s "$tempdir/$subdir/$type";
