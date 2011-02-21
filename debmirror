@@ -1438,10 +1438,17 @@ sub check_file {
 	die "$filename: $!";
       my $calculated_checksum;
       if ($checksum_type eq 'md5') {
-	      my $md5;
-	      $md5=Digest::MD5->new;
+	      my $md5=Digest::MD5->new;
 	      $md5->addfile(*HANDLE);
 	      $calculated_checksum = $md5->hexdigest;
+      }
+      elsif ($checksum_type=~/^sha(\d+)$/) {
+	      my $sha=Digest::SHA($1);
+	      if (! defined $sha) {
+		      die "unsupported checksum type: $checksum_type (a newer Digest::SHA may be needed)\n";
+	      }
+	      $sha->addfile(*HANDLE);
+	      $calculated_checksum = $sha->hexdigest;
       }
       else {
               die "unsupported checksum type: $checksum_type\n";
