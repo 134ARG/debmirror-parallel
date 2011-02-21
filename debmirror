@@ -34,7 +34,7 @@ was instructed to get.
 The Packages and Sources files are scanned, to build up a list of all the
 files they refer to. A few other miscellaneous files are added to the list.
 Then the program makes sure that each file in the list is present on the
-local mirror and is up-to-date, using file size (and optionally md5sum) checks.
+local mirror and is up-to-date, using file size (and optionally checksum) checks.
 Any necessary files are downloaded.
 
 =item 3. clean up unknown files
@@ -230,12 +230,11 @@ files can be relatively big and can change frequently, especially for the
 testing and unstable suites. Use of the available diff files is strongly
 recommended (see the B<--diff> option).
 
-=item B<-m>, B<--md5sums>
+=item B<--checksums>
 
-Use MD5 checksums to determine if files on the local mirror that are 
-the correct
-size actually have the correct content. Not enabled by default, because
-it is too paranoid, and too slow.
+Use checksums to determine if files on the local mirror that are 
+the correct size actually have the correct content. Not enabled by default,
+because it is too paranoid, and too slow.
 
 When the state cache is used, B<debmirror> will only check checksums 
 during runs
@@ -353,11 +352,10 @@ files after applying diffs. The default options are C<-9 -n --rsyncable>
 which corresponds with the options used to gzip meta files for the main
 Debian archive.
 
-These options may need to be modified if the MD5 checksum of the file as 
-gzipped
-by debmirror does not match the md5sum listed in the F<Release> file (which
-will result in the gzipped file being downloaded unnecessarily after diffs
-were successfully applied).
+These options may need to be modified if the checksum of the file as gzipped by
+debmirror does not match the checksum listed in the F<Release> file (which will
+result in the gzipped file being downloaded unnecessarily after diffs were
+successfully applied).
 
 =item B<--slow-cpu>
 
@@ -542,8 +540,7 @@ our (@dists, @sections, @arches, @ignores, @excludes, @includes);
 our (@excludes_deb_section, @limit_priority);
 our (@di_dists, @di_arches, @rsync_extra);
 our $state_cache_days = 0;
-our $check_md5sums = 0;
-our $check_downloads = 0;
+our $verify_checksums = 0;
 our $pre_cleanup=0;
 our $post_cleanup=1;
 our $no_cleanup=0;
@@ -606,7 +603,7 @@ my %distset=();
 # below! Filenames should be relative to $mirrordir.
 my %files;
 
-# Hash to record size and md5sums of meta files and package files (from the
+# Hash to record size and checksums of meta files and package files (from the
 # Release file and Source/Packages files).
 my %file_lists;
 
@@ -630,8 +627,8 @@ GetOptions('debug'                  => \$debug,
 	   'progress|p'             => \$progress,
 	   'verbose|v'              => \$verbose,
 	   'source!'                => \$do_source,
-	   'md5sums|m'              => \$check_md5sums,
-	   'nomd5sums'              => \$check_downloads,
+	   'checksums!'             => \$verify_checksums,
+	   'md5sums|m'              => \$verify_checksums, # back compat
 	   'passive!'               => \$passive,
 	   'host|h=s'               => \$host,
 	   'user|u=s'               => \$user,
@@ -756,7 +753,7 @@ say("D-I arches: ".join(",", @di_arches)) if @di_arches;
 say("D-I dists: ".join(",", @di_dists)) if @di_dists;
 say("Pdiff mode: $diff_mode");
 say("Slow CPU mode.") if $slow_cpu;
-say("Checking md5sums.") if $check_md5sums;
+say("Veriftying checksums.") if $verify_checksums;
 say("Not checking Release gpg signatures.") if ! $check_gpg;
 say("Passive mode on.") if $passive;
 say("Proxy: $proxy") if $proxy;
@@ -971,6 +968,7 @@ foreach my $dist (keys %distset) {
 }
 
 # Get and parse MD5SUMS files for D-I images.
+# (There are not currently other checksums for these.)
 di_add_files() if @di_dists;
 
 # Get Packages and Sources files and other miscellany.
@@ -1103,7 +1101,7 @@ say("Parsing Packages and Sources files ...");
       }
       ($size)=m/^Size:\s+(\d+)/im;
       ($md5sum)=m/^MD5sum:\s+([A-Za-z0-9]+)/im;
-      if (check_file($filename, $size, $md5sum)) {
+      if (check_file($filename, $size, $md5sum, "md5")) {
 	$files{$filename} = 1;
       } else {
 	$files{$filename} = 0;
@@ -1147,7 +1145,7 @@ say("Parsing Packages and Sources files ...");
 	    $files{$filename} = 0;
 	  }
 	}
-	if (check_file($filename, $size, $md5sum)) {
+	if (check_file($filename, $size, $md5sum, "md5")) {
 	  $files{$filename} = 1;
 	} else {
 	  $files{$filename} = 0;
@@ -1254,7 +1252,7 @@ sub batch_get {
 	  foreach my $dest (@result) {
 	    if (-f $dest) {
 	      if (!check_lists($dest)) {
-		say("$dest failed md5sum check");
+		say("$dest failed checksum verification");
 		$num_errors++;
 	      }
 	    } elsif (!-d $dest) {
@@ -1285,7 +1283,7 @@ sub batch_get {
       foreach my $dest (@result) {
 	if (-f $dest) {
 	  if (!check_lists($dest)) {
-	    say("$dest failed md5sum check");
+	    say("$dest failed checksum verification");
 	    $num_errors++;
 	  }
 	} elsif (!-d $dest) {
@@ -1426,39 +1424,40 @@ sub add_bytes_gotten {
   }
 }
 
-# Pass this function a filename, a file size (bytes), and a md5sum (hex).
-# Size is always checked; checking the md5sum is optional. However, if
-# a value of -1 is passed for size, a check of the md5sum is forced.
+# Pass this function a filename, a file size (bytes), a checksum,
+# and the type of checksum ("sha1", "md5", etc).
+# Size is always checked; checking the checksum is optional. However, if
+# a value of -1 is passed for size, a check of the checksum is forced.
 # It will return true if the tests show the file matches.
 sub check_file {
-  my ($filename, $size, $md5sum)=@_;
+  my ($filename, $size, $checksum, $checksum_type)=@_;
   if (! -f $filename) {
     return 0;
   }
   my $disksize = -s _;
   if ($size == $disksize || $size == -1) {
-    if ($check_md5sums || $size == -1) {
+    if ($verify_checksums || $size == -1) {
       open HANDLE, $filename or
 	die "$filename: $!";
-      $md5->addfile(*HANDLE);
-      my $digest = $md5->hexdigest;
-      return 1 if ($md5sum eq $digest);
-#      say(sprintf("Mismatch '$filename': sum is %s, expected %s",$digest,$md5sum))
-#        if $verbose;
+      my $calculated_checksum;
+      if ($checksum_type eq 'md5') {
+	      $md5->addfile(*HANDLE);
+	      $calculated_checksum = $md5->hexdigest;
+      }
+      else {
+              die "unsupported checksum type: $checksum_type\n";
+      }
+      return 1 if $checksum eq $calculated_checksum;
     }
     else {
-      # Assume it is ok, w/o md5 check.
       return 1;
     }
-  }
-  elsif ($verbose) {
-#    say(sprintf("Mismatch '$filename': size is %d, expected %d",$disksize,$size));
   }
   return 0;
 }
 
 # Always checks both file size and sha1 as the files get updated (this is
-# similar to what is done in check_lists, which forces check_md5sums).
+# similar to what is done in check_lists, which forces verify_checksums).
 sub check_i18n {
   my ($filename, $size, $sha1)=@_;
   my $digest = Digest::SHA1->new;
@@ -1490,17 +1489,17 @@ sub check_diff {
   return $ret;
 }
 
-# Check file against md5sum and size from the Release file.
-# It will return true if the md5sum matches.
+# Check file against checksum and size from the Release file.
+# It will return true if the checksum matches.
 sub check_lists {
   my $file = shift;
-  my $t = $check_md5sums;
+  my $t = $verify_checksums;
   my $ret = 1;
-  $check_md5sums = 1;
+  $verify_checksums = 1;
   if (exists $file_lists{$file}) {
-    $ret = check_file($file, $file_lists{$file}{size}, $file_lists{$file}{md5});
+    $ret = check_file($file, $file_lists{$file}{size}, $file_lists{$file}{md5}, "md5");
   }
-  $check_md5sums = $t;
+  $verify_checksums = $t;
   return $ret;
 }
 
@@ -1516,7 +1515,7 @@ sub remote_get {
     $res=$ftp ? ftp_get($file) : http_get($file);
     $res=$res && check_lists($file);
     if (-f $file && !$res) {
-      say("$file failed md5sum check, removing");
+      say("$file failed checksum verification, removing");
       unlink($file) if (-f $file);
     }
   }
@@ -1524,7 +1523,7 @@ sub remote_get {
     $res=rsync_get($file);
     $res=$res && check_lists($file);
     if (-f $file && !$res) {
-      say("$file failed md5sum check");
+      say("$file failed checksum verification");
       # FIXME: make sure the size doesn't match so it gets retried
     }
   }
@@ -1961,7 +1960,7 @@ sub get_index {
     if (!check_lists("$tempdir/$subdir/$file.diff/Index")) {
       make_dir("$tempdir/$subdir/$file.diff");
       if (!remote_get("$subdir/$file.diff/Index")) {
-	push (@errlog,"$subdir/$file.diff/Index failed md5sum check, removing\n");
+	push (@errlog,"$subdir/$file.diff/Index failed checksum verification, removing\n");
       } else {
 	fetch_and_apply_diffs(0, $subdir, $file);
 	if (check_lists("$tempdir/$subdir/$file")) {
@@ -1993,7 +1992,7 @@ sub get_index {
 	  system_redirect_io("bzip2", "$tempdir/$subdir/$file", "$tempdir/$subdir/$file.bz2");
 	}
       } else {
-	push (@errlog,"$subdir/$file.gz failed md5sum check\n");
+	push (@errlog,"$subdir/$file.gz failed checksum verification\n");
 	$num_errors++;
       }
     } else {
@@ -2020,7 +2019,7 @@ sub get_index {
 	  system_redirect_io("bzip2", "$tempdir/$subdir/$file", "$tempdir/$subdir/$file.bz2");
 	}
       } else {
-	push (@errlog,"$subdir/$file failed md5sum check\n");
+	push (@errlog,"$subdir/$file failed checksum verification\n");
 	$num_errors++;
       }
     } else {
@@ -2030,7 +2029,7 @@ sub get_index {
   if (exists $file_lists{"$tempdir/$subdir/$file.bz2"}) {
     if (!check_lists("$tempdir/$subdir/$file.bz2")) {
       if (!remote_get("$subdir/$file.bz2")) {
-	push (@errlog,"$subdir/$file.bz2 failed md5sum check, removing\n");
+	push (@errlog,"$subdir/$file.bz2 failed checksum verification, removing\n");
       }
     } else {
       $bytes_gotten += $file_lists{"$tempdir/$subdir/$file.bz2"}{size};
@@ -2039,7 +2038,7 @@ sub get_index {
   if (exists $file_lists{"$tempdir/$subdir/Release"}) {
     if (!check_lists("$tempdir/$subdir/Release")) {
       if (!remote_get("$subdir/Release")) {
-	push (@errlog,"$subdir/Release failed md5sum check, removing\n");
+	push (@errlog,"$subdir/Release failed checksum verification, removing\n");
       }
     } else {
       $bytes_gotten += $file_lists{"$tempdir/$subdir/Release"}{size};
@@ -2075,7 +2074,7 @@ sub update_contents {
     if (!check_lists("$tempdir/$subdir/$file.diff/Index")) {
       make_dir("$tempdir/$subdir/$file.diff");
       if (!remote_get("$subdir/$file.diff/Index")) {
-	push (@errlog,"$subdir/$file.diff/Index failed md5sum check, removing\n");
+	push (@errlog,"$subdir/$file.diff/Index failed checksum verification, removing\n");
 	return $file_ok;
       }
 #FIXME: before download
@@ -2168,7 +2167,7 @@ sub get_i18n_index {
 
     if (!check_lists("$tempdir/$subdir/Index")) {
       if (!remote_get("$subdir/Index")) {
-	push (@errlog,"$subdir/Index failed md5sum check, removing\n");
+	push (@errlog,"$subdir/Index failed checksum verification, removing\n");
       } elsif ($debmarshal) {
 	link_index_into_snapshot($dist,$mirrordir,$distpath,$subdir,$tempdir);
       }
@@ -2435,7 +2434,7 @@ sub di_add_files {
 	$di_files{$image_dir}{$filename}{md5sum} = $md5sum;
 
 	# Check against the version currently on the mirror
-	if (check_file("$image_dir/$filename", -1, $md5sum)) {
+	if (check_file("$image_dir/$filename", -1, $md5sum, "md5")) {
 	  $di_files{$image_dir}{$filename}{status} = 1;
 	} else {
 	  $di_files{$image_dir}{$filename}{status} = 0;
@@ -2460,7 +2459,7 @@ sub di_get_files {
       $file =~ m:(^.*)/:;
       make_dir ("$tdir/$image_dir/$1") if $1;
       if (!remote_get("$image_dir/$file", $tdir) ||
-          !check_file("$tdir/$image_dir/$file", -1, $di_files{$image_dir}{$file}{md5sum})) {
+          !check_file("$tdir/$image_dir/$file", -1, $di_files{$image_dir}{$file}{md5sum}, "md5")) {
 	$lres = 0;
 	last if (! $do_dry_run);
       }
