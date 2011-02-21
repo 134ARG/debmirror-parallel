@@ -1053,7 +1053,7 @@ say("Parsing Packages and Sources files ...");
 {
   local $/="\n\n"; # Set input separator to read entire package
 
-  my ($filename, $size, $md5sum, $directory, $exclude, $include,
+  my ($filename, $size, $directory, $exclude, $include,
       $architecture, $exclude_deb_section, $limit_priority, $deb_section,
       $deb_priority);
   my $empty_mirror = 1;
@@ -1097,12 +1097,15 @@ say("Parsing Packages and Sources files ...");
 	}
       }
       ($size)=m/^Size:\s+(\d+)/im;
-      ($md5sum)=m/^MD5sum:\s+([A-Za-z0-9]+)/im;
-      if (check_file(filename => $filename, size => $size, MD5Sum => $md5sum)) {
+      my %checksums;
+      while (m/^(MD5sum|SHA(?:\d+)):\s+([A-Za-z0-9]+)/img) {
+	      $checksums{$1}=$2;
+      }
+      if (check_file(filename => $filename, size => $size, %checksums)) {
 	$files{$filename} = 1;
       } else {
 	$files{$filename} = 0;
-	$file_lists{$filename}{MD5Sum} = $md5sum;
+	$file_lists{$filename} = \%checksums;
 	$file_lists{$filename}{size} = $size;
 	$bytes_to_get += $size;
       }
@@ -1126,6 +1129,7 @@ say("Parsing Packages and Sources files ...");
       next if (defined($limit_priority) && defined($deb_priority)
 	       && ! ($deb_priority=~/$limit_priority/o));
       while (m/^ ([A-Za-z0-9]{32} .*)/mg) {
+	my $md5sum;
 	($md5sum, $size, $filename)=split(' ', $1, 3);
 	$filename="$directory/$filename";
 	$filename=~s:/+:/:;	# remove redundant slashes in paths
@@ -1422,8 +1426,9 @@ sub add_bytes_gotten {
 }
 
 # Takes named parameters: filename, size.
+# 
 # Optionally can also be passed parameters specifying expected checksums
-# for the file, using checksum names as in the Release file
+# for the file, using checksum names as in the Release/Packages/Sources files
 # ("SHA1", "MD5Sum", etc).
 #
 # Size is always checked; verifying the checksum is optional. However, if
@@ -1444,10 +1449,11 @@ sub check_file {
       # FOObignum over FOOsmallnum.
       my ($summer, $checksum);
       foreach my $checksum_type ("SHA512", "SHA256", "SHA1", reverse sort keys %params) {
-	     if ($checksum_type eq 'MD5Sum') {
+	     next unless defined $params{$checksum_type};
+	     if (lc $checksum_type eq 'md5sum') {
 		     $summer=Digest::MD5->new;
 	     }
-	     elsif ($checksum_type=~/^SHA(\d+)$/) {
+	     elsif ($checksum_type=~/^sha(\d+)$/i) {
 		     $summer=Digest::SHA($1);
 		     # returns undef on unknown/too large SHA type
 	     }
