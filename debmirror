@@ -898,18 +898,18 @@ di_check_dists() if @di_dists;
 
 foreach my $dist (keys %distset) {
   next unless exists $distset{$dist}{mirror};
-  # Parse the Release
+  # Parse the Release and extract the files listed for all checksum types.
   if (open RELEASE, "<$tempdir/dists/$dist/Release") {
+    my $checksum_type;
     while (<RELEASE>) {
-	last if /^MD5Sum:/;
-    }
-    $_ = <RELEASE>;
-    while (defined $_ && $_ =~ /^ /) {
-      my ($md5sum, $size, $filename) =
-	(/ ([a-z0-9]+) +(\d+) +(.*)$/);
-      $file_lists{"$tempdir/dists/$dist/$filename"}{md5} = $md5sum;
-      $file_lists{"$tempdir/dists/$dist/$filename"}{size} = $size;
-      $_ = <RELEASE>;
+        if (/^(MD5Sum|SHA\d+):/) {
+		$checksum_type=$1;
+	}
+	elsif (/^ / && defined $checksum_type) {
+      		my ($checksum, $size, $filename) = /^ +([a-z0-9]+) +(\d+) +(.*)$/;
+		$file_lists{"$tempdir/dists/$dist/$filename"}{$checksum_type} = $checksum;
+		$file_lists{"$tempdir/dists/$dist/$filename"}{size} = $size;
+	}
     }
     close RELEASE;
   }
@@ -1098,11 +1098,11 @@ say("Parsing Packages and Sources files ...");
       }
       ($size)=m/^Size:\s+(\d+)/im;
       ($md5sum)=m/^MD5sum:\s+([A-Za-z0-9]+)/im;
-      if (check_file($filename, $size, $md5sum, "md5")) {
+      if (check_file(filename => $filename, size => $size, MD5Sum => $md5sum)) {
 	$files{$filename} = 1;
       } else {
 	$files{$filename} = 0;
-	$file_lists{$filename}{md5} = $md5sum;
+	$file_lists{$filename}{MD5Sum} = $md5sum;
 	$file_lists{$filename}{size} = $size;
 	$bytes_to_get += $size;
       }
@@ -1142,11 +1142,11 @@ say("Parsing Packages and Sources files ...");
 	    $files{$filename} = 0;
 	  }
 	}
-	if (check_file($filename, $size, $md5sum, "md5")) {
+	if (check_file(filename => $filename, size => $size, MD5Sum => $md5sum)) {
 	  $files{$filename} = 1;
 	} else {
 	  $files{$filename} = 0;
-	  $file_lists{$filename}{md5} = $md5sum;
+	  $file_lists{$filename}{MD5Sum} = $md5sum;
 	  $file_lists{$filename}{size} = $size;
 	  $bytes_to_get += $size;
 	}
@@ -1421,39 +1421,47 @@ sub add_bytes_gotten {
   }
 }
 
-# Pass this function a filename, a file size (bytes), a checksum,
-# and the type of checksum ("sha1", "md5", etc).
+# Takes named parameters: filename, size.
+# Optionally can also be passed parameters specifying expected checksums
+# for the file, using checksum names as in the Release file
+# ("SHA1", "MD5Sum", etc).
+#
 # Size is always checked; verifying the checksum is optional. However, if
 # a value of -1 is passed for size, a check of the checksum is forced.
+# 
 # It will return true if the tests show the file matches.
 sub check_file {
-  my ($filename, $size, $checksum, $checksum_type)=@_;
+  my %params=@_;
+  my ($filename, $size)=delete @params{qw{filename size}};
   if (! -f $filename) {
     return 0;
   }
   my $disksize = -s _;
   if ($size == $disksize || $size == -1) {
     if ($verify_checksums || $size == -1) {
-      open HANDLE, $filename or
-	die "$filename: $!";
-      my $calculated_checksum;
-      if ($checksum_type eq 'md5') {
-	      my $md5=Digest::MD5->new;
-	      $md5->addfile(*HANDLE);
-	      $calculated_checksum = $md5->hexdigest;
+      # Prefer checking stronger checksums, and failing that, fall back
+      # to whatever checksums are present and supported, trying to prefer
+      # FOObignum over FOOsmallnum.
+      my ($summer, $checksum);
+      foreach my $checksum_type ("SHA512", "SHA256", "SHA1", reverse sort keys %params) {
+	     if ($checksum_type eq 'MD5Sum') {
+		     $summer=Digest::MD5->new;
+	     }
+	     elsif ($checksum_type=~/^SHA(\d+)$/) {
+		     $summer=Digest::SHA($1);
+		     # returns undef on unknown/too large SHA type
+	     }
+	     if (defined $summer) {
+		     $checksum=$params{$checksum_type};
+		     last;
+	     }
       }
-      elsif ($checksum_type=~/^sha(\d+)$/) {
-	      my $sha=Digest::SHA($1);
-	      if (! defined $sha) {
-		      die "unsupported checksum type: $checksum_type (a newer Digest::SHA may be needed)\n";
-	      }
-	      $sha->addfile(*HANDLE);
-	      $calculated_checksum = $sha->hexdigest;
+      if (! defined $summer) {
+	      die "unsupported checksum type(s): ".(join(" ", keys %params))."\n";
       }
-      else {
-              die "unsupported checksum type: $checksum_type\n";
-      }
-      return 1 if $checksum eq $calculated_checksum;
+      open HANDLE, $filename or die "$filename: $!";
+      $summer->addfile(*HANDLE);
+      return 1 if $checksum eq $summer->hexdigest;
     }
     else {
       return 1;
@@ -1503,7 +1511,7 @@ sub check_lists {
   my $ret = 1;
   $verify_checksums = 1;
   if (exists $file_lists{$file}) {
-    $ret = check_file($file, $file_lists{$file}{size}, $file_lists{$file}{md5}, "md5");
+    $ret = check_file(filename => $file, %{$file_lists{$file}});
   }
   $verify_checksums = $t;
   return $ret;
@@ -2440,7 +2448,7 @@ sub di_add_files {
 	$di_files{$image_dir}{$filename}{md5sum} = $md5sum;
 
 	# Check against the version currently on the mirror
-	if (check_file("$image_dir/$filename", -1, $md5sum, "md5")) {
+	if (check_file(filename => "$image_dir/$filename", size => -1, MD5Sum => $md5sum)) {
 	  $di_files{$image_dir}{$filename}{status} = 1;
 	} else {
 	  $di_files{$image_dir}{$filename}{status} = 0;
@@ -2465,7 +2473,7 @@ sub di_get_files {
       $file =~ m:(^.*)/:;
       make_dir ("$tdir/$image_dir/$1") if $1;
       if (!remote_get("$image_dir/$file", $tdir) ||
-          !check_file("$tdir/$image_dir/$file", -1, $di_files{$image_dir}{$file}{md5sum}, "md5")) {
+          !check_file(file => "$tdir/$image_dir/$file", size => -1, MD5Sum => $di_files{$image_dir}{$file}{md5sum})) {
 	$lres = 0;
 	last if (! $do_dry_run);
       }
