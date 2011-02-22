@@ -9,7 +9,7 @@ Vcs-Browser: http://git.debian.org/?p=collab-maint/debmirror.git
 
 Package: debmirror
 Architecture: all
-Depends: ${misc:Depends}, perl (>= 5.10), libnet-perl, libdigest-md5-perl, libdigest-sha-perl, liblockfile-simple-perl, rsync, libcompress-zlib-perl, bzip2, libwww-perl
+Depends: ${misc:Depends}, perl (>= 5.10), libnet-perl, libdigest-md5-perl, libdigest-sha-perl, liblockfile-simple-perl, rsync, libcompress-zlib-perl, bzip2, libwww-perl (>= 5.815)
 Recommends: gpgv, patch, ed
 Suggests: gnupg
 Description: Debian partial mirror script, with ftp and package pool support
