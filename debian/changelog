@@ -1,6 +1,7 @@
 debmirror (1:2.7) UNRELEASED; urgency=low
 
   * Version dep on LWP. Closes: #614594
+  * Fix typo in d-i download code. Closes: #614620
 
  -- Joey Hess <joeyh@debian.org>  Tue, 22 Feb 2011 11:38:33 -0400
 

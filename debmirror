@@ -2505,7 +2505,7 @@ sub di_get_files {
       $file =~ m:(^.*)/:;
       make_dir ("$tdir/$image_dir/$1") if $1;
       if (!remote_get("$image_dir/$file", $tdir) ||
-          !check_file(file => "$tdir/$image_dir/$file", size => -1, MD5Sum => $di_files{$image_dir}{$file}{md5sum})) {
+          !check_file(filename => "$tdir/$image_dir/$file", size => -1, MD5Sum => $di_files{$image_dir}{$file}{md5sum})) {
 	$lres = 0;
 	last if (! $do_dry_run);
       }
