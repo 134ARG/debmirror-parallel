@@ -401,7 +401,7 @@ but B<debmirror>
 will automatically create a new symlink S<suite -E<gt> codename> (immediately
 after moving meta files in place). This conversion should only be needed once.
 
-=item --debmarshal
+=item B<--debmarshal>
 
 On each pull, keep the repository meta data from dists/* in a numbered
 subdirectory, and maintain a symlink latest to the most recent pull.
