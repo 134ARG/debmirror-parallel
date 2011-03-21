@@ -1,8 +1,8 @@
-debmirror (1:2.8) UNRELEASED; urgency=low
+debmirror (1:2.8) unstable; urgency=low
 
   * Avoid trying to get d-i for *-updates suites. Closes: #619146
 
- -- Joey Hess <joeyh@debian.org>  Mon, 21 Mar 2011 13:03:14 -0400
+ -- Joey Hess <joeyh@debian.org>  Mon, 21 Mar 2011 13:03:45 -0400
 
 debmirror (1:2.7) unstable; urgency=high
 
