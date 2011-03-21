@@ -973,11 +973,11 @@ my (@package_files, @source_files);
 foreach my $dist (keys %distset) {
   next unless exists $distset{$dist}{mirror};
   foreach my $section (@sections) {
-    # no d-i in woody
+    # some suites don't have d-i
     next if ($section =~ /debian-installer/ && $dist eq "woody");
     next if ($section =~ /debian-installer/ && $dist eq "experimental");
-    next if ($section =~ /debian-installer/ && $dist =~ /.*-proposed-updates/);
-    next if ($section =~ /debian-installer/ && $dist =~ /.*breezy-updates/ );
+    # *-proposed-updates, squeeze-updates, etc all partial suites, all lack d-i
+    next if ($section =~ /debian-installer/ && $dist =~ /.*-updates/ );
     next if ($section =~ /debian-installer/ && $dist eq "breezy-security" );
     foreach my $arch (@arches) {
       get_index("dists/$dist/$section/binary-$arch", "Packages");

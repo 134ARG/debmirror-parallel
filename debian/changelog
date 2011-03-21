@@ -1,3 +1,9 @@
+debmirror (1:2.8) UNRELEASED; urgency=low
+
+  * Avoid trying to get d-i for *-updates suites. Closes: #619146
+
+ -- Joey Hess <joeyh@debian.org>  Mon, 21 Mar 2011 13:03:14 -0400
+
 debmirror (1:2.7) unstable; urgency=high
 
   * Version dep on LWP. Closes: #614594
