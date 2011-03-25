@@ -558,7 +558,7 @@ our $bytes_to_get=0;
 our $bytes_gotten=0;
 our $bytes_meta=0;
 our $doing_meta=1;
-our $ignore_release=0;
+our $ignore_missing_release=0;
 our $ignore_release_gpg=0;
 our $start_time = time;
 our $dry_run=0;
@@ -657,7 +657,7 @@ GetOptions('debug'                  => \$debug,
 	   'max-batch=s'            => \$max_batch,
 	   'rsync-batch=s'          => \$rsync_batch,
 	   'state-cache-days=s'     => \$state_cache_days,
-	   'ignore-missing-release' => \$ignore_release,
+	   'ignore-missing-release' => \$ignore_missing_release,
 	   'ignore-release-gpg'     => \$ignore_release_gpg,
 	   'check-gpg!'             => \$check_gpg,
 	   'dry-run'                => \$dry_run,
@@ -865,7 +865,7 @@ $ua->default_header( "Cache-Control" => "max-age=0" ) if ($ua);
 foreach my $dist (@dists) {
   my $tdir="$tempdir/.tmp/dists/$dist";
   my $have_release = get_release($tdir, $dist);
-  next unless ($have_release || $ignore_release);
+  next unless ($have_release || $ignore_missing_release);
   my ($codename, $suite, $dist_sdir) = name_release("mirror", $tdir, $dist);
 
   if ($have_release) {
@@ -915,7 +915,7 @@ foreach my $dist (keys %distset) {
   }
 }
 
-if ($num_errors != 0 && $ignore_release) {
+if ($num_errors != 0 && $ignore_missing_release) {
   say("Ignoring failed Release files.");
   push (@errlog,"Ignoring failed Release files\n");
   $num_errors = 0;
@@ -1937,7 +1937,7 @@ sub name_release {
     ($origin) = m/^Origin:\s+(.*)/im if (/^Origin:/im);
     ($codename) = m/^Codename:\s+(.*)/im;
     ($suite) = m/^Suite:\s+(.*)/im;
-  } elsif ($ignore_release) {
+  } elsif ($ignore_missing_release) {
     $origin = "none";
   }
 
@@ -2043,7 +2043,7 @@ sub get_index {
     } else {
       $bytes_gotten += $file_lists{"$tempdir/$subdir/$file.gz"}{size};
     }
-  } elsif ($ignore_release) {
+  } elsif ($ignore_missing_release) {
     say("Ignoring missing Release file for $subdir/$file.gz");
     push (@errlog,"Ignoring missing Release file for $subdir/$file.gz\n");
     if (remote_get("$subdir/$file.gz")) {
@@ -2437,7 +2437,7 @@ sub di_check_dists {
       }
       # Only mirroring D-I images, not the archive itself
       my $tdir="$tempdir/.tmp/dists/$di_dist";
-      next unless (get_release($tdir, $di_dist) || $ignore_release);
+      next unless (get_release($tdir, $di_dist) || $ignore_missing_release);
       name_release("d-i", $tdir, $di_dist);
       unlink "$tdir/Release";
       unlink "$tdir/Release.gpg";
