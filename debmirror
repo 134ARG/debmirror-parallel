@@ -978,7 +978,6 @@ foreach my $dist (keys %distset) {
     next if ($section =~ /debian-installer/ && $dist eq "experimental");
     # *-proposed-updates, squeeze-updates, etc all partial suites, all lack d-i
     next if ($section =~ /debian-installer/ && $dist =~ /.*-updates/ );
-    next if ($section =~ /debian-installer/ && $dist eq "breezy-security" );
     foreach my $arch (@arches) {
       get_index("dists/$dist/$section/binary-$arch", "Packages");
       link_index($dist,$section,$arch) if $debmarshal;
