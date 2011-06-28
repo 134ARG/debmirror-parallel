@@ -1,3 +1,9 @@
+debmirror (1:2.9) UNRELEASED; urgency=low
+
+  * Use Net::INET6Glue to support making ipv6 connections. Closes: #631302
+
+ -- Joey Hess <joeyh@debian.org>  Tue, 28 Jun 2011 13:27:38 -0400
+
 debmirror (1:2.8) unstable; urgency=low
 
   * Avoid trying to get d-i for *-updates suites. Closes: #619146

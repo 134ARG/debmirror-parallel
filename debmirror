@@ -523,13 +523,14 @@ excluding the section 'debug' and the package 'foo-doc':
 use strict;
 use Cwd;
 use Storable qw(nstore retrieve);
-use Net::FTP;
 use Getopt::Long;
 use File::Temp qw/ tempfile /;
 use LockFile::Simple;
 use Compress::Zlib;
 use Digest::MD5;
 use Digest::SHA;
+use Net::INET6Glue;
+use Net::FTP;
 use LWP::UserAgent;
 
 # Yeah, I use too many global variables in this program.
