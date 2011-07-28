@@ -1,6 +1,9 @@
 debmirror (1:2.9) UNRELEASED; urgency=low
 
   * Use Net::INET6Glue to support making ipv6 connections. Closes: #631302
+  * Avoid sanity check for empty mirror, to allow mirroring an empty mirror
+    if this is the first time debmirror is run. Closes: #635723
+    Thanks, Stefan Kisdaroczi
 
  -- Joey Hess <joeyh@debian.org>  Tue, 28 Jun 2011 13:27:38 -0400
 
