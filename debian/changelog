@@ -1,3 +1,10 @@
+debmirror (1:2.10) UNRELEASED; urgency=low
+
+  * Fix skipping d-i for suites that do not include it. Closes: #636627
+    Thanks, Stefan Kisdaroczi
+
+ -- Joey Hess <joeyh@debian.org>  Fri, 05 Aug 2011 15:56:55 -0400
+
 debmirror (1:2.9) unstable; urgency=low
 
   * Use Net::INET6Glue to support making ipv6 connections. Closes: #631302
