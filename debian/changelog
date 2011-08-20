@@ -2,6 +2,8 @@ debmirror (1:2.10) UNRELEASED; urgency=low
 
   * Fix skipping d-i for suites that do not include it. Closes: #636627
     Thanks, Stefan Kisdaroczi
+  * Allow mirroring d-i on kfreebsd-*; skip it for arch 'all'. Closes: #637457
+    Thanks, Stefan Kisdaroczi
 
  -- Joey Hess <joeyh@debian.org>  Fri, 05 Aug 2011 15:56:55 -0400
 
