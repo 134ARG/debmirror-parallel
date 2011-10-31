@@ -1,11 +1,11 @@
-debmirror (1:2.10) UNRELEASED; urgency=low
+debmirror (1:2.10) unstable; urgency=low
 
   * Fix skipping d-i for suites that do not include it. Closes: #636627
     Thanks, Stefan Kisdaroczi
   * Allow mirroring d-i on kfreebsd-*; skip it for arch 'all'. Closes: #637457
     Thanks, Stefan Kisdaroczi
 
- -- Joey Hess <joeyh@debian.org>  Fri, 05 Aug 2011 15:56:55 -0400
+ -- Joey Hess <joeyh@debian.org>  Mon, 31 Oct 2011 10:44:07 -0400
 
 debmirror (1:2.9) unstable; urgency=low
 
