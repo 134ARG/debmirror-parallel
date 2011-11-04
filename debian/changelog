@@ -1,3 +1,9 @@
+debmirror (1:2.11) UNRELEASED; urgency=low
+
+  * Two fixes to output. Closes: #647562 Thanks, Karl Goetz
+
+ -- Joey Hess <joeyh@debian.org>  Fri, 04 Nov 2011 17:58:43 -0400
+
 debmirror (1:2.10) unstable; urgency=low
 
   * Fix skipping d-i for suites that do not include it. Closes: #636627
