@@ -2093,12 +2093,10 @@ sub get_index {
   }
   if ($file eq "Packages") {
     push @package_files, "$tempdir/$subdir/$file";
+  } elsif ($file eq "Sources") {
+    push @source_files, "$tempdir/$subdir/$file";
   } else {
-    if ($file eq "Sources") {
-      push @source_files, "$tempdir/$subdir/$file";
-    } else {
-      die "get_index called with unknown type $file\n";
-    }
+    die "get_index called with unknown type $file\n";
   }
   $files{"$subdir/$file.gz"}=1;
   $files{"$subdir/$file.bz2"}=1;
