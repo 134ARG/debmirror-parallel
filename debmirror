@@ -111,8 +111,8 @@ Download in passive mode when using ftp.
 
 =item B<-u>, B<--user>=I<remoteusername>
 
-Specify the remote user name to use to log into the remote host. Helpful when
-dealing with brain damaged proxy servers. Defaults to C<anonymous>.
+Specify the remote user name to use to log into the remote host.
+Defaults to C<anonymous>.
 
 =item B<--passwd>=I<remoteuserpassword>
 
@@ -1593,7 +1593,13 @@ sub http_get {
   my $oldautoflush = $|;
   $| = 1;
   my $file=shift;
-  my $url="$download_method://${host}/${remoteroot}/${file}";
+  my $url;
+  if ($user eq 'anonymous'){
+    $url="$download_method://${host}/${remoteroot}/${file}";
+  }
+  else {
+    $url="$download_method://${user}:${passwd}\@${host}/${remoteroot}/${file}";
+  }
   my $ret=1;
 
   print "$url => " if ($debug);

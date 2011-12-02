@@ -1,6 +1,8 @@
 debmirror (1:2.11) UNRELEASED; urgency=low
 
   * Two fixes to output. Closes: #647562 Thanks, Karl Goetz
+  * Support HTTP authentication by setting --user and --password.
+    Closes: #650743 Thanks, Eshat Cakar
 
  -- Joey Hess <joeyh@debian.org>  Fri, 04 Nov 2011 17:58:43 -0400
 
