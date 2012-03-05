@@ -1,10 +1,13 @@
-debmirror (1:2.11) UNRELEASED; urgency=low
+debmirror (1:2.11) unstable; urgency=low
 
   * Two fixes to output. Closes: #647562 Thanks, Karl Goetz
   * Support HTTP authentication by setting --user and --password.
     Closes: #650743 Thanks, Eshat Cakar
+  * --timeout now also affects http and ftp download.
+    Closes: #662694 Thanks, Christoph Goehre
+  * Remove libcompress-zlib-perl from Depends, this is now provided by perl.
 
- -- Joey Hess <joeyh@debian.org>  Fri, 04 Nov 2011 17:58:43 -0400
+ -- Joey Hess <joeyh@debian.org>  Mon, 05 Mar 2012 17:05:29 -0400
 
 debmirror (1:2.10) unstable; urgency=low
 

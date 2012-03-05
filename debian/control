@@ -3,7 +3,7 @@ Section: net
 Priority: extra
 Maintainer: Joey Hess <joeyh@debian.org>
 Build-Depends: debhelper (>= 7.0.50)
-Standards-Version: 3.9.1
+Standards-Version: 3.9.3
 Vcs-Git: git://git.debian.org/collab-maint/debmirror.git
 Vcs-Browser: http://git.debian.org/?p=collab-maint/debmirror.git
 
@@ -11,7 +11,7 @@ Package: debmirror
 Architecture: all
 Depends: ${misc:Depends}, perl (>= 5.10), libnet-perl, libdigest-md5-perl,
 	libdigest-sha-perl, liblockfile-simple-perl, rsync,
-	libcompress-zlib-perl, bzip2, libwww-perl (>= 5.815),
+	bzip2, libwww-perl (>= 5.815),
 	libnet-inet6glue-perl
 Recommends: gpgv, patch, ed
 Suggests: gnupg
