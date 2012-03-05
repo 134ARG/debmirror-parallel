@@ -817,6 +817,7 @@ sub init_connection {
 
   /^http$/ && do {
     $ua = LWP::UserAgent->new(keep_alive => 1);
+    $ua->timeout($timeout);
     $ua->proxy('http', $ENV{http_proxy}) if $ENV{http_proxy};
     $ua->proxy('http', $proxy) if $proxy;
     $ua->show_progress($progress);
@@ -826,6 +827,7 @@ sub init_connection {
   /^ftp$/ && do {
     if ($proxy || $ENV{ftp_proxy}) {
       $ua = LWP::UserAgent->new;
+      $ua->timeout($timeout);
       $ua->proxy('ftp', $proxy ? $proxy : $ENV{ftp_proxy});
     }
     else {
