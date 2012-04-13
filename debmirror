@@ -221,7 +221,8 @@ Do not include source.
 
 Additionally download F<Translation-E<lt>langE<gt>.bz2> files, which contain
 translations of package descriptions. Selection of specific translations is
-possible using the B<--include> and B<--exclude> options.
+possible using the B<--include> and B<--exclude> options. The default
+is to download only the English file.
 
 =item B<--getcontents>
 
@@ -967,7 +968,7 @@ foreach my $dist (keys %distset) {
       add_bytes("dists/$dist/$section/source/Release");
       add_bytes("dists/$dist/$section/source/Sources.diff/Index") unless ($diff_mode eq "none");
     }
-    add_bytes("dists/$dist/$section/i18n/Index") if $i18n;
+    add_bytes("dists/$dist/$section/i18n/Index");
   }
 }
 
@@ -991,7 +992,7 @@ foreach my $dist (keys %distset) {
       get_index("dists/$dist/$section/source", "Sources");
       link_index($dist,$section,"source") if $debmarshal;
     }
-    get_i18n_index($dist,"$section/i18n") if $i18n;
+    get_i18n_index($dist,"$section/i18n");
   }
 }
 
@@ -1040,12 +1041,10 @@ if ($getcontents) {
     }
   }
 }
-if ($i18n) {
-  foreach my $dist (keys %distset) {
-    next unless exists $distset{$dist}{mirror};
-    foreach my $section (@sections) {
-      parse_i18n_index($dist,"$section/i18n");
-    }
+foreach my $dist (keys %distset) {
+  next unless exists $distset{$dist}{mirror};
+  foreach my $section (@sections) {
+    parse_i18n_index($dist,"$section/i18n");
   }
 }
 
@@ -1205,7 +1204,7 @@ SOURCE:  foreach my $file (@source_files) {
 # Download Contents and Translation files.
 init_connection();
 get_contents_files() if ($getcontents);
-get_i18n_files() if ($i18n);
+get_i18n_files();
 
 # Pre-mirror cleanup
 if ($pre_cleanup) {
@@ -2251,6 +2250,7 @@ sub parse_i18n_index {
       if(!(defined($include) && ($subdir."/".$filename)=~/$include/o)) {
 	next if (defined($exclude) && ($subdir."/".$filename)=~/$exclude/o);
       }
+      next if ! $i18n && $filename !~ /-en/;
 
       $files{"$subdir/$filename"}=1;
       $files{$tempdir."/"."$subdir/$filename"}=1;

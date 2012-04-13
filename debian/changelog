@@ -1,3 +1,11 @@
+debmirror (1:2.12) UNRELEASED; urgency=low
+
+  * Always mirror the English "translations" necessary to have any
+    package long descriptions at all, even if --i18n is not enabled.
+    (Unless disabled via --exclude.)
+
+ -- Joey Hess <joeyh@debian.org>  Thu, 12 Apr 2012 21:55:34 -0400
+
 debmirror (1:2.11) unstable; urgency=low
 
   * Two fixes to output. Closes: #647562 Thanks, Karl Goetz
