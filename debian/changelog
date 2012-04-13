@@ -3,6 +3,8 @@ debmirror (1:2.12) UNRELEASED; urgency=low
   * Always mirror the English "translations" necessary to have any
     package long descriptions at all, even if --i18n is not enabled.
     (Unless disabled via --exclude.)
+  * Make i18n/Index parsing not fail if there are non-SHA1 checksums.
+    Although currently only SHA1 is supported here. Closes: #644609
 
  -- Joey Hess <joeyh@debian.org>  Thu, 12 Apr 2012 21:55:34 -0400
 

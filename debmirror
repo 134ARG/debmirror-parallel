@@ -2244,7 +2244,7 @@ sub parse_i18n_index {
       last if /^SHA1:/;
     }
     while (<INDEX>) {
-      next unless /^ /;
+      last unless /^ /;
 
       my ($sha1, $size, $filename) = (/ ([a-z0-9]+) +(\d+) +(.*)$/);
       if(!(defined($include) && ($subdir."/".$filename)=~/$include/o)) {
