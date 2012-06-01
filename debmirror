@@ -532,6 +532,7 @@ use Cwd;
 use Storable qw(nstore retrieve);
 use Getopt::Long;
 use File::Temp qw/ tempfile /;
+use File::Path qw(make_path);
 use LockFile::Simple;
 use Compress::Zlib;
 use Digest::MD5;
@@ -1870,24 +1871,15 @@ sub link_contents_into_snapshot {
     or die "Error while linking $tempdir/dists/$dist/Contents-$arch.gz: $!\n";
 }
 
-sub link_index_into_snapshot {
-  my ($dist,$mirrordir,$distpath,$subdir,$tempdir) = @_;
-  my $next = get_next_snapshot($dist);
-  say("linking $mirrordir/dists/$dist/$next/$distpath/Index");
-  unlink("$mirrordir/dists/$dist/$next/$distpath/Index");
-  link("$tempdir/$subdir/Index",
-       "$mirrordir/dists/$dist/$next/$distpath/Index")
-    or die "Error while linking $tempdir/$subdir/Index: $!\n";
-}
-
 sub link_translation_into_snapshot {
   my ($file,$dist,$distpath,$filename,$mirrordir,$tempdir) = @_;
   my $next = get_next_snapshot($dist);
+  my $target_path = "$mirrordir/dists/$dist/$next/$distpath";
   say("linking $file");
-  unlink("$mirrordir/dists/$dist/$next/$distpath/$filename");
-  link("$tempdir/$file",
-       "$mirrordir/dists/$dist/$next/$distpath/$filename")
-    or die "Erorr while linking $tempdir/$file: $!";
+  unlink("$target_path/$filename");
+  make_path($target_path);
+  link("$tempdir/$file", "$target_path/$filename")
+    or die "Error while linking $tempdir/$file: $!";
 }
 
 sub get_release {
