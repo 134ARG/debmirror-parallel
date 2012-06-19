@@ -992,7 +992,6 @@ foreach my $dist (keys %distset) {
       get_index("dists/$dist/$section/source", "Sources");
       link_index($dist,$section,"source") if $debmarshal;
     }
-    get_i18n_index($dist,"$section/i18n");
   }
 }
 
@@ -1044,7 +1043,7 @@ if ($getcontents) {
 foreach my $dist (keys %distset) {
   next unless exists $distset{$dist}{mirror};
   foreach my $section (@sections) {
-    parse_i18n_index($dist,"$section/i18n");
+    i18n_from_release($dist,"$section/i18n");
   }
 }
 
@@ -2210,60 +2209,42 @@ sub link_index {
     or die "Error while linking $tempdir/dists/$dist/$section/$archdir/$file.bz2: $!\n";
 }
 
-sub get_i18n_index {
+sub i18n_from_release {
   my ($dist,$distpath) = @_;
   my $subdir = "dists/$dist/$distpath";
-  if (exists $file_lists{"$tempdir/$subdir/Index"}) {
-    make_dir($subdir);
-    make_dir("$tempdir/$subdir");
-
-    if (!check_lists("$tempdir/$subdir/Index")) {
-      if (!remote_get("$subdir/Index")) {
-	push (@errlog,"$subdir/Index failed checksum verification, removing\n");
-      } elsif ($debmarshal) {
-	link_index_into_snapshot($dist,$mirrordir,$distpath,$subdir,$tempdir);
-      }
-    } else {
-      $bytes_gotten += $file_lists{"$tempdir/$subdir/Index"}{size};
-    }
-    $files{"$subdir/Index"}=1;
-    $files{"$tempdir/$subdir/Index"}=1;
-  }
-}
-
-sub parse_i18n_index {
-  my ($dist,$distpath) = @_;
-  my $subdir = "dists/$dist/$distpath";
+  my $compdir = $tempdir."/".$subdir;
   my ($sha1, $size, $filename);
   my $exclude = "(".join("|", @excludes).")" if @excludes;
   my $include = "(".join("|", @includes).")" if @includes;
 
-  # Parse the Index file
-  if (open INDEX, "<$tempdir/$subdir/Index") {
-    while (<INDEX>) {
-      last if /^SHA1:/;
-    }
-    while (<INDEX>) {
-      last unless /^ /;
+  # Create i18n directories
+  make_dir($subdir);
+  make_dir($compdir);
 
-      my ($sha1, $size, $filename) = (/ ([a-z0-9]+) +(\d+) +(.*)$/);
-      if(!(defined($include) && ($subdir."/".$filename)=~/$include/o)) {
-	next if (defined($exclude) && ($subdir."/".$filename)=~/$exclude/o);
-      }
-      next if ! $i18n && $filename !~ /-en/;
+  # Search for translation files in file_lists
+  foreach my $path (keys %file_lists) {
+    next if length($compdir)+1>length($path); # the +1 stands for the slash after $compdir
+    next if substr($path, 0, length($compdir)) ne $compdir;
 
-      $files{"$subdir/$filename"}=1;
-      $files{$tempdir."/"."$subdir/$filename"}=1;
-      if (! check_i18n("$tempdir/$subdir/$filename", $size, $sha1)) {
-	$bytes_to_get += $size;
-	$i18n_get{"$subdir/$filename"}{sha1} = $sha1;
-	$i18n_get{"$subdir/$filename"}{size} = $size;
-	$i18n_get{"$subdir/$filename"}{dist} = $dist;
-	$i18n_get{"$subdir/$filename"}{distpath} = $distpath;
-	$i18n_get{"$subdir/$filename"}{filename} = $filename;
-      }
+    my $filename = substr($path, length($compdir)+1, length($path)-length($compdir)-1);
+    next if $filename !~ /bz2$/;
+
+    my ($sha1, $size) = ($file_lists{$path}{SHA1}, $file_lists{$path}{size});
+    if(!(defined($include) && ($subdir."/".$filename)=~/$include/o)) {
+      next if (defined($exclude) && ($subdir."/".$filename)=~/$exclude/o);
     }
-    close INDEX;
+    next if ! $i18n && $filename !~ /-en/;
+
+    $files{"$subdir/$filename"}=1;
+    $files{$tempdir."/"."$subdir/$filename"}=1;
+    if (! check_i18n("$tempdir/$subdir/$filename", $size, $sha1)) {
+      $bytes_to_get += $size;
+      $i18n_get{"$subdir/$filename"}{sha1} = $sha1;
+      $i18n_get{"$subdir/$filename"}{size} = $size;
+      $i18n_get{"$subdir/$filename"}{dist} = $dist;
+      $i18n_get{"$subdir/$filename"}{distpath} = $distpath;
+      $i18n_get{"$subdir/$filename"}{filename} = $filename;
+    }
   }
 }
 
