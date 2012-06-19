@@ -1,3 +1,12 @@
+debmirror (1:2.13) unstable; urgency=low
+
+  * Fix mirroring of Translation files for suites (currently contrib and
+    non-free) for which there are no i18n Index files. Use information
+    from Release files instead.
+    Closes: #673444, #644609. Thanks, Joris Dolderer
+
+ -- Joey Hess <joeyh@debian.org>  Tue, 19 Jun 2012 14:33:41 -0400
+
 debmirror (1:2.12) unstable; urgency=low
 
   * Always mirror the English "translations" necessary to have any
