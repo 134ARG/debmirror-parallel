@@ -412,6 +412,12 @@ debmirror cleanup is disabled when this flag is specified.
 Separate pool and snapshot cleanup utilities are available at
 http://code.google.com/p/debmarshal/source/browse/#svn/trunk/repository2
 
+=item B<--config-file>=I<file>
+
+Specify a configuration file. This option may be repeated to read
+multiple configuration files. By default debmirror reads
+/etc/debmirror.conf and ~/.debmirror.conf (see section FILES).
+
 =back
 
 =head1 USING DEBMIRROR
@@ -536,6 +542,7 @@ use LWP::UserAgent;
 
 # Yeah, I use too many global variables in this program.
 our $mirrordir;
+our @config_files;
 our ($debug, $progress, $verbose, $passive, $skippackages, $getcontents, $i18n);
 our ($ua, $proxy, $ftp);
 our (@dists, @sections, @arches, @ignores, @excludes, @includes);
@@ -579,9 +586,19 @@ my @errlog;
 my $HOME;
 ($HOME = $ENV{'HOME'}) or die "HOME not defined in environment!\n";
 
-# Load in config files
-require "/etc/debmirror.conf" if -r "/etc/debmirror.conf";
-require "$HOME/.debmirror.conf" if -r "$HOME/.debmirror.conf";
+# Load in config files first so options can override them.
+Getopt::Long::Configure qw(pass_through);
+GetOptions('config-file=s' => \@config_files);
+
+if (@config_files) {
+  foreach my $config_file (@config_files) {
+    die "Can't open config file $config_file!\n" if ! -r $config_file;
+    require $config_file;
+  }
+} else {
+  require "/etc/debmirror.conf" if -r "/etc/debmirror.conf";
+  require "$HOME/.debmirror.conf" if -r "$HOME/.debmirror.conf";
+}
 
 # This hash contains the releases to mirror. If both codename and suite can be
 # determined from the Release file, the codename is used in the key. If not,
@@ -626,6 +643,7 @@ my $state_cache_exptime;
 my $files_cache_version = "1.0";
 
 my $help;
+Getopt::Long::Configure qw(no_pass_through);
 GetOptions('debug'                  => \$debug,
 	   'progress|p'             => \$progress,
 	   'verbose|v'              => \$verbose,

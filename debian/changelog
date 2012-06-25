@@ -1,3 +1,10 @@
+debmirror (1:2.14) UNRELEASED; urgency=low
+
+  * Add --config-file option.
+    Closes: #638295. Thanks, Stefan Kisdaroczi and Matthias Schmitz.
+
+ -- Joey Hess <joeyh@debian.org>  Mon, 25 Jun 2012 19:33:08 -0400
+
 debmirror (1:2.13) unstable; urgency=low
 
   * Fix mirroring of Translation files for suites (currently contrib and
