@@ -1,9 +1,11 @@
-debmirror (1:2.14) UNRELEASED; urgency=low
+debmirror (1:2.14) unstable; urgency=low
 
   * Add --config-file option.
     Closes: #638295. Thanks, Stefan Kisdaroczi and Matthias Schmitz.
+  * Do not crash on i18n/Index with --debmarshal
+    Closes: #676219. Thanks, Frank Luithle
 
- -- Joey Hess <joeyh@debian.org>  Mon, 25 Jun 2012 19:33:08 -0400
+ -- Joey Hess <joeyh@debian.org>  Tue, 26 Jun 2012 19:29:31 -0400
 
 debmirror (1:2.13) unstable; urgency=low
 
