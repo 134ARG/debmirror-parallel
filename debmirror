@@ -251,6 +251,19 @@ Don't fail if the F<Release> file is missing.
 Controls whether gpg signatures from the F<Release.gpg> file should be
 checked. The default is to check signatures.
 
+=item B<--keyring>=I<file>
+
+Use I<file> as an additional gpg-format keyring.  May be given multiple times.
+
+Note that these will be used in addition to $GNUPGHOME/trustedkeys.gpg.
+The latter can be removed from the set of keyrings by setting 
+$GNUPGHOME to something non-existent when using this option.
+
+On a typical Debian system, the Debian archive keyring can be used
+directly with this option:
+
+    debmirror --keyring /usr/share/keyrings/debian-archive-keyring.gpg ...
+
 =item B<--ignore-release-gpg>
 
 Don't fail if the F<Release.gpg> file is missing. If the file does exist, it
@@ -509,7 +522,8 @@ excluding the section 'debug' and the package 'foo-doc':
     debmirror uses gpgv to verify Release and Release.gpg using the
     default keying ~/.gnupg/trustedkeys.gpg. This can be changed by
     exporting GNUPGHOME resulting in $GNUPGHOME/trustedkeys.gpg being
-    used.
+    used.  (Note that keyring files can also be specified directly
+    with debmirror's --keyring option -- see above).
 
     To add the right key to this keyring you can import it from the
     debian keyring (in case of the debian archive) using:
@@ -548,7 +562,7 @@ our $mirrordir;
 our @config_files;
 our ($debug, $progress, $verbose, $passive, $skippackages, $getcontents, $i18n);
 our ($ua, $proxy, $ftp);
-our (@dists, @sections, @arches, @ignores, @excludes, @includes);
+our (@dists, @sections, @arches, @ignores, @excludes, @includes, @keyrings);
 our (@excludes_deb_section, @limit_priority);
 our (@di_dists, @di_arches, @rsync_extra);
 our $state_cache_days = 0;
@@ -694,6 +708,7 @@ GetOptions('debug'                  => \$debug,
 	   'allow-dist-rename'      => \$allow_dist_rename,
 	   'debmarshal'             => \$debmarshal,
 	   'slow-cpu'               => \$slow_cpu,
+           'keyring=s'              => \@keyrings,
 	   'help'                   => \$help,
 ) or usage;
 usage if $help;
@@ -1946,8 +1961,9 @@ sub get_release {
         $errp->writer;
         STDOUT->fdopen(fileno($outp), "w") or die;
         STDERR->fdopen(fileno($errp), "w") or die;
-        my @gpgv = (qw(gpgv --status-fd 1), "$tdir/Release.gpg",
-          "$tdir/Release");
+        my @gpgv = qw(gpgv --status-fd 1);
+        push @gpgv, (map { ('--keyring' => $_) } @keyrings);
+        push @gpgv, "$tdir/Release.gpg", "$tdir/Release";
         exec(@gpgv) or die "exec: $gpgv[0]: $!\n";
       }
 
