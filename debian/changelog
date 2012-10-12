@@ -1,3 +1,9 @@
+debmirror (1:2.15) UNRELEASED; urgency=low
+
+  * Improved interface to gpgv. Thanks, Tom Jones.
+
+ -- Joey Hess <joeyh@debian.org>  Fri, 12 Oct 2012 13:49:51 -0400
+
 debmirror (1:2.14) unstable; urgency=low
 
   * Add --config-file option.
