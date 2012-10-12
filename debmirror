@@ -533,6 +533,8 @@ use Storable qw(nstore retrieve);
 use Getopt::Long;
 use File::Temp qw/ tempfile /;
 use File::Path qw(make_path);
+use IO::Pipe;
+use IO::Select;
 use LockFile::Simple;
 use Compress::Zlib;
 use Digest::MD5;
@@ -1906,17 +1908,56 @@ sub get_release {
     } else {
       # Verify Release signature
       my $gpgv_res = 0;
-      open GPGV, "gpgv 2>/dev/null --status-fd 1 $tdir/Release.gpg $tdir/Release|";
-      while (<GPGV>) {
-	$gpgv_res = 1 if /^\[GNUPG:\] VALIDSIG/;
+      my $outp = IO::Pipe->new;
+      my $errp = IO::Pipe->new;
+      my $gpgvout = "";
+      my $gpgverr = "";
+      if (my $child = fork) {
+        $outp->reader;
+        $errp->reader;
+        my $sel = IO::Select->new;
+        $sel->add($outp, $errp);
+        while (my @ready = $sel->can_read) {
+          for (@ready) {
+            my $buf = "";
+            my $bytesread = $_->read($buf, 1024);
+            if (!defined($bytesread)) {
+              die "read error: $!\n";
+            } elsif ($bytesread == 0) {
+              $sel->remove($_);
+              $_->close;
+            } else {
+              if ($_ == $outp) {
+                $gpgvout .= $buf;
+              }
+              if ($_ == $errp) {
+                $gpgverr .= $buf;
+              }
+            }
+          }
+        }
+
+        waitpid($child, 0) == -1
+          and die "was pid $child automatically reaped?\n";
+        $gpgv_res = not $?;
       }
-      close GPGV;
+      else {
+        $outp->writer;
+        $errp->writer;
+        STDOUT->fdopen(fileno($outp), "w") or die;
+        STDERR->fdopen(fileno($errp), "w") or die;
+        my @gpgv = (qw(gpgv --status-fd 1), "$tdir/Release.gpg",
+          "$tdir/Release");
+        exec(@gpgv) or die "exec: $gpgv[0]: $!\n";
+      }
+
       # In debug or verbose mode, display the gpg error message on stdout.
       if (! $gpgv_res || $debug) {
-	system("gpgv --status-fd 1 $tdir/Release.gpg $tdir/Release 2>&1");
+        print $gpgvout;
+        print $gpgverr;
       }
       if ($verbose && ! $debug) {
-	system("gpgv --status-fd 1 $tdir/Release.gpg $tdir/Release 2>&1 >/dev/null");
+        print $gpgverr;
       }
       if (! $gpgv_res) {
 	say("Release gpg signature does not verify.");
