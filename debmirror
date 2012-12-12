@@ -291,6 +291,20 @@ science, ...) match the regex. May be used multiple times.
 Limit download to files whose Debian Priority (required, extra,
 optional, ...) match the regex. May be used multiple times.
 
+=item B<--exclude-field>=I<fieldname>=I<regex>
+
+Never download any binary packages where the contents of I<fieldname> match
+the regex. May be used multiple times. If this option is used and the mirror
+includes source packages, only those source packages corresponding to
+included binary packages will be downloaded.
+
+=item B<--include-field>=I<fieldname>=I<regex>
+
+Don't exclude any binary packages where the contents of I<fieldname> match
+the regex. May be used multiple times. If this option is used and the mirror
+includes source packages, only those source packages corresponding to
+included binary packages will be downloaded.
+
 =item B<-t>, B<--timeout>=I<seconds>
 
 Specifies the timeout to use for network operations (either FTP or rsync).
@@ -564,6 +578,7 @@ our ($debug, $progress, $verbose, $passive, $skippackages, $getcontents, $i18n);
 our ($ua, $proxy, $ftp);
 our (@dists, @sections, @arches, @ignores, @excludes, @includes, @keyrings);
 our (@excludes_deb_section, @limit_priority);
+our (%excludes_field, %includes_field);
 our (@di_dists, @di_arches, @rsync_extra);
 our $state_cache_days = 0;
 our $verify_checksums = 0;
@@ -687,6 +702,8 @@ GetOptions('debug'                  => \$debug,
 	   'exclude-deb-section=s'  => \@excludes_deb_section,
 	   'limit-priority=s'       => \@limit_priority,
 	   'include=s'              => \@includes,
+	   'exclude-field=s'        => \%excludes_field,
+	   'include-field=s'        => \%includes_field,
 	   'skippackages'           => \$skippackages,
 	   'i18n'                   => \$i18n,
 	   'getcontents'            => \$getcontents,
@@ -1099,6 +1116,9 @@ say("Parsing Packages and Sources files ...");
   my $exclude_deb_section =
     "(".join("|", @excludes_deb_section).")" if @excludes_deb_section;
   my $limit_priority = "(".join("|", @limit_priority).")" if @limit_priority;
+  my $field_filters =
+    scalar(keys %includes_field) || scalar(keys %excludes_field);
+  my %binaries;
 
   foreach my $file (@package_files) {
     next if (!-f $file);
@@ -1121,6 +1141,9 @@ say("Parsing Packages and Sources files ...");
 	next if (defined($limit_priority) && defined($deb_priority)
 		 && ! ($deb_priority=~/$limit_priority/o));
       }
+      next if $field_filters && !check_field_filters($_);
+      my ($package)=m/^Package:\s+(.*)/im;
+      $binaries{$package} = 1;
       # File was listed in state cache, or file occurs multiple times
       if (exists $files{$filename}) {
 	if ($files{$filename} >= 0) {
@@ -1148,9 +1171,10 @@ say("Parsing Packages and Sources files ...");
     }
     close(FILE);
   }
-SOURCE:  foreach my $file (@source_files) {
+  foreach my $file (@source_files) {
     next if (!-f $file);
     open(FILE, "<", $file) or die "$file: $!";
+SOURCE:
     for (;;) {
       my $stanza;
       unless (defined( $stanza = <FILE> )) {
@@ -1185,6 +1209,19 @@ SOURCE:  foreach my $file (@source_files) {
 		      my $deb_priority=$1;
 		      next SOURCE if (defined($limit_priority) && defined($deb_priority)
 				&& ! ($deb_priority=~/$limit_priority/o));
+	      }
+	      elsif ($line=~/^Binary:\s+(.*)/i) {
+		      if ($field_filters) {
+			      my @binary_names=split(/\s*,\s*/,$1);
+			      my $fetching_binary=0;
+			      for my $binary_name (@binary_names) {
+				      if (exists $binaries{$binary_name}) {
+					      $fetching_binary=1;
+					      last;
+				      }
+			      }
+			      next SOURCE unless $fetching_binary;
+		      }
 	      }
 	      elsif ($line=~/^Files:/i) {
 		      $parse_source_files->("MD5Sum");
@@ -1486,6 +1523,26 @@ sub add_bytes_gotten {
   if ($doing_meta) {
     $bytes_meta += $size;
   }
+}
+
+# Return true if a package stanza is permitted by
+# --include-field/--exclude-field.
+sub check_field_filters {
+  my $stanza = shift;
+  for my $name (keys %includes_field) {
+    if ($stanza=~/^\Q$name\E:\s+(.*)/im) {
+      my $value=$1;
+      return 1 if $value=~/$includes_field{$name}/;
+    }
+  }
+  return 0 if keys %includes_field;
+  for my $name (keys %excludes_field) {
+    if ($stanza=~/^\Q$name\E:\s+(.*)/im) {
+      my $value=$1;
+      return 0 if $value=~/$excludes_field{$name}/;
+    }
+  }
+  return 1;
 }
 
 # Takes named parameters: filename, size.
