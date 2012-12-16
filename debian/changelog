@@ -2,6 +2,8 @@ debmirror (1:2.15) UNRELEASED; urgency=low
 
   * Improved interface to gpgv. Thanks, Tom Jones.
   * Add --keyring option. Thanks, Tom Jones.
+  * Add --exclude-field and --include-field options.
+    Closes: #695767. Thanks, Colin Watson
 
  -- Joey Hess <joeyh@debian.org>  Fri, 12 Oct 2012 13:49:51 -0400
 
