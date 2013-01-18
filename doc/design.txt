@@ -68,6 +68,7 @@ Source:
    - ftp
    - hftp (ftp via http://user:pass@proxy:port/)
    - http
+   - https
    - rsync
    - wget (wget-ftp)
    - print (output what should be done)
