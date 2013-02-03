@@ -431,9 +431,10 @@ after moving meta files in place). This conversion should only be needed once.
 
 =item B<--disable-ssl-verification>
 
-To use https method, the debmirror has to check if SSL certificate is 
-valid or not. If download server is a self-signed SSL certificate, 
-it needs to be disabled adding "--disable-ssl-verification"
+When https is used, debmirror checks that the SSL certificate is value.
+
+If the server has a self-signed certificate, the check can be disabled
+with this option.
 
 =item B<--debmarshal>
 
@@ -617,7 +618,6 @@ our $gzip_options="-9 -n --rsyncable";
 our $omit_suite_symlinks=0;
 our $allow_dist_rename=0;
 our $debmarshal=0;
-our $self_signed=1;
 our $disable_ssl_verification;
 our $slow_cpu=0;
 our $check_gpg=1;
@@ -876,11 +876,6 @@ $files{$lockfile}=1;
 my $rsynctempfile;
 END { unlink $rsynctempfile if $rsynctempfile }
 
-# Set up if it disable ssl verification
-if ($self_signed eq $disable_ssl_verification) {
-   $self_signed = 0;
-}
-
 sub init_connection {
   $_ = $download_method;
 
@@ -895,10 +890,10 @@ sub init_connection {
   
   /^https$/ && do {
     $ua = LWP::UserAgent->new(keep_alive => 1, ssl_opts => {
-    verify_hostname => $self_signed });
+		    verify_hostname => ! $disable_ssl_verification });
     $ua->timeout($timeout);
-    $ua->proxy('https', $ENV{http_proxy}) if $ENV{https_proxy};
-	$ua->proxy('https', $proxy) if $proxy;
+    $ua->proxy('https', $ENV{https_proxy}) if $ENV{https_proxy};
+    $ua->proxy('https', $proxy) if $proxy;
     $ua->show_progress($progress);
     return;
   };
