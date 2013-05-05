@@ -1,0 +1,628 @@
+debmirror (1:2.15) unstable; urgency=low
+
+  * Improved interface to gpgv. Thanks, Tom Jones.
+  * Add --keyring option. Thanks, Tom Jones.
+  * Add --exclude-field and --include-field options.
+    Closes: #695767. Thanks, Colin Watson
+  * Supports https. Closes: #697687 Thanks, Fernando Ike
+  * Treat "Origin: Canonical" like "Origin: Ubuntu"
+    Closes: #702319. Thanks, Tal Danzig
+
+ -- Joey Hess <joeyh@debian.org>  Sat, 04 May 2013 23:44:27 -0400
+
+debmirror (1:2.14) unstable; urgency=low
+
+  * Add --config-file option.
+    Closes: #638295. Thanks, Stefan Kisdaroczi and Matthias Schmitz.
+  * Do not crash on i18n/Index with --debmarshal
+    Closes: #676219. Thanks, Frank Luithle
+
+ -- Joey Hess <joeyh@debian.org>  Tue, 26 Jun 2012 19:29:31 -0400
+
+debmirror (1:2.13) unstable; urgency=low
+
+  * Fix mirroring of Translation files for suites (currently contrib and
+    non-free) for which there are no i18n Index files. Use information
+    from Release files instead.
+    Closes: #673444, #644609. Thanks, Joris Dolderer
+
+ -- Joey Hess <joeyh@debian.org>  Tue, 19 Jun 2012 14:33:41 -0400
+
+debmirror (1:2.12) unstable; urgency=low
+
+  * Always mirror the English "translations" necessary to have any
+    package long descriptions at all, even if --i18n is not enabled.
+    (Unless disabled via --exclude.)
+  * Make i18n/Index parsing not fail if there are non-SHA1 checksums.
+    Although currently only SHA1 is supported here. Closes: #644609
+
+ -- Joey Hess <joeyh@debian.org>  Fri, 13 Apr 2012 12:19:34 -0400
+
+debmirror (1:2.11) unstable; urgency=low
+
+  * Two fixes to output. Closes: #647562 Thanks, Karl Goetz
+  * Support HTTP authentication by setting --user and --password.
+    Closes: #650743 Thanks, Eshat Cakar
+  * --timeout now also affects http and ftp download.
+    Closes: #662694 Thanks, Christoph Goehre
+  * Remove libcompress-zlib-perl from Depends, this is now provided by perl.
+
+ -- Joey Hess <joeyh@debian.org>  Mon, 05 Mar 2012 17:05:29 -0400
+
+debmirror (1:2.10) unstable; urgency=low
+
+  * Fix skipping d-i for suites that do not include it. Closes: #636627
+    Thanks, Stefan Kisdaroczi
+  * Allow mirroring d-i on kfreebsd-*; skip it for arch 'all'. Closes: #637457
+    Thanks, Stefan Kisdaroczi
+
+ -- Joey Hess <joeyh@debian.org>  Mon, 31 Oct 2011 10:44:07 -0400
+
+debmirror (1:2.9) unstable; urgency=low
+
+  * Use Net::INET6Glue to support making ipv6 connections. Closes: #631302
+  * Avoid sanity check for empty mirror, to allow mirroring an empty mirror
+    if this is the first time debmirror is run. Closes: #635723
+    Thanks, Stefan Kisdaroczi
+
+ -- Joey Hess <joeyh@debian.org>  Thu, 28 Jul 2011 14:57:36 +0200
+
+debmirror (1:2.8) unstable; urgency=low
+
+  * Avoid trying to get d-i for *-updates suites. Closes: #619146
+
+ -- Joey Hess <joeyh@debian.org>  Mon, 21 Mar 2011 13:03:45 -0400
+
+debmirror (1:2.7) unstable; urgency=high
+
+  * Version dep on LWP. Closes: #614594
+  * Fix typo in d-i download code. Closes: #614620
+
+ -- Joey Hess <joeyh@debian.org>  Tue, 22 Feb 2011 13:54:12 -0400
+
+debmirror (1:2.6) unstable; urgency=high
+
+  * In Release, Packages, and Sources files, support all sizes of SHA
+    checksums that are supported by Digest::SHA. Closes: #614383
+  * Now depends on libdigest-sha-perl.
+  * Check SHA512, SHA256, or SHA1 in preference to MD5.
+  * Full checksum validation is now enabled by the --checksums switch.
+    (The old --md5sums switch is an alias to that for backwards compatibility.)
+
+ -- Joey Hess <joeyh@debian.org>  Mon, 21 Feb 2011 19:28:07 -0400
+
+debmirror (1:2.5) unstable; urgency=low
+
+  * Clean up output messages.
+  * Apply program return code checking patch by Kees Cook.
+  * Allow umask to control directory permissions in mkdir. Closes: #589397
+  * Add --slow-cpu option that avoids bzipping and gzipping files.
+    Closes: #594948
+  * Various code cleanups.
+  * Deprecate --cleanup, which had become confusing since --postcleanup
+    is the default, and add --precleanup.
+  * Add --check-gpg (the default) and --no-check-gpg options.
+  * Added a warning message if rsync of extra files fails.
+  * Default to --rsync-extra=trace, and warn if --rsync-extra setting
+    disables trace.
+  * Above will ensure that debmirror at least tries
+    to get trace files by default, and warns if it cannot. Closes: #156564
+  * Avoid getting rsync-extra files if the site being mirrored
+    has --root=/ , as that cannot work with rsync.
+  * A proxy specified with --proxy or ftp_proxy will now also be used
+    for ftp connections.
+  * Deprecate --method=hftp, just use --proxy with --method=ftp.
+  * Run rsync with --no-motd except for in --verbose mode.
+  * Support --progress for http. (Per #598382)
+  * Apply manpage markup patch from liw. Closes: #599414
+  * Fix typo in default rsync options. Closes: #599568
+  * Add --debmarshal snapshot mode by Drake Diedrich. Closes: #550007
+  * Send verbose/debug mode gpgv error messages to stdout. Closes: #607099
+
+ -- Joey Hess <joeyh@debian.org>  Sat, 05 Feb 2011 12:40:14 -0400
+
+debmirror (1:2.4.6) unstable; urgency=low
+
+  * New maintainer. Frans, we'll miss you.
+    Closes: #595690
+  * Moved to git; grafted in debmirror's original development
+    history from my home directory. Closes: #594976
+  * Fix filename of mirror_size file in man page. Closes: #594975
+
+ -- Joey Hess <joeyh@debian.org>  Sun, 05 Sep 2010 18:54:21 -0400
+
+debmirror (1:2.4.5) unstable; urgency=low
+
+  * Drop support for the --adddir option which was obsoleted log ago.
+  * Ensure MD5SUMS files for D-I images get updated. Closes: #590667.
+    Thanks to Stefan Kisdaroczi for reporting the issue and for the patch.
+  * Update archive size information (without Etch as that has been archived).
+
+ -- Frans Pop <fjp@debian.org>  Thu, 05 Aug 2010 16:09:13 +0200
+
+debmirror (1:2.4.4) unstable; urgency=low
+
+  * Fix typo in mirror_size. Closes: #575352.
+  * Change internal use of dry-run variables so that setting $dry_run in
+    the config file actually works. Closes: #569348.
+
+ -- Frans Pop <fjp@debian.org>  Thu, 25 Mar 2010 19:14:12 +0100
+
+debmirror (1:2.4.3) unstable; urgency=low
+
+  * Don't delete Contents and Translation files if mirror cleanup is done
+    early. Closes: #568613.
+
+ -- Frans Pop <fjp@debian.org>  Sat, 06 Feb 2010 14:42:36 +0100
+
+debmirror (1:2.4.2) unstable; urgency=low
+
+  * Really allow for Release files without Origin field. Closes: #565593.
+
+ -- Frans Pop <fjp@debian.org>  Sun, 31 Jan 2010 14:21:46 +0100
+
+debmirror (1:2.4.1) unstable; urgency=low
+
+  * Typo fixes in NEWS.Debian file spotted by Geoff Simmons. Closes: #566377.
+  * Allow for Release files without Origin field. Closes: #565593.
+
+ -- Frans Pop <fjp@debian.org>  Sun, 24 Jan 2010 07:23:06 +0100
+
+debmirror (1:2.4) unstable; urgency=low
+
+  * The main Debian archive has started to use rsyncable gzip files.
+    Use the --rsyncable flag when compressing Packages/Sources files using
+    gzip after applying pdiffs to ensure the md5sum of the file matches the
+    one in the Release file again. Closes: #560326.
+    This change may cause unnecessary download of the gzipped Packages/Sources
+    files for other archives that provide pdiffs but don't have rsyncable
+    gzipped files; this can be fixed using the new option --gzip-options.
+  * Fix mirroring of archives without a Release.gpg file. Closes: #561533.
+    Thanks to Loïc Minier for tracing the issue.
+  * Allow to specify the local mirror directory in config files.
+    Closes: #544141.
+  * Add versioned dependency on perl (>= 5.10). Closes: #551878.
+  * Improve dependencies on gpgv/gnupg.
+
+ -- Frans Pop <fjp@debian.org>  Sat, 19 Dec 2009 22:21:38 +0100
+
+debmirror (1:2.3.1) unstable; urgency=low
+
+  * Update example configuration (closes: #549955):
+    - fix error in variable names for setting D-I dists & arches
+    - add example for setting "extra rsync directories"
+  * Rename variables so that @dists can be set again in a configuration file.
+    Closes: #549952.
+  * Enable LWP::ConnCache for the http transfer method. Closes: #395538.
+    Thanks to Gregor Herrmann for pointing out the option.
+
+ -- Frans Pop <fjp@debian.org>  Thu, 08 Oct 2009 19:39:41 +0200
+
+debmirror (1:2.3) unstable; urgency=low
+
+  * Support updating Contents files using diff files. This can significantly
+    reduce the download size when Contents files change. Closes: #436027.
+  * Because of the previous change the option --pdiff has been renamed to
+    --diff as 'package diffs' no longer covers its use.
+  * Fix mirroring archives without a Release file (--ignore-missing-release).
+  * Minor other fixes and improvements.
+
+ -- Frans Pop <fjp@debian.org>  Sat, 03 Oct 2009 13:33:46 +0200
+
+debmirror (1:2.2.1) unstable; urgency=low
+
+  * Only fetch i18n Index files if needed.
+  * Fix mirroring D-I images when the archive is also being mirrored for the
+    same dist. Closes: #547789.
+
+ -- Frans Pop <fjp@debian.org>  Tue, 22 Sep 2009 18:12:05 +0200
+
+debmirror (1:2.2) unstable; urgency=low
+
+  * Allow to include/exclude specific files belonging to D-I images.
+  * Add support for downloading package translation files. Closes: #436030.
+  * Move archive size information to a separate file in /usr/share/doc.
+
+ -- Frans Pop <fjp@debian.org>  Sat, 12 Sep 2009 08:59:31 +0200
+
+debmirror (1:2.1.1) unstable; urgency=low
+
+  * Register the trace and lock files only after loading the state cache.
+
+ -- Frans Pop <fjp@debian.org>  Mon, 31 Aug 2009 14:16:47 +0200
+
+debmirror (1:2.1) unstable; urgency=low
+
+  * Fix location of debmirror.conf. Closes: #544139.
+  * Don't display download speed if rsync is used. Closes: #422100.
+  * Support mirroring specific additional files from specific locations on
+    the mirror: trace files, ./doc, ./indices and ./tools. The transfer
+    method used for this is always rsync, irrespective of what method is
+    specified in the --method option. Closes: #153680, #156564.
+  * Ubuntu uses an identical Codename for different suites, so just ignore
+    it and use the Suite instead. Closes: #544132.
+
+ -- Frans Pop <fjp@debian.org>  Sat, 29 Aug 2009 18:55:25 +0200
+
+debmirror (1:2.0) unstable; urgency=low
+
+  * Remove duplicated checks of md5sums for Packages/Sources files.
+  * Improve performance of parsing Packages/Sources files (by a factor of
+    about 30).
+  * Revert change in directory removal as otherwise also empty parent
+    directories of empty directories no longer get removed.
+  * Fix support for mirrors with need extra directories in dist, such as
+    security mirrors, which got broken by the suite->codename symlink
+    changes. Thanks to Christoph Goehre for reporting the issue and testing
+    the fix. Closes: #543775.
+  * No longer requires a leading "/" or ":" for the root directory. This
+    means the same --root option can be used for both http/ftp and rsync.
+  * Improve accounting of download size and display in B/kiB/MiB depending
+    on the size of the download. Closes: #520487.
+  * Don't write the trace file until the meta data is also in place, and
+    don't write one during a dry run.
+  * Add option to use a cache file to save the state of the mirror between
+    runs, allowing for more efficient mirror runs. Closes: #483922.
+  * Supports mirroring "current" Debian Installer images.
+    With the option to specify a different set of dists and arches than
+    for the package archive. In this release there are no progress updates
+    displayed yet. Closes: #154966.
+
+ -- Frans Pop <fjp@debian.org>  Fri, 28 Aug 2009 15:32:37 +0200
+
+debmirror (1:1.0.1) unstable; urgency=low
+
+  * Skip debian-installer sections for source packages. D-I only has binary
+    packages; the source is included in the regular sections. Closes: #542826.
+    Based on a patch from Ernesto Hernández-Novich, with thanks.
+  * Allow for the fact that for experimental the suite and codename are
+    identical. Thanks to Craig Sanders. Closes: #542929.
+
+ -- Frans Pop <fjp@debian.org>  Sun, 23 Aug 2009 07:05:24 +0200
+
+debmirror (1:1.0) unstable; urgency=low
+
+  * Switch to more common versioning scheme; requires an epoch.
+  * Clarify version of GPL (version 2 or later).
+  * Update periods of activity for various maintainers of the script both
+    in the perl script and in the debian/copyright file. Closes: #542061.
+  * Set more accurate versioned build dependency on debhelper.
+  * Apply patch from Kees Cook to make parsing of Packages/Sources files a bit
+    less fragile. Closes: #451021.
+  * Add sanity check after parsing Packages/Sources files to avoid completely
+    deleting a mirror in case of unexpected errors (#451021, #435663).
+  * Debian mirrors no longer keep uncompressed packages files; don't include
+    them on the local mirror either.
+  * Apply patch from A. Mennucc for more efficient removal of empty
+    directories. Closes: #453091.
+  * Various improvements of the man page for:
+    - the --getcontents switch; with thanks to Slaven Rezic; closes: #524967
+    - example commands; with thanks to Karl Goetz; closes: #491326
+    - debmirror.conf configuration file and example
+  * Don't fetch Contents files if they are already up-to-date (#436027).
+  * Remove reduntant slashes in paths from Package files. Closes: #471946.
+    Thanks to Raphael Hertzog for the patch.
+  * Update tables showing archive size in man page, using new mirror-size
+    script. Closes: #498541.
+  * Automatically create and update suite->codename symlinks based on info in
+    the Release file. Directories for dists will always have the codename of
+    the release. Conversion of existing mirrors that use suites for directories
+    is supported. See also NEWS.Debian. Closes: #426170.
+
+ -- Frans Pop <fjp@debian.org>  Thu, 20 Aug 2009 19:43:39 +0200
+
+debmirror (20090807) unstable; urgency=low
+
+  * New maintainer, with thanks to Goswin for his work on previous releases.
+  * Remove no longer needed prerm script.
+  * Correct syntax of NEWS.Debian file.
+  * Switch build system to debhelper.
+  * Bump standards version to 3.8.2.
+  * Improve documentation on how to add an archive keyring for debmirror.
+    Thanks to Kees Cook for the patch. Closes: #451157.
+
+ -- Frans Pop <fjp@debian.org>  Fri, 07 Aug 2009 19:24:01 +0200
+
+debmirror (20070123) unstable; urgency=low
+
+  * Add dependency for libdigest-sha1-perl (ACK NMU) (Closes: #386707)
+  * Change manpage entry for --pdiff (Closes: #386697)
+  * Fix Release.gpg check to use gpgv (Closes: #400526)
+  * Fix use of uninitialized value in addition
+  * Count errors in pdiff files as small errors (Closes: #400054)
+  * Cleanup tempfiles (Closes: 399834)
+  * Fix manpage permissions with patch by (Closes: #399058)
+    "Dmitry E. Oboukhov" <dimka@avanto.org>
+  * Skip pdiff files if patch binary is missing (Closes: #401245)
+  * Skip pdiff files if ed binary is missing and recommend it (Closes: #397936)
+
+ -- Goswin von Brederlow <brederlo@informatik.uni-tuebingen.de>  Tue, 23 Jan 2007 14:53:14 +0100
+
+debmirror (20060907) unstable; urgency=low
+
+  * Merge pdiff patch by Peter Colberg <peterco@gmx.net> (Closes: #366855)
+  * Add --pdiff-mode option
+  * Add rsync patch by Peter Colberg <peterco@gmx.net> (Closes: #299342)
+  * Disable caching for Release and Release.gpg (Closes: #376495)
+  * Default to --postcleanup (Closes: #295423)
+  * Print ftp hashes to stdout (Closes: #349856)
+    (Patch by Bastian Kleineidam <calvin@debian.org>)
+  * Fix typo found by Luca Bruno <luca.br@uno.it> (Closes: #362561)
+  * Implement ftp authentication with user/passwd (Closes: #360453)
+    (Patch by Peter Baumann <waste.manager@gmx.de>)
+  * Skip Index files that don't exist locally nor in Release
+    Obsoletes other ideas from the BTS (Closes: #369061, #360451, #382271)
+  * Fail immediately if the signature cannot be verified (Closes: #316528)
+  * Show gpg error message on failure (Closes: #316529)
+  * Skip gpg test if --ignore-release-gpg is specified (Closes: #322714)
+  * Re-add --skippackages (Closes: #294974)
+
+ -- Goswin von Brederlow <brederlo@informatik.uni-tuebingen.de>  Thu,  7 Sep 2006 15:36:47 +0200
+
+debmirror (20051209) unstable; urgency=low
+
+  * Reorder find arguments (Closes: #316461)
+    Patch by Craig Sanders <cas@taz.net.au>
+  * Move Contents file fetching out of stage 1 to make them not
+    critical (Closes: #314282)
+  * Add % progress for http method (Closes: #328312)
+  * Add archive sizes to the manpage (Closes: #340423)
+  * Consider meta file sizes for % progress (Closes: #341910)
+  * Don't say 'All done' until really all is done (Closes: #319957)
+  * Remove obsolete --nomd5sum option (Closes: #321278)
+  * Prefer --proxy over ENV{ftp_proxy} for hftp (Closes: #334360)
+  * Add tip about gpg to the manpage (Closes: #316506)
+  * Don't check/count source files multiple times
+
+ -- Goswin von Brederlow <brederlo@informatik.uni-tuebingen.de>  Fri,  9 Dec 2005 18:31:21 +0100
+
+debmirror (20050207) unstable; urgency=low
+
+  * Add NEWS.Debian (Closes: #289025)
+  * Add ~/.debmirror.conf and /etc/debmirror.conf (Closes: #244023)
+  * Typo fix by Nico Golde and more (Closes: #292791)
+  * Add example config file
+
+ -- Goswin von Brederlow <brederlo@informatik.uni-tuebingen.de>  Mon,  7 Feb 2005 05:30:34 +0100
+
+debmirror (20050118) unstable; urgency=low
+
+  * Add --no-tty option to gpg (Closes: #289286)
+    reported by Holger Ruckdeschel <holger@hoicher.de>
+  * Move cleanup code into function and add missing chdir (Closes: #287465)
+    adapted patch by Daniel Parthey <pada@hrz.tu-chemnitz.de>
+  * Unlink hardlinks before system calls with redirected IO (Closes: #288814)
+    adapted patch by Mirko Parthey <mirko.parthey@informatik.tu-chemnitz.de>
+  * Unlink metafiles later (Closes: #289752)
+    patch by Ingo Saitz <ingo@debian.org>
+  * Typo fixes as found by Martin Kourim <martin.kourim@seznam.cz>
+    (Closes: #287732)
+  * Add --ignore-small-errors to allow updating inconsistent upstream
+    mirrors (Closes: #288973)
+  * Hide gpg signature check output if !verbose (Closes: #286575)
+
+ -- Goswin von Brederlow <brederlo@informatik.uni-tuebingen.de>  Tue, 18 Jan 2005 02:59:34 +0200
+
+debmirror (20041219) unstable; urgency=low
+
+  * Tell LockFile::Simple not to force unlocking after an hour even if the
+    old debmirror is still running. (Closes: #286330)
+
+ -- Goswin von Brederlow <brederlo@informatik.uni-tuebingen.de>  Sun, 19 Dec 2004 18:18:34 +0200
+
+debmirror (20041209) unstable; urgency=high
+
+  * hide gpg --version output
+  * test for gpg and give cluefull error
+  * add Recommends: gnupg
+  * add trailing / to remoteroot for rsync
+  * add --ignore-release-gpg and gpg check Release
+  * Remember size/md5sums of files to get and check after retrieval
+  * L 1046: Only call $ftp->size($file) once to avoid different results
+  * Handle EOF in Release when searching for md5sums,
+    patch by dean gaudet <dean-debian@arctic.org> (Closes: #284037)
+  * Fail on chdir failures, patch by dean gaudet <dean-debian@arctic.org>
+    (Closes: #283457)
+  * Fixed division by 0 as reported by Jeroen van Wolffelaar
+    (Closes: #277422) [urgency high, should have been RC]
+  * Fixed ftp failures not detected as reported by Dean Gaudet
+    (Closes: #281151)
+
+ -- Goswin von Brederlow <brederlo@informatik.uni-tuebingen.de>  Thu, 09 Dec 2004 18:36:34 +0200
+
+debmirror (20040926) unstable; urgency=low
+
+  * Skip Contents files for *-proposed-updates and experimental
+  * Skip debian-installer section for experimental and proposed-updates
+    (Closes: #267721)
+  * Cleanup empty directories only at the very end to avoid
+    races with .temp (Closes: #264503)
+  * Add -L to default rsync options (Closes: #265575)
+  * Add --rsync-options option (Closes: #193797, #219976, #267034)
+  * Copy meta files in cases where hardlinks fail (afs) (Closes: #267956)
+  * Unlink meta files before download (Closes: #264504)
+
+ -- Goswin von Brederlow <brederlo@informatik.uni-tuebingen.de>  Sun, 16 Sep 2004 14:29:34 +0200
+
+debmirror (20040802) unstable; urgency=low
+
+  * Display Byte counters in MiB and speed in Kib/s
+  * Fix progress/verbose output for ftp method broken by --dry-run
+  * Fix rsync method for --dry-run
+  * Add --rsync-batch option limiting the number of files per rsync call
+  * Count 'batch limit exceeded' as error
+  * Fix XSI:isms in prerm reported by David Weinehall <tao@debian.org>
+    (Closes: #262893)
+
+ -- Goswin von Brederlow <brederlo@informatik.uni-tuebingen.de>  Mon,  2 Aug 2004 13:43:34 +0200
+
+debmirror (20040730) unstable; urgency=low
+
+  * Don't download Contents-$arch.gz for experimental. Thanks to Eric Wong
+  * Add main/debian-installer to the default sections
+  * Add support for http and hftp, adding --proxy option
+    (Adapted from patch by thomas@poindessous.com)
+    (Closes: #134187, #154364, #196196, #229666)
+
+ -- Goswin von Brederlow <brederlo@informatik.uni-tuebingen.de>  Fri, 30 Jul 2004 23:05:34 +0200
+
+debmirror (20040729) unstable; urgency=low
+
+  * Download meta files to temp directory first (Closes: #219977)
+  * Added --postcleanup
+  * Download Release files for sources (Closes: #248903)
+  * Typo fix (Closes: #258390). Thanks to Steve Kemp <skx@debian.org>
+  * Probable fix for (Closes: #249445)
+  * Add --dry-run (Closes: #126954)
+  * Code cleanup
+    - Reindent long description in debian/control and add rsync method
+    - use -depth and -print0 in the find | xargs calls
+    - don't use -z for rsync on debs and sources
+
+ -- Goswin von Brederlow <brederlo@informatik.uni-tuebingen.de>  Thu, 29 Jul 2004 19:45:34 +0200
+
+debmirror (20040509) unstable; urgency=low
+
+  * Added --limit-deb-priority
+
+ -- Goswin von Brederlow <brederlo@informatik.uni-tuebingen.de>  Sun,  9 May 2004 20:11:34 +0200
+
+debmirror (20040427) unstable; urgency=low
+
+  * Reindented source code to xemacs CPerl style (Closes: #211214)
+  * Added ftp error message to the warning during download
+    and not just the errlog
+  * Added Depends on bzip2 (Closes: #233558)
+  * Due to popular demand: Adding hacks for main/debian-installer
+    (Closes: #245499, #232093, #243634)
+  * Don't fail is extra metafiles are broken (Closes: #211847)
+  * Adopted --exclude-deb-section patch by
+    Meszaros Andras <andrej@draconis.elte.hu> (Closes: #245462)
+  * Added mdtm check to ftp method (Closes: #149984)
+  * Added --ignore-missing-release option (Closes: #221491)
+
+ -- Goswin von Brederlow <brederlo@informatik.uni-tuebingen.de>  Tue, 27 Apr 2004 01:18:34 +0200
+
+debmirror (20040118) unstable; urgency=medium
+
+  * Check for root in binary-indep to ensure files are owned by root.root
+    (Closes: #215993)
+  * Correct example for non-US (Closes: #213869, #219409)
+  * Forgot to toggle Archive-Update-in-Progress-dual and
+    project/trace/dual (Closes: #221490, #215500, #211210)
+  * Added patch by Marcel Meckel <debian@thermoman.de>: eliminate warning
+    of uninitialized value (Closes: #223059)
+  * Adpated parts of patch by Pedro Larroy <piotr@member.fsf.org>:
+    Added human readable verbose output (Closes: #224694)
+  * Added -v --verbose option
+  * List errors (if any) at the end
+  * Report when the batch limit is exceeded
+  * revert 'stoped using regexps on --include' (Closes: #214306)
+
+ -- Goswin von Brederlow <brederlo@informatik.uni-tuebingen.de>  Sun, 18 Jan 2004 16:49:34 +0100
+
+debmirror (20030829) unstable; urgency=low
+
+  * Added oneliner by Alexander Wirt <formorer@formorer.de>
+    +die "You need write permissions on $mirrordir" if (!-w $mirrordir);
+  * changed synopsis of usage too (bug #126857)
+  * Use Release file to md5sum check Packages/Sources files before and
+    after download [Patch by "Ingo Saitz" <ingo@debian.org>]+changes
+    (Closes:  #149890)
+  * Download Packages/Packages.bz2 files too and same for Sources.gz
+    (Closes: #159322)
+  * Removed "proposed-updates" example from --adddir, --adddir now
+    obsolete (Closes: #174857)
+  * Preserve partial files with the rsync method
+    (Closes: #181097)
+  * Ignore timestamps on rsync method to fix files with broken MD5sum.
+    (We already only rsync files with wrong size or wrong MD5sum.)
+
+ -- Goswin von Brederlow <brederlo@informatik.uni-tuebingen.de>  Fri, 29 Aug 2003 13:58:34 +0200
+
+debmirror (20030822.1) unstable; urgency=low
+
+  * Synopsis in manpage now has [options] first (Closes: #126857)
+  * added epoch splitting to debian/rules
+  * stoped using regexps on --include (Closes: #146763)
+  * close ftp connection before scanning the mirror and reopen it after
+    (Closes: #149888) [Patch by "Ingo Saitz" <ingo@debian.org>]+fix
+  * count number of errors when fetching files, stop if metafiles failed
+    and report summary at the end otherwise. (Closes: #151164, #154522)
+    [PS: rsync method does not report errors for missing files, ftp only]
+  * clarify --dist and change default to sid
+
+ -- Goswin von Brederlow <brederlo@informatik.uni-tuebingen.de>  Fri, 22 Aug 2003 21:03:34 +0200
+
+debmirror (20030822) unstable; urgency=low
+
+  * Reduced number of tries till locking fails. Now 2m instead of 12h
+  * warn if a lock is busy (Closes: #206710)
+
+ -- Goswin von Brederlow <brederlo@informatik.uni-tuebingen.de>  Fri, 22 Aug 2003 13:29:34 +0200
+
+debmirror (20030813) unstable; urgency=medium
+
+  * New maintainer.
+  * Made an Debian-native package
+  * postinst-should-not-set-usr-doc-link, postinst now empty, removed.
+  * added myself to copyright file, changed Copyright GPL to License GPL.
+  * added --max-batch=<number> option
+  * added arch=none option for source-only mirrors (closes: #154139)
+  * added my contact address to the man page (closes: #167010, #205094)
+  * remove backup file in debian/rules:clean
+
+ -- Goswin von Brederlow <brederlo@informatik.uni-tuebingen.de>  Wed, 13 Aug 2003 16:17:34 +0200
+
+debmirror (20020427-1) unstable; urgency=high
+
+  * New Release.
+  * Applied patch from Robert MyQueen. Great Kudos to him!
+    (Closes: Bug#144726, Bug#12998)
+  * urgency=high as requested because the predecessor fixes a grave bug
+    and #144726 could also be seen as a RC bug.
+
+ -- Joerg Wendland <joergland@debian.org>  Sat, 27 Apr 2002 19:59:34 +0200
+
+debmirror (20020424-1) unstable; urgency=medium
+
+  * New Release.
+  * Medium for this upload should close a bug tagged grave.
+  * Fix output when using --progress
+    (closes: Bug#127484)
+  * Add a great patch by Masato Taruishi, adding rsync support to debmirror.
+    (closes: Bug#127844)
+  * Use now LockFile::Simple to avoid installation of procmail only for
+    having a lockfile utility. It is tested to be compatible with programs
+    using lockfile.
+    (closes: Bug#128041)
+  * Use Compress::Zlib to decompress Package files and others.
+    (closes: Bug#132306)
+  * Add --timeout parameter. This should close Bug#130679 as it can be
+    set and defaults to 300 seconds instead of the Net::FTP default
+    of 120 seconds. This timeout is also used for the new rsync method.
+    (closes: Bug#130679, Bug#122199)
+    Don't even think about annoying me further with timeout problems.
+
+ -- Joerg Wendland <joergland@debian.org>  Wed, 24 Apr 2002 22:21:24 +0200
+
+debmirror (20011230-1) unstable; urgency=low
+
+  * New Release.
+  * Fixed typo in POD/manpage, thanks to Britton Leo Kerin. 
+    (closes: Bug#126859)
+  * Applied patch from Camille Dominique fixing download of Release files. 
+    (closes: Bug#126758)
+  * Added Depends: libdigest-md5-perl to support --md5sum switch.
+    (closes: unreported Bug, thanks to Maik Busch)
+  * Added patch from Masato Taruishi adding a --include=regex switch that
+    has the opposed effect as the already existing --exclude switch.
+    (closes: Bug#125973)
+
+ -- Joerg Wendland <joergland@debian.org>  Sun, 30 Dec 2001 13:57:19 +0100
+
+debmirror (20011016-1) unstable; urgency=low
+
+  * Initial Debian release
+
+ -- Joerg Wendland <joergland@debian.org>  Thu, 25 Oct 2001 17:12:13 +0200
