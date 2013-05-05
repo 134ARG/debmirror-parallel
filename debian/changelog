@@ -1,4 +1,4 @@
-debmirror (1:2.15) UNRELEASED; urgency=low
+debmirror (1:2.15) unstable; urgency=low
 
   * Improved interface to gpgv. Thanks, Tom Jones.
   * Add --keyring option. Thanks, Tom Jones.
@@ -8,7 +8,7 @@ debmirror (1:2.15) UNRELEASED; urgency=low
   * Treat "Origin: Canonical" like "Origin: Ubuntu"
     Closes: #702319. Thanks, Tal Danzig
 
- -- Joey Hess <joeyh@debian.org>  Fri, 12 Oct 2012 13:49:51 -0400
+ -- Joey Hess <joeyh@debian.org>  Sat, 04 May 2013 23:44:27 -0400
 
 debmirror (1:2.14) unstable; urgency=low
 
