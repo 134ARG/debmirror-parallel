@@ -1,3 +1,10 @@
+debmirror (1:2.16) UNRELEASED; urgency=low
+
+  * Fix confusing output with --precleanup.
+    Closes: #708355
+
+ -- Joey Hess <joeyh@debian.org>  Wed, 15 May 2013 13:28:42 -0400
+
 debmirror (1:2.15) unstable; urgency=low
 
   * Improved interface to gpgv. Thanks, Tom Jones.
