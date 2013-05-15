@@ -826,8 +826,7 @@ say("Download at most $max_batch files.") if ($max_batch > 0);
 say("Download at most $rsync_batch files per rsync call.") if ($download_method eq "rsync");
 if ($pre_cleanup) {
   say("Will clean up before mirroring.");
-}
-if ($post_cleanup) {
+} elsif ($post_cleanup) {
   say("Will clean up after mirroring.");
 } else {
   say("Will NOT clean up.");
