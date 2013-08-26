@@ -1,4 +1,4 @@
-debmirror (1:2.16) UNRELEASED; urgency=low
+debmirror (1:2.16) unstable; urgency=low
 
   * Fix confusing output with --precleanup.
     Closes: #708355
@@ -6,7 +6,7 @@ debmirror (1:2.16) UNRELEASED; urgency=low
     handling the old location.
     Closes: #637442 Thanks, Christoph Pleger
 
- -- Joey Hess <joeyh@debian.org>  Wed, 15 May 2013 13:28:42 -0400
+ -- Joey Hess <joeyh@debian.org>  Mon, 26 Aug 2013 12:41:03 -0400
 
 debmirror (1:2.15) unstable; urgency=low
 
