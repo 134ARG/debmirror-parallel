@@ -157,7 +157,8 @@ debmirror (20060907) unstable; urgency=low
     combination of arch, suite and section that does not exist locally
     and is not listed in the Release file for the suite. This
     obsoletes the previously hardcoded exceptions and should allow to
-    mirror unknown archives like Ubuntu without problems.
+    mirror unknown archives like the Debian derivative from Canonical that
+    cannot be named without problems.
 
     Note that debmirror will fail when a combination of arch, suite
     and section that exists locally gets dropped from the Release
