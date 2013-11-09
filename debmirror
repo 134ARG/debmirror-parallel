@@ -2116,13 +2116,13 @@ sub name_release {
 
   if ($origin eq "none") {
     $codename = $dist_raw;
-  } elsif ($origin=~/^[U][b][u][n][t][u]$/ or $origin eq "Canonical") {
+  } elsif ($origin eq "Ubuntu" or $origin eq "Canonical") {
     if ($suite) {
-      say("Debian derivative from Canonical which cannot be named Release file: using Suite ($suite).");
+      say("Ubuntu Release file: using Suite ($suite).");
       $codename = $suite;
     } else {
-      say("Invalid Debian derivative from Canonical which cannot be named Release file.");
-      push (@errlog,"Invalid Debian derivative from Canonical which cannot be named Release file.\n");
+      say("Invalid Ubuntu Release file.");
+      push (@errlog,"Invalid Ubuntu Release file.\n");
       $num_errors++;
       next;
     }
