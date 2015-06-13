@@ -1,0 +1,25 @@
+#!/usr/bin/perl
+use warnings;
+use strict;
+use integer;
+use FindBin;
+
+our @kind = (
+    { cmd => 'md5sum'   , name => 'MD5Sum' },
+    { cmd => 'sha1sum'  , name => 'SHA1'   },
+    { cmd => 'sha256sum', name => 'SHA256' },
+);
+
+chdir "${FindBin::RealBin}/debian";
+my @file = grep { !m%^dists/[^/]+/Release$% }
+  map { chomp; s%^\./%%; $_; } sort `find . -mindepth 2 -type f`;
+
+for my $kind (@kind) {
+    print $kind->{name} . ":\n";
+    for my $file (@file) {
+        my $cmd = "${FindBin::RealBin}/calculate-sum Release "
+          . $kind->{cmd} . " $file";
+        print `${cmd}`;
+    }
+}
+

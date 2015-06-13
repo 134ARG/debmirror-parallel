@@ -1,0 +1,5 @@
+Mon Jun  1 15:59:08 UTC 2015
+Used ftpsync version: 20130605
+Running on host: rietz.debian.org
+Architectures: GUESSED:{ source amd64 armel armhf hurd-i386 i386 ia64 kfreebsd-amd64 kfreebsd-i386 mips mipsel powerpc s390 s390x sparc}
+Upstream-mirror: ftp-master.debian.org

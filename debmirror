@@ -103,7 +103,8 @@ directory has a F<dists> subdirectory.
 =item B<--method>=I<method>
 
 Specify the method to download files. Currently, supported methods are
-B<ftp>, B<http>, B<https>, and B<rsync>.
+B<ftp>, B<http>, B<https>, and B<rsync>. The B<file> method is
+experimentally supported.
 
 =item B<--passive>
 
@@ -127,13 +128,13 @@ Specifies the http proxy (like Squid) to use for http or ftp methods.
 
 Specify the distribution (etch, lenny, squeeze, sid) of Debian to
 mirror. This switch may be used multiple times, and multiple
-distributions may be specified at once, separated by commas. 
+distributions may be specified at once, separated by commas.
 
 You may also use the stable, testing, unstable, names.
 
 =item B<--omit-suite-symlinks>
 
-With this option set, B<debmirror> will not create the 
+With this option set, B<debmirror> will not create the
 symlink from I<suite> to I<codename>.
 This is needed for example when mirroring archived Debian
 releases as they will all have either C<stable> or C<oldstable> as
@@ -155,12 +156,12 @@ Allows to also mirror files from a number of directories that are not part
 of the package archive itself.
 
 B<Debmirror> will B<always> use rsync for the transfer of these files,
-irrespective of what transfer method is specified in the B<--method> option. 
+irrespective of what transfer method is specified in the B<--method> option.
 This
 will therefore not work if your remote mirror does not support rsync, or if
 the mirror needs a different B<--root> option for rsync than for the main
 transfer method specified with B<--method>.
- 
+
 Note that excluding individual files in the directories is not supported.
 
 The following values are supported.
@@ -194,7 +195,7 @@ This can be used to disable getting extra files with rsync.
 =back
 
 If specified, the update of trace files will be done at the beginning of
-the mirror run; the other types are done near the end. 
+the mirror run; the other types are done near the end.
 
 This switch may be used multiple times, and multiple values may be specified
 at once, separated by commas; unknown values are ignored.
@@ -233,11 +234,11 @@ recommended (see the B<--diff> option).
 
 =item B<--checksums>
 
-Use checksums to determine if files on the local mirror that are 
+Use checksums to determine if files on the local mirror that are
 the correct size actually have the correct content. Not enabled by default,
 because it is too paranoid, and too slow.
 
-When the state cache is used, B<debmirror> will only check checksums 
+When the state cache is used, B<debmirror> will only check checksums
 during runs
 where the cache has expired or been invalidated, so it is worth considering
 to use these two options together.
@@ -256,7 +257,7 @@ checked. The default is to check signatures.
 Use I<file> as an additional gpg-format keyring.  May be given multiple times.
 
 Note that these will be used in addition to $GNUPGHOME/trustedkeys.gpg.
-The latter can be removed from the set of keyrings by setting 
+The latter can be removed from the set of keyrings by setting
 $GNUPGHOME to something non-existent when using this option.
 
 On a typical Debian system, the Debian archive keyring can be used
@@ -332,7 +333,7 @@ bandwidth of your link.
 =item B<--postcleanup>
 
 Clean up the local mirror but only after mirroring is complete and
-only if there was no error. 
+only if there was no error.
 
 This is the default, because it ensures that the mirror is consistent
 at all times.
@@ -352,7 +353,7 @@ Do not clean up the local mirror.
 
 =item B<--skippackages>
 
-Don't re-download F<Packages> and F<Sources> files. 
+Don't re-download F<Packages> and F<Sources> files.
 Useful if you know they are up-to-date.
 
 =item B<--diff>=I<use|mirror|none>
@@ -424,7 +425,7 @@ still be pedantic about checking meta files.
 The directory name for a dist should be equal to its Codename and not to
 a Suite. If the local mirror currently has directories named after Suites,
 B<debmirror> can rename them automatically.
-An existing symlink from I<codename> to I<suite> will be removed, 
+An existing symlink from I<codename> to I<suite> will be removed,
 but B<debmirror>
 will automatically create a new symlink S<suite -E<gt> codename> (immediately
 after moving meta files in place). This conversion should only be needed once.
@@ -451,6 +452,19 @@ http://code.google.com/p/debmarshal/source/browse/#svn/trunk/repository2
 Specify a configuration file. This option may be repeated to read
 multiple configuration files. By default debmirror reads
 /etc/debmirror.conf and ~/.debmirror.conf (see section FILES).
+
+=back
+
+=head2 Experimental options
+
+=over 4
+
+=item B<--retry-rsync-packages>=I<number>
+
+While downloading Packages and related files via rsync, try up to
+this many times if rsync fails to connect. Defaults to 1, to try
+only once. (A typical nondefault value is 10. To try an unlimited
+number of times, use -1 or 0.)
 
 =back
 
@@ -619,9 +633,11 @@ our $omit_suite_symlinks=0;
 our $allow_dist_rename=0;
 our $debmarshal=0;
 our $disable_ssl_verification;
+our $retry_rsync_packages=1;
 our $slow_cpu=0;
 our $check_gpg=1;
 our $new_mirror=0;
+our $retry_rsync_packages_delay=30; # seconds
 my @errlog;
 my $HOME;
 ($HOME = $ENV{'HOME'}) or die "HOME not defined in environment!\n";
@@ -685,57 +701,58 @@ my $files_cache_version = "1.0";
 my $help;
 Getopt::Long::Configure qw(no_pass_through);
 GetOptions('debug'                  => \$debug,
-	   'progress|p'             => \$progress,
-	   'verbose|v'              => \$verbose,
-	   'source!'                => \$do_source,
-	   'checksums!'             => \$verify_checksums,
-	   'md5sums|m'              => \$verify_checksums, # back compat
-	   'passive!'               => \$passive,
-	   'host|h=s'               => \$host,
-	   'user|u=s'               => \$user,
-	   'passwd=s'               => \$passwd,
-	   'root|r=s'               => \$remoteroot,
-	   'dist|d=s'               => \@dists,
-	   'section|s=s'            => \@sections,
-	   'arch|a=s'               => \@arches,
-	   'di-dist=s'              => \@di_dists,
-	   'di-arch=s'              => \@di_arches,
-	   'rsync-extra=s'          => \@rsync_extra,
-	   'precleanup'             => \$pre_cleanup,
-	   'cleanup'                => \$pre_cleanup,
-	   'postcleanup'            => \$post_cleanup,
-	   'nocleanup'              => \$no_cleanup,
-	   'ignore=s'               => \@ignores,
-	   'exclude=s'              => \@excludes,
-	   'exclude-deb-section=s'  => \@excludes_deb_section,
-	   'limit-priority=s'       => \@limit_priority,
-	   'include=s'              => \@includes,
-	   'exclude-field=s'        => \%excludes_field,
-	   'include-field=s'        => \%includes_field,
-	   'skippackages'           => \$skippackages,
-	   'i18n'                   => \$i18n,
-	   'getcontents'            => \$getcontents,
-	   'method|e=s'             => \$download_method,
-	   'timeout|t=s'            => \$timeout,
-	   'max-batch=s'            => \$max_batch,
-	   'rsync-batch=s'          => \$rsync_batch,
-	   'state-cache-days=s'     => \$state_cache_days,
-	   'ignore-missing-release' => \$ignore_missing_release,
-	   'ignore-release-gpg'     => \$ignore_release_gpg,
-	   'check-gpg!'             => \$check_gpg,
-	   'dry-run'                => \$dry_run,
-	   'proxy=s'                => \$proxy,
-	   'rsync-options=s'        => \$rsync_options,
-	   'gzip-options=s'         => \$gzip_options,
-	   'ignore-small-errors'    => \$ignore_small_errors,
-	   'diff=s'                 => \$diff_mode,
-	   'omit-suite-symlinks'    => \$omit_suite_symlinks,
-	   'allow-dist-rename'      => \$allow_dist_rename,
-	   'debmarshal'             => \$debmarshal,
-	   'slow-cpu'               => \$slow_cpu,
-	   'disable-ssl-verification' => \$disable_ssl_verification,	
-       'keyring=s'              => \@keyrings,
-	   'help'                   => \$help,
+           'progress|p'             => \$progress,
+           'verbose|v'              => \$verbose,
+           'source!'                => \$do_source,
+           'checksums!'             => \$verify_checksums,
+           'md5sums|m'              => \$verify_checksums, # back compat
+           'passive!'               => \$passive,
+           'host|h=s'               => \$host,
+           'user|u=s'               => \$user,
+           'passwd=s'               => \$passwd,
+           'root|r=s'               => \$remoteroot,
+           'dist|d=s'               => \@dists,
+           'section|s=s'            => \@sections,
+           'arch|a=s'               => \@arches,
+           'di-dist=s'              => \@di_dists,
+           'di-arch=s'              => \@di_arches,
+           'rsync-extra=s'          => \@rsync_extra,
+           'precleanup'             => \$pre_cleanup,
+           'cleanup'                => \$pre_cleanup,
+           'postcleanup'            => \$post_cleanup,
+           'nocleanup'              => \$no_cleanup,
+           'ignore=s'               => \@ignores,
+           'exclude=s'              => \@excludes,
+           'exclude-deb-section=s'  => \@excludes_deb_section,
+           'limit-priority=s'       => \@limit_priority,
+           'include=s'              => \@includes,
+           'exclude-field=s'        => \%excludes_field,
+           'include-field=s'        => \%includes_field,
+           'skippackages'           => \$skippackages,
+           'i18n'                   => \$i18n,
+           'getcontents'            => \$getcontents,
+           'method|e=s'             => \$download_method,
+           'timeout|t=s'            => \$timeout,
+           'max-batch=s'            => \$max_batch,
+           'rsync-batch=s'          => \$rsync_batch,
+           'state-cache-days=s'     => \$state_cache_days,
+           'ignore-missing-release' => \$ignore_missing_release,
+           'ignore-release-gpg'     => \$ignore_release_gpg,
+           'check-gpg!'             => \$check_gpg,
+           'dry-run'                => \$dry_run,
+           'proxy=s'                => \$proxy,
+           'rsync-options=s'        => \$rsync_options,
+           'gzip-options=s'         => \$gzip_options,
+           'ignore-small-errors'    => \$ignore_small_errors,
+           'diff=s'                 => \$diff_mode,
+           'omit-suite-symlinks'    => \$omit_suite_symlinks,
+           'allow-dist-rename'      => \$allow_dist_rename,
+           'debmarshal'             => \$debmarshal,
+           'slow-cpu'               => \$slow_cpu,
+           'disable-ssl-verification' => \$disable_ssl_verification,
+           'retry-rsync-packages=s' => \$retry_rsync_packages,
+           'keyring=s'              => \@keyrings,
+           'help'                   => \$help,
 ) or usage;
 usage if $help;
 usage("invalid number of arguments") if $ARGV[1];
@@ -745,11 +762,14 @@ usage("invalid number of arguments") if $ARGV[1];
 $mirrordir = shift if $ARGV[0];
 usage("mirrordir not specified") unless defined $mirrordir;
 
+# Constrain other parameters
 $diff_mode="none" if $slow_cpu;
-
 if ($download_method eq 'hftp') { # deprecated
-	$download_method='ftp';
+        $download_method='ftp';
 }
+$retry_rsync_packages =~ /^-?\d+$/
+  or die 'unusable retry-rsync-packages value';
+$retry_rsync_packages < 1 and $retry_rsync_packages = -1;
 
 # Check for patch binary if needed
 if (!($diff_mode eq "none")) {
@@ -766,7 +786,7 @@ if (!($diff_mode eq "none")) {
 }
 
 # Backwards compatibility: remote root dir no longer needs prefix
-$remoteroot =~ s%^[:/]%%;
+$remoteroot =~ s%^[:/]%% unless downloads_via_file();
 
 # Post-process arrays. Allow commas to separate values the user entered.
 # If the user entered nothing, provide defaults.
@@ -789,8 +809,8 @@ if (@di_dists) {
 @rsync_extra=split(/,/,join(',',@rsync_extra));
 @rsync_extra="trace" unless @rsync_extra;
 if (! grep { $_ eq 'trace' } @rsync_extra) {
-	print STDERR "Warning: --rsync-extra is not configured to mirror the trace files.\n";
-	print STDERR "         This configuration is not recommended.\n";
+        print STDERR "Warning: --rsync-extra is not configured to mirror the trace files.\n";
+        print STDERR "         This configuration is not recommended.\n";
 }
 @rsync_extra=() if grep { $_ eq "none" } @rsync_extra;
 $pre_cleanup=0 if ($no_cleanup);
@@ -802,7 +822,7 @@ $post_cleanup=0 if ($debmarshal);
 # Display configuration.
 $|=1 if $debug;
 if ($passwd eq "anonymous@") {
-  if ($download_method eq "http") {
+  if (downloads_via_http()) {
     say("Mirroring to $mirrordir from $download_method://$host/$remoteroot/");
   } else {
     say("Mirroring to $mirrordir from $download_method://$user\@$host/$remoteroot/");
@@ -823,7 +843,7 @@ say("Not checking Release gpg signatures.") if ! $check_gpg;
 say("Passive mode on.") if $passive;
 say("Proxy: $proxy") if $proxy;
 say("Download at most $max_batch files.") if ($max_batch > 0);
-say("Download at most $rsync_batch files per rsync call.") if ($download_method eq "rsync");
+say("Download at most $rsync_batch files per rsync call.") if (downloads_via_rsync());
 if ($pre_cleanup) {
   say("Will clean up before mirroring.");
 } elsif ($post_cleanup) {
@@ -852,8 +872,8 @@ chomp $hostname;
 my $lockfile="Archive-Update-in-Progress-$hostname";
 say("Attempting to get lock ...");
 my $lockmgr = LockFile::Simple->make(-format => "%f/$lockfile", -max => 12,
-				     -delay => 10, -nfs => 1, -autoclean => 1,
-				     -warn => 1, -stale => 1, -hold => 0);
+                                     -delay => 10, -nfs => 1, -autoclean => 1,
+                                     -warn => 1, -stale => 1, -hold => 0);
 my $lock = $lockmgr->lock("$mirrordir")
   or die "$lockfile exists or you lack proper permissions; aborting";
 $SIG{INT}=sub { $lock->release; exit 1 };
@@ -878,7 +898,7 @@ END { unlink $rsynctempfile if $rsynctempfile }
 sub init_connection {
   $_ = $download_method;
 
-  /^http$/ && do {
+  downloads_via_http() && do {
     $ua = LWP::UserAgent->new(keep_alive => 1);
     $ua->timeout($timeout);
     $ua->proxy('http', $ENV{http_proxy}) if $ENV{http_proxy};
@@ -886,10 +906,10 @@ sub init_connection {
     $ua->show_progress($progress);
     return;
   };
-  
-  /^https$/ && do {
+
+  downloads_via_https() && do {
     $ua = LWP::UserAgent->new(keep_alive => 1, ssl_opts => {
-		    verify_hostname => ! $disable_ssl_verification });
+                    verify_hostname => ! $disable_ssl_verification });
     $ua->timeout($timeout);
     $ua->proxy('https', $ENV{https_proxy}) if $ENV{https_proxy};
     $ua->proxy('https', $proxy) if $proxy;
@@ -898,7 +918,7 @@ sub init_connection {
   };
 
 
-  /^ftp$/ && do {
+  downloads_via_ftp() && do {
     if ($proxy || $ENV{ftp_proxy}) {
       $ua = LWP::UserAgent->new;
       $ua->timeout($timeout);
@@ -915,7 +935,15 @@ sub init_connection {
     return;
   };
 
-  /^rsync$/ && do {
+  downloads_via_file() && do {
+    $ua = LWP::UserAgent->new;
+    $ua->timeout($timeout);
+    $ua->show_progress($progress);
+    $host='localhost';
+    return;
+  };
+
+  downloads_via_rsync() && do {
     return;
   };
 
@@ -926,15 +954,20 @@ init_connection();
 # determine remote root for rsync transfers
 my $rsyncremote;
 if (length $remoteroot) {
-	$rsyncremote = "$host\:\:$remoteroot/";
-	if ($user ne 'anonymous') {
-		$rsyncremote = "$user\@$rsyncremote";
-	}
+        if (downloads_via_file()) {
+                $rsyncremote = "$remoteroot/";
+        }
+        else {
+                $rsyncremote = "$host\:\:$remoteroot/";
+                if ($user ne 'anonymous') {
+                        $rsyncremote = "$user\@$rsyncremote";
+                }
+        }
 }
 else {
-	if ($download_method eq 'rsync') {
-		die "rsync cannot be used with a root of $remoteroot/\n";
-	}
+        if (downloads_via_rsync()) {
+                die "rsync cannot be used with a root of $remoteroot/\n";
+        }
 }
 
 # Update the remote trace files; also update ignores for @rsync_extra.
@@ -959,16 +992,16 @@ foreach my $dist (@dists) {
     $files{$tempdir."/"."dists/$codename$dist_sdir/Release"}=1;
     if ($debmarshal) {
       $next = make_next_snapshot($mirrordir,$dist,$codename,
-					    $dist_sdir,$tempdir);
+                                            $dist_sdir,$tempdir);
     }
     if (-f "$tdir/Release.gpg") {
       rename("$tdir/Release.gpg", "$tempdir/dists/$codename$dist_sdir/Release.gpg")
-	or die "Error while moving $tdir/Release.gpg: $!\n";
+        or die "Error while moving $tdir/Release.gpg: $!\n";
       $files{"dists/$codename$dist_sdir/Release.gpg"}=1;
       $files{$tempdir."/"."dists/$codename$dist_sdir/Release.gpg"}=1;
       if ($debmarshal) {
-	link_release_into_snapshot($mirrordir,$dist,$next,$tempdir,
-				   $codename,$dist_sdir);
+        link_release_into_snapshot($mirrordir,$dist,$next,$tempdir,
+                                   $codename,$dist_sdir);
       }
     }
   }
@@ -984,13 +1017,13 @@ foreach my $dist (keys %distset) {
     my $checksum_type;
     while (<RELEASE>) {
         if (/^(MD5Sum|SHA\d+):/) {
-		$checksum_type=$1;
-	}
-	elsif (/^ / && defined $checksum_type) {
-      		my ($checksum, $size, $filename) = /^ +([a-z0-9]+) +(\d+) +(.*)$/;
-		$file_lists{"$tempdir/dists/$dist/$filename"}{$checksum_type} = $checksum;
-		$file_lists{"$tempdir/dists/$dist/$filename"}{size} = $size;
-	}
+                $checksum_type=$1;
+        }
+        elsif (/^ / && defined $checksum_type) {
+                my ($checksum, $size, $filename) = /^ +([a-z0-9]+) +(\d+) +(.*)$/;
+                $file_lists{"$tempdir/dists/$dist/$filename"}{$checksum_type} = $checksum;
+                $file_lists{"$tempdir/dists/$dist/$filename"}{size} = $size;
+        }
     }
     close RELEASE;
   }
@@ -1097,30 +1130,22 @@ if ($getcontents) {
   # Updates of Contents files using diffs are done here; only full downloads
   # are delayed.
   say("Update Contents files.") if ($diff_mode ne "none");
-  foreach my $dist (keys %distset) {
-    next unless exists $distset{$dist}{mirror};
-    foreach my $arch (@arches) {
-      next if $dist=~/experimental/;
-      next if $dist=~/.*-proposed-updates/;
-      next if $arch=~/source/;
-      # In Debian Wheezy, the Contents-*.gz moved to '/dists/$dist/$sect/'.
-      # This handles the new location, but also checks the old location
-      # for backwards compatibility.
-      push my @sects, @sections,  "";
-      foreach my $sect (@sects) {
-        if ($sect ne "") {$sect = "/$sect";}
-        if (exists $file_lists{"$tempdir/dists/$dist${sect}Contents-$arch.gz"}) {
-          if ($diff_mode ne "none") {
-            if (!update_contents("dists/$dist$sect", "Contents-$arch")) {
-              add_bytes("dists/$dist$sect/Contents-$arch.gz");
-            }
-          } elsif (!check_lists("$tempdir/dists/$dist$sect/Contents-$arch.gz")) {
-            add_bytes("dists/$dist$sect/Contents-$arch.gz");
-          }
-        }
+  my $update_contents_files_using_diffs = sub {
+    my($operational_parameters, $dist, $arch, $sect) = @_;
+    # In Debian Wheezy, the Contents-*.gz moved to '/dists/$dist/$sect/'.
+    # This handles the new location, but also checks the old location
+    # for backwards compatibility.
+    if ($diff_mode ne "none") {
+      if (!update_contents("dists/$dist$sect", "Contents-$arch")) {
+        add_bytes("dists/$dist$sect/Contents-$arch.gz");
       }
+    } elsif (!check_lists("$tempdir/dists/$dist$sect/Contents-$arch.gz")) {
+      add_bytes("dists/$dist$sect/Contents-$arch.gz");
     }
-  }
+  };
+  do_contents_for_each_dist_arch_sect(
+    $update_contents_files_using_diffs, [], {}
+  );
 }
 foreach my $dist (keys %distset) {
   next unless exists $distset{$dist}{mirror};
@@ -1154,8 +1179,8 @@ say("Parsing Packages and Sources files ...");
     open(FILE, "<", $file) or die "$file: $!";
     for (;;) {
       unless (defined( $_ = <FILE> )) {
-	last if eof;
-	die "$file: $!" if $!;
+        last if eof;
+        die "$file: $!" if $!;
       }
       my ($filename)=m/^Filename:\s+(.*)/im;
       $filename=~s:/+:/:;	# remove redundant slashes in paths
@@ -1164,37 +1189,37 @@ say("Parsing Packages and Sources files ...");
       my ($architecture)=m/^Architecture:\s+(.*)/im;
       next if (!$arches{$architecture});
       if(!(defined($include) && ($filename=~/$include/o))) {
-	next if (defined($exclude) && $filename=~/$exclude/o);
-	next if (defined($exclude_deb_section) && defined($deb_section)
-		 && $deb_section=~/$exclude_deb_section/o);
-	next if (defined($limit_priority) && defined($deb_priority)
-		 && ! ($deb_priority=~/$limit_priority/o));
+        next if (defined($exclude) && $filename=~/$exclude/o);
+        next if (defined($exclude_deb_section) && defined($deb_section)
+                 && $deb_section=~/$exclude_deb_section/o);
+        next if (defined($limit_priority) && defined($deb_priority)
+                 && ! ($deb_priority=~/$limit_priority/o));
       }
       next if $field_filters && !check_field_filters($_);
       my ($package)=m/^Package:\s+(.*)/im;
       $binaries{$package} = 1;
       # File was listed in state cache, or file occurs multiple times
       if (exists $files{$filename}) {
-	if ($files{$filename} >= 0) {
-	  $files{$filename} = 1 if $files{$filename} == 2;
-	  $empty_mirror = 0;
-	  next;
-	} else { # download failed previous run, retry
-	  $files{$filename} = 0;
-	}
+        if ($files{$filename} >= 0) {
+          $files{$filename} = 1 if $files{$filename} == 2;
+          $empty_mirror = 0;
+          next;
+        } else { # download failed previous run, retry
+          $files{$filename} = 0;
+        }
       }
       my ($size)=m/^Size:\s+(\d+)/im;
       my %checksums;
       while (m/^(MD5sum|SHA\d+):\s+([A-Za-z0-9]+)/img) {
-	      $checksums{$1}=$2;
+              $checksums{$1}=$2;
       }
       if (check_file(filename => $filename, size => $size, %checksums)) {
-	$files{$filename} = 1;
+        $files{$filename} = 1;
       } else {
-	$files{$filename} = 0;
-	$file_lists{$filename} = \%checksums;
-	$file_lists{$filename}{size} = $size;
-	$bytes_to_get += $size;
+        $files{$filename} = 0;
+        $file_lists{$filename} = \%checksums;
+        $file_lists{$filename}{size} = $size;
+        $bytes_to_get += $size;
       }
       $empty_mirror = 0;
     }
@@ -1207,82 +1232,82 @@ SOURCE:
     for (;;) {
       my $stanza;
       unless (defined( $stanza = <FILE> )) {
-	last if eof;
-	die "$file: $!" if $!;
+        last if eof;
+        die "$file: $!" if $!;
       }
       my @lines=split(/\n/, $stanza);
 
       my $directory;
       my %source_files;
       my $parse_source_files=sub {
-	      my $checksum_type=shift;
-	      while (@lines && $lines[0] =~ m/^ ([A-Za-z0-9]+ .*)/) {
-		      my ($checksum, $size, $filename)=split(' ', $1, 3);
-		      $source_files{$filename}{size}=$size;
-		      $source_files{$filename}{$checksum_type}=$checksum;
-		      shift @lines;
-	      }
+              my $checksum_type=shift;
+              while (@lines && $lines[0] =~ m/^ ([A-Za-z0-9]+ .*)/) {
+                      my ($checksum, $size, $filename)=split(' ', $1, 3);
+                      $source_files{$filename}{size}=$size;
+                      $source_files{$filename}{$checksum_type}=$checksum;
+                      shift @lines;
+              }
       };
 
       while (@lines) {
-	      my $line=shift @lines;
-	      if ($line=~/^Directory:\s+(.*)/i) {
-		      $directory=$1;
-	      }
-	      elsif ($line=~/^Section:\s+(.*)/i) {
-		      my $deb_section=$1;
-		      next SOURCE if (defined($exclude_deb_section) && defined($deb_section)
-				&& $deb_section=~/$exclude_deb_section/o);
-	      }
-	      elsif ($line=~/^Priority:\s+(.*)/i) {
-		      my $deb_priority=$1;
-		      next SOURCE if (defined($limit_priority) && defined($deb_priority)
-				&& ! ($deb_priority=~/$limit_priority/o));
-	      }
-	      elsif ($line=~/^Binary:\s+(.*)/i) {
-		      if ($field_filters) {
-			      my @binary_names=split(/\s*,\s*/,$1);
-			      my $fetching_binary=0;
-			      for my $binary_name (@binary_names) {
-				      if (exists $binaries{$binary_name}) {
-					      $fetching_binary=1;
-					      last;
-				      }
-			      }
-			      next SOURCE unless $fetching_binary;
-		      }
-	      }
-	      elsif ($line=~/^Files:/i) {
-		      $parse_source_files->("MD5Sum");
-	      }
-	      elsif ($line=~/^Checksums-(\w+):/i) {
-		      $parse_source_files->($1);
-	      }
+              my $line=shift @lines;
+              if ($line=~/^Directory:\s+(.*)/i) {
+                      $directory=$1;
+              }
+              elsif ($line=~/^Section:\s+(.*)/i) {
+                      my $deb_section=$1;
+                      next SOURCE if (defined($exclude_deb_section) && defined($deb_section)
+                                && $deb_section=~/$exclude_deb_section/o);
+              }
+              elsif ($line=~/^Priority:\s+(.*)/i) {
+                      my $deb_priority=$1;
+                      next SOURCE if (defined($limit_priority) && defined($deb_priority)
+                                && ! ($deb_priority=~/$limit_priority/o));
+              }
+              elsif ($line=~/^Binary:\s+(.*)/i) {
+                      if ($field_filters) {
+                              my @binary_names=split(/\s*,\s*/,$1);
+                              my $fetching_binary=0;
+                              for my $binary_name (@binary_names) {
+                                      if (exists $binaries{$binary_name}) {
+                                              $fetching_binary=1;
+                                              last;
+                                      }
+                              }
+                              next SOURCE unless $fetching_binary;
+                      }
+              }
+              elsif ($line=~/^Files:/i) {
+                      $parse_source_files->("MD5Sum");
+              }
+              elsif ($line=~/^Checksums-(\w+):/i) {
+                      $parse_source_files->($1);
+              }
       }
       foreach my $filename (keys %source_files) {
-	my %file_data=%{$source_files{$filename}};
-	$filename="$directory/$filename";
-	$filename=~s:/+:/:;	# remove redundant slashes in paths
-	if(!(defined($include) && $filename=~/$include/o)) {
-	  next if (defined($exclude) && $filename=~/$exclude/o);
-	}
-	# File was listed in state cache, or file occurs multiple times
-	if (exists $files{$filename}) {
-	  if ($files{$filename} >= 0) {
-	    $files{$filename} = 1 if $files{$filename} == 2;
-	    $empty_mirror = 0;
-	    next;
-	  } else { # download failed previous run, retry
-	    $files{$filename} = 0;
-	  }
-	}
-	if (check_file(filename => $filename, %file_data)) {
-	  $files{$filename} = 1;
-	} else {
-	  $files{$filename} = 0;
-	  $file_lists{$filename} = \%file_data;
-	  $bytes_to_get += $file_data{size};
-	}
+        my %file_data=%{$source_files{$filename}};
+        $filename="$directory/$filename";
+        $filename=~s:/+:/:;	# remove redundant slashes in paths
+        if(!(defined($include) && $filename=~/$include/o)) {
+          next if (defined($exclude) && $filename=~/$exclude/o);
+        }
+        # File was listed in state cache, or file occurs multiple times
+        if (exists $files{$filename}) {
+          if ($files{$filename} >= 0) {
+            $files{$filename} = 1 if $files{$filename} == 2;
+            $empty_mirror = 0;
+            next;
+          } else { # download failed previous run, retry
+            $files{$filename} = 0;
+          }
+        }
+        if (check_file(filename => $filename, %file_data)) {
+          $files{$filename} = 1;
+        } else {
+          $files{$filename} = 0;
+          $file_lists{$filename} = \%file_data;
+          $bytes_to_get += $file_data{size};
+        }
       }
       $empty_mirror = 0;
     }
@@ -1321,26 +1346,25 @@ say("Files to download: ".print_dl_size($bytes_to_get - $bytes_gotten));
 batch_get();
 
 sub batch_get {
-  if ($download_method eq 'ftp' || $download_method eq 'http' ||
-   $download_method eq 'https') {
+  if (uses_LWP()) {
     my $dirname;
     my $i=0;
     foreach my $file (sort keys %files) {
       if (!$files{$file}) {
-	if (($dirname) = $file =~ m:(.*)/:) {
-	  make_dir($dirname);
-	}
-	if ($ftp) {
-		ftp_get($file);
-	}
-	else {
-		http_get($file);
-	}
-	if ($max_batch > 0 && ++$i >= $max_batch) {
-	  push (@errlog,"Batch limit exceeded, mirror run was partial\n");
-	  $num_errors++;
-	  last;
-	}
+        if (($dirname) = $file =~ m:(.*)/:) {
+          make_dir($dirname);
+        }
+        if ($ftp) {
+                ftp_get($file);
+        }
+        else {
+                http_get($file);
+        }
+        if ($max_batch > 0 && ++$i >= $max_batch) {
+          push (@errlog,"Batch limit exceeded, mirror run was partial\n");
+          $num_errors++;
+          last;
+        }
       }
     }
     return;
@@ -1357,48 +1381,63 @@ sub batch_get {
     $opt .= " --no-motd" unless $verbose;
     foreach my $file (sort keys %files) {
       if (!$files{$file}) {
-	my $dirname;
-	my @dir;
-	($dirname) = $file =~ m:(.*/):;
-	@dir= split(/\//, $dirname);
-	for (0..$#dir) {
-	  push (@result, "" . join('/', @dir[0..$_]) . "/");
-	}
-	push (@result, "$file");
-	if (++$j >= $rsync_batch) {
-	  $j = 0;
-	  ($fh, $rsynctempfile) = tempfile();
-	  if (@result) {
-	    @result = sort(@result);
-	    my $prev = "not equal to $result[0]";
-	    @result = grep($_ ne $prev && ($prev = $_, 1), @result);
-	    for (@result) {
-	      print $fh "$_\n";
-	    }
-	  }
-	  system ("rsync --timeout=$timeout $opt $rsyncremote --include-from=$rsynctempfile --exclude='*' $mirrordir");
-	  die "rsync failed!" if ($? != 0);
-	  close $fh;
-	  unlink $rsynctempfile;
-	  foreach my $dest (@result) {
-	    if (-f $dest) {
-	      if (!check_lists($dest)) {
-		say("$dest failed checksum verification");
-		$num_errors++;
-	      }
-	    } elsif (!-d $dest) {
-	      say("$dest missing");
-	      $num_errors++;
-	    }
-	  }
-	  @result = ();
-	}
-	if ($max_batch > 0 && ++$i >= $max_batch) {
-	  print "Batch limit exceeded, mirror run will be partial\n";
-	  push (@errlog,"Batch limit exceeded, mirror run was partial\n");
-	  $num_errors++;
-	  last;
-	}
+        my $dirname;
+        my @dir;
+        ($dirname) = $file =~ m:(.*/):;
+        @dir= split(/\//, $dirname);
+        for (0..$#dir) {
+          push (@result, "" . join('/', @dir[0..$_]) . "/");
+        }
+        push (@result, "$file");
+        if (++$j >= $rsync_batch) {
+          $j = 0;
+          ($fh, $rsynctempfile) = tempfile();
+          if (@result) {
+            @result = sort(@result);
+            my $prev = "not equal to $result[0]";
+            @result = grep($_ ne $prev && ($prev = $_, 1), @result);
+            for (@result) {
+              print $fh "$_\n";
+            }
+          }
+          while (1) {
+            system (
+              "rsync --timeout=$timeout $opt $rsyncremote --include-from=$rsynctempfile --exclude='*' $mirrordir"
+            );
+            my $rc = $?;
+            last if ($rc == 0);
+            # Retry on connection failures
+            if (($rc>>8) == 5) {
+              die "rsync failed too many times!"
+                if ($retry_rsync_packages >= 1 && --$retry_rsync_packages < 1);
+              say("Pausing before retry...");
+              sleep($retry_rsync_packages_delay);
+            }
+            else {
+              die "rsync failed!";
+            }
+          }
+          close $fh;
+          unlink $rsynctempfile;
+          foreach my $dest (@result) {
+            if (-f $dest) {
+              if (!check_lists($dest)) {
+                say("$dest failed checksum verification");
+                $num_errors++;
+              }
+            } elsif (!-d $dest) {
+              say("$dest missing");
+              $num_errors++;
+            }
+          }
+          @result = ();
+        }
+        if ($max_batch > 0 && ++$i >= $max_batch) {
+          print "Batch limit exceeded, mirror run will be partial\n";
+          push (@errlog,"Batch limit exceeded, mirror run was partial\n");
+          $num_errors++;
+          last;
+        }
       }
     }
     ($fh, $rsynctempfile) = tempfile();
@@ -1407,20 +1446,20 @@ sub batch_get {
       my $prev = "not equal to $result[0]";
       @result = grep($_ ne $prev && ($prev = $_, 1), @result);
       for (@result) {
-	print $fh "$_\n";
+        print $fh "$_\n";
       }
       system ("rsync --timeout=$timeout $opt $rsyncremote --include-from=$rsynctempfile --exclude='*' $mirrordir");
       close $fh;
       foreach my $dest (@result) {
-	if (-f $dest) {
-	  if (!check_lists($dest)) {
-	    say("$dest failed checksum verification");
-	    $num_errors++;
-	  }
-	} elsif (!-d $dest) {
-	  say("$dest missing");
-	  $num_errors++;
-	}
+        if (-f $dest) {
+          if (!check_lists($dest)) {
+            say("$dest failed checksum verification");
+            $num_errors++;
+          }
+        } elsif (!-d $dest) {
+          say("$dest missing");
+          $num_errors++;
+        }
       }
     }
     return;
@@ -1472,10 +1511,10 @@ if (! $omit_suite_symlinks && ! $do_dry_run) {
     if (-l "dists/$file") {
       my $cur = readlink("dists/$file") or die "Error reading symlink dists/$file: $!";
       if (exists $distset{$cur}{suite} &&
-	  ($file eq $distset{$cur}{suite} || $file eq "stable-$distset{$cur}{suite}")) {
-	$suites{$file} = "ok";
+          ($file eq $distset{$cur}{suite} || $file eq "stable-$distset{$cur}{suite}")) {
+        $suites{$file} = "ok";
       } else {
-	unlink("dists/$file") or die "Failed to remove symlink dists/$file: $!";
+        unlink("dists/$file") or die "Failed to remove symlink dists/$file: $!";
       }
     }
   }
@@ -1576,14 +1615,14 @@ sub check_field_filters {
 }
 
 # Takes named parameters: filename, size.
-# 
+#
 # Optionally can also be passed parameters specifying expected checksums
 # for the file, using checksum names as in the Release/Packages/Sources files
 # ("SHA1", "MD5Sum", etc).
 #
 # Size is always checked; verifying the checksum is optional. However, if
 # a value of -1 is passed for size, a check of the checksum is forced.
-# 
+#
 # It will return true if the tests show the file matches.
 sub check_file {
   my %params=@_;
@@ -1599,21 +1638,21 @@ sub check_file {
       # FOObignum over FOOsmallnum.
       my ($summer, $checksum);
       foreach my $checksum_type ("SHA512", "SHA256", "SHA1", reverse sort keys %params) {
-	     next unless defined $params{$checksum_type};
-	     if (lc $checksum_type eq 'md5sum') {
-		     $summer=Digest::MD5->new;
-	     }
-	     elsif ($checksum_type=~/^sha(\d+)$/i) {
-		     # returns undef on unknown/too large SHA type
-		     $summer=Digest::SHA->new($1);
-	     }
-	     if (defined $summer) {
-		     $checksum=$params{$checksum_type};
-		     last;
-	     }
+             next unless defined $params{$checksum_type};
+             if (lc $checksum_type eq 'md5sum') {
+                     $summer=Digest::MD5->new;
+             }
+             elsif ($checksum_type=~/^sha(\d+)$/i) {
+                     # returns undef on unknown/too large SHA type
+                     $summer=Digest::SHA->new($1);
+             }
+             if (defined $summer) {
+                     $checksum=$params{$checksum_type};
+                     last;
+             }
       }
       if (! defined $summer) {
-	      die "unsupported checksum type(s): ".(join(" ", keys %params))."\n";
+              die "unsupported checksum type(s): ".(join(" ", keys %params))."\n";
       }
       open HANDLE, $filename or die "$filename: $!";
       $summer->addfile(*HANDLE);
@@ -1681,9 +1720,8 @@ sub remote_get {
   $tdir=$tempdir unless $tdir;
   chdir($tdir) or die "unable to chdir($tdir): $!\n";
 
-  if ($download_method eq 'ftp' || $download_method eq 'http' ||
-    $download_method eq 'https') {
-	$res=$ftp ? ftp_get($file) : http_get($file);
+  if (uses_LWP()) {
+    $res=$ftp ? ftp_get($file) : http_get($file);
     $res=$res && check_lists($file);
     if (-f $file && !$res) {
       say("$file failed checksum verification, removing");
@@ -1765,8 +1803,8 @@ sub ftp_get {
     my $size = $ftp->size($file);
     my $mtime = $ftp->mdtm($file);
     if ($mtime && $size
-	&& $size == $stat[7]
-	&& $mtime == $stat[9]) { # size and time match
+        && $size == $stat[7]
+        && $mtime == $stat[9]) { # size and time match
       print_percent "Keeping: $file\n" if $progress or $verbose;
       add_bytes_gotten($size);
       return 1;
@@ -1822,8 +1860,8 @@ sub rsync_extra {
   my @includes;
 
   if (! defined $rsyncremote) {
-	say("Not able to use rsync to update remote trace files ...");
-	return;
+        say("Not able to use rsync to update remote trace files ...");
+        return;
   }
 
   # @ignores is updated during $early to prevent removal of files
@@ -1831,26 +1869,26 @@ sub rsync_extra {
   for my $type (@extras) {
     if ($early) {
       if ($type eq "trace") {
-	push(@includes, "- /project/trace/$hostname");
-	push(@includes, "/project/trace/*");
-	push(@ignores, "^project/trace/");
-	say("Updating remote trace files (using rsync) ...");
+        push(@includes, "- /project/trace/$hostname");
+        push(@includes, "/project/trace/*");
+        push(@ignores, "^project/trace/");
+        say("Updating remote trace files (using rsync) ...");
       } elsif ($type eq "doc") {
-	push(@ignores, "^doc/");
-	push(@ignores, "^README*");
+        push(@ignores, "^doc/");
+        push(@ignores, "^README*");
       } elsif ($type eq "tools") {
-	push(@ignores, "^tools/");
+        push(@ignores, "^tools/");
       } elsif ($type eq "indices") {
-	push(@ignores, "^indices/");
+        push(@ignores, "^indices/");
       }
     } else {
       if ($type eq "doc") {
-	push(@includes, "/doc/***");
-	push(@includes, "/README*");
+        push(@includes, "/doc/***");
+        push(@includes, "/README*");
       } elsif ($type eq "tools") {
-	push(@includes, "/tools/***");
+        push(@includes, "/tools/***");
       } elsif ($type eq "indices") {
-	push(@includes, "/indices/***");
+        push(@includes, "/indices/***");
       }
     }
   }
@@ -1881,7 +1919,7 @@ sub rsync_extra_get {
       ($dirname) = ($line =~ m:(.*/):);
       @dir= split(/\//, $dirname);
       for (1..$#dir) {
-	push (@result, "" . join('/', @dir[0..$_]) . "/");
+        push (@result, "" . join('/', @dir[0..$_]) . "/");
       }
     }
     push (@result, "$line");
@@ -1945,13 +1983,13 @@ sub update_latest_links {
   my ($mirrordir, $tempdir, @dists) = @_;
   foreach my $dist (@dists) {
     system("diff","-q","$mirrordir/dists/$dist/latest/Release",
-	   "$tempdir/dists/$dist/Release");
+           "$tempdir/dists/$dist/Release");
     if ($?) {
       my $next = get_next_snapshot($dist);
       say("Updating $mirrordir/dists/$dist/latest to $next");
       unlink("$mirrordir/dists/$dist/latest");
       symlink($next,"$mirrordir/dists/$dist/latest")
-	or die "Error while symlinking $mirrordir/dists/$dist/latest to $next: $\n";
+        or die "Error while symlinking $mirrordir/dists/$dist/latest to $next: $\n";
     } else {
       say("Not updating $mirrordir/dists/$dist/latest");
     }
@@ -1960,7 +1998,7 @@ sub update_latest_links {
 
 sub link_release_into_snapshot {
   my ($mirrordir,$dist,$next,$tempdir,$codename,$dist_sdir) = @_;
-	
+
   unlink("$mirrordir/dists/$dist/$next/Release.gpg");
   link("$tempdir/dists/$codename$dist_sdir/Release.gpg",
        "$mirrordir/dists/$dist/$next/Release.gpg")
@@ -2070,9 +2108,9 @@ sub get_release {
         print $gpgverr;
       }
       if (! $gpgv_res) {
-	say("Release gpg signature does not verify.");
-	push (@errlog,"Release gpg signature does not verify\n");
-	$num_errors++;
+        say("Release gpg signature does not verify.");
+        push (@errlog,"Release gpg signature does not verify\n");
+        $num_errors++;
       }
     }
   } else {
@@ -2096,8 +2134,8 @@ sub name_release {
   if (-f "$tdir/Release") {
     if (open RELEASE, "<$tdir/Release") {
       while (<RELEASE>) {
-	last if /^MD5Sum:/;
-	$buf = $buf . $_;
+        last if /^MD5Sum:/;
+        $buf = $buf . $_;
       }
       close RELEASE;
     }
@@ -2174,24 +2212,24 @@ sub get_index {
     if (!check_lists("$tempdir/$subdir/$file.diff/Index")) {
       make_dir("$tempdir/$subdir/$file.diff");
       if (!remote_get("$subdir/$file.diff/Index")) {
-	push (@errlog,"$subdir/$file.diff/Index failed checksum verification, removing\n");
+        push (@errlog,"$subdir/$file.diff/Index failed checksum verification, removing\n");
       } else {
-	fetch_and_apply_diffs(0, $subdir, $file);
-	if (check_lists("$tempdir/$subdir/$file")) {
-	  if (! $slow_cpu) {
-	    system_redirect_io("gzip $gzip_options", "$tempdir/$subdir/$file", "$tempdir/$subdir/$file.gz");
-	    system_redirect_io("bzip2", "$tempdir/$subdir/$file", "$tempdir/$subdir/$file.bz2");
-	  }
-	}
+        fetch_and_apply_diffs(0, $subdir, $file);
+        if (check_lists("$tempdir/$subdir/$file")) {
+          if (! $slow_cpu) {
+            system_redirect_io("gzip $gzip_options", "$tempdir/$subdir/$file", "$tempdir/$subdir/$file.gz");
+            system_redirect_io("bzip2", "$tempdir/$subdir/$file", "$tempdir/$subdir/$file.bz2");
+          }
+        }
       }
     } else {
       $bytes_gotten += $file_lists{"$tempdir/$subdir/$file.diff/Index"}{size};
       fetch_and_apply_diffs(0, $subdir, "$file");
       if (check_lists("$tempdir/$subdir/$file")) {
-	if (! $slow_cpu) {
-	  system_redirect_io("gzip $gzip_options", "$tempdir/$subdir/$file", "$tempdir/$subdir/$file.gz");
-	  system_redirect_io("bzip2", "$tempdir/$subdir/$file", "$tempdir/$subdir/$file.bz2");
-	}
+        if (! $slow_cpu) {
+          system_redirect_io("gzip $gzip_options", "$tempdir/$subdir/$file", "$tempdir/$subdir/$file.gz");
+          system_redirect_io("bzip2", "$tempdir/$subdir/$file", "$tempdir/$subdir/$file.bz2");
+        }
       }
     }
     $files{"$subdir/$file.diff/Index"}=1 if ($diff_mode eq "mirror");
@@ -2201,13 +2239,13 @@ sub get_index {
   if (exists $file_lists{"$tempdir/$subdir/$file.gz"}{size}) {
     if (!check_lists("$tempdir/$subdir/$file.gz")) {
       if (remote_get("$subdir/$file.gz")) {
-	system_redirect_io("gzip -d", "$tempdir/$subdir/$file.gz", "$tempdir/$subdir/$file");
-	if (! $slow_cpu) {
-	  system_redirect_io("bzip2", "$tempdir/$subdir/$file", "$tempdir/$subdir/$file.bz2");
-	}
+        system_redirect_io("gzip -d", "$tempdir/$subdir/$file.gz", "$tempdir/$subdir/$file");
+        if (! $slow_cpu) {
+          system_redirect_io("bzip2", "$tempdir/$subdir/$file", "$tempdir/$subdir/$file.bz2");
+        }
       } else {
-	push (@errlog,"$subdir/$file.gz failed checksum verification\n");
-	$num_errors++;
+        push (@errlog,"$subdir/$file.gz failed checksum verification\n");
+        $num_errors++;
       }
     } else {
       $bytes_gotten += $file_lists{"$tempdir/$subdir/$file.gz"}{size};
@@ -2229,12 +2267,12 @@ sub get_index {
   if (exists $file_lists{"$tempdir/$subdir/$file"}) {
     if (!check_lists("$tempdir/$subdir/$file")) {
       if (remote_get("$subdir/$file")) {
-	if (! $slow_cpu) {
-	  system_redirect_io("bzip2", "$tempdir/$subdir/$file", "$tempdir/$subdir/$file.bz2");
-	}
+        if (! $slow_cpu) {
+          system_redirect_io("bzip2", "$tempdir/$subdir/$file", "$tempdir/$subdir/$file.bz2");
+        }
       } else {
-	push (@errlog,"$subdir/$file failed checksum verification\n");
-	$num_errors++;
+        push (@errlog,"$subdir/$file failed checksum verification\n");
+        $num_errors++;
       }
     } else {
       $bytes_gotten += $file_lists{"$tempdir/$subdir/$file"}{size};
@@ -2243,7 +2281,7 @@ sub get_index {
   if (exists $file_lists{"$tempdir/$subdir/$file.bz2"}) {
     if (!check_lists("$tempdir/$subdir/$file.bz2")) {
       if (!remote_get("$subdir/$file.bz2")) {
-	push (@errlog,"$subdir/$file.bz2 failed checksum verification, removing\n");
+        push (@errlog,"$subdir/$file.bz2 failed checksum verification, removing\n");
       }
     } else {
       $bytes_gotten += $file_lists{"$tempdir/$subdir/$file.bz2"}{size};
@@ -2252,7 +2290,7 @@ sub get_index {
   if (exists $file_lists{"$tempdir/$subdir/Release"}) {
     if (!check_lists("$tempdir/$subdir/Release")) {
       if (!remote_get("$subdir/Release")) {
-	push (@errlog,"$subdir/Release failed checksum verification, removing\n");
+        push (@errlog,"$subdir/Release failed checksum verification, removing\n");
       }
     } else {
       $bytes_gotten += $file_lists{"$tempdir/$subdir/Release"}{size};
@@ -2286,12 +2324,12 @@ sub update_contents {
     if (!check_lists("$tempdir/$subdir/$file.diff/Index")) {
       make_dir("$tempdir/$subdir/$file.diff");
       if (!remote_get("$subdir/$file.diff/Index")) {
-	push (@errlog,"$subdir/$file.diff/Index failed checksum verification, removing\n");
-	return $file_ok;
+        push (@errlog,"$subdir/$file.diff/Index failed checksum verification, removing\n");
+        return $file_ok;
       }
 #FIXME: before download
       if (-f "$tempdir/$subdir/$file.diff/Index") {
-	$bytes_to_get += -s "$tempdir/$subdir/$file.diff/Index";
+        $bytes_to_get += -s "$tempdir/$subdir/$file.diff/Index";
       }
     }
     $files{"$subdir/$file.diff/Index"}=1 if ($diff_mode eq "mirror");
@@ -2320,33 +2358,25 @@ sub update_contents {
 }
 
 sub get_contents_files {
-  my $first = 1;
-  foreach my $dist (keys %distset) {
-    next unless exists $distset{$dist}{mirror};
-    foreach my $arch (@arches) {
-      next if $dist=~/experimental/;
-      next if $dist=~/.*-proposed-updates/;
-      next if $arch=~/source/;
-      push my @sects, @sections,  "";
-      foreach my $sect (@sects) {
-        if ($sect ne "") {$sect = "/$sect";}
-        if (exists $file_lists{"$tempdir/dists/$dist$sect/Contents-$arch.gz"}) {
-          if (!check_lists("$tempdir/dists/$dist$sect/Contents-$arch.gz")) {
-          if ($first) {
-            say("Get Contents files.");
-            $first = 0;
-          }
-          remote_get("dists/$dist$sect/Contents-$arch.gz");
-      	  }
-      	  $files{"dists/$dist$sect/Contents-$arch.gz"}=1;
-      	  $files{$tempdir."/"."dists/$dist$sect/Contents-$arch.gz"}=1;
-      	  if ($debmarshal) {
-       	   link_contents_into_snapshot($dist,$mirrordir,$arch,$tempdir);
-      	  }
-        }
+  my $help = sub {
+    my($first, $operational_parameters, $dist, $arch, $sect) = @_;
+    if (!check_lists("$tempdir/dists/$dist$sect/Contents-$arch.gz")) {
+      if ($$first) {
+        say("Get Contents files.");
+        $$first = 0;
       }
+      remote_get("dists/$dist$sect/Contents-$arch.gz");
     }
-  }
+    $files{"dists/$dist$sect/Contents-$arch.gz"}=1;
+    $files{$tempdir."/"."dists/$dist$sect/Contents-$arch.gz"}=1;
+    if ($debmarshal) {
+      link_contents_into_snapshot($dist,$mirrordir,$arch,$tempdir);
+    }
+  };
+  my $first = 1;
+  do_contents_for_each_dist_arch_sect(
+    $help, [\$first], {}
+  );
 }
 
 # hardlink index files from tempdir to next debmarshal snapshot location
@@ -2421,12 +2451,12 @@ sub get_i18n_files {
     if (! check_i18n("$tempdir/$file", $i18n_get{$file}{size}, $i18n_get{$file}{sha1})) {
       remote_get("$file");
       if ($debmarshal) {
-	link_translation_into_snapshot($file,
-				       $i18n_get{$file}{dist},
-				       $i18n_get{$file}{distpath},
-				       $i18n_get{$file}{filename},
-				       $mirrordir,
-				       $tempdir);
+        link_translation_into_snapshot($file,
+                                       $i18n_get{$file}{dist},
+                                       $i18n_get{$file}{distpath},
+                                       $i18n_get{$file}{filename},
+                                       $mirrordir,
+                                       $tempdir);
       }
     }
   }
@@ -2449,18 +2479,18 @@ sub fetch_and_apply_diffs {
     }
     elsif (m/^SHA1-History:/m) {
       while (defined($_ = <INDEX>)) {
-	last if (!m/^\s/m);
-	($sha1, $size, $file) = m/^\s+([A-Za-z0-9]+)\s+(\d+)\s+(.*)/m;
-	$history_sha1{$file} = $sha1;
-	$history_size{$file} = $size;
+        last if (!m/^\s/m);
+        ($sha1, $size, $file) = m/^\s+([A-Za-z0-9]+)\s+(\d+)\s+(.*)/m;
+        $history_sha1{$file} = $sha1;
+        $history_size{$file} = $size;
       }
     }
     elsif (m/^SHA1-Patches:/m) {
       while (defined($_ = <INDEX>)) {
-	last if (!m/^\s/m);
-	($sha1, $size, $file) = m/^\s+([A-Za-z0-9]+)\s+(\d+)\s+(.*)/m;
-	$diff_sha1{$file} = $sha1;
-	$diff_size{$file} = $size;
+        last if (!m/^\s/m);
+        ($sha1, $size, $file) = m/^\s+([A-Za-z0-9]+)\s+(\d+)\s+(.*)/m;
+        $diff_sha1{$file} = $sha1;
+        $diff_size{$file} = $size;
       }
     }
   }
@@ -2473,13 +2503,13 @@ sub fetch_and_apply_diffs {
       remote_get("$subdir/$type.diff/$file.gz");
 #FIXME: before download
       if (-f "$tempdir/$subdir/$type.diff/$file.gz") {
-	$bytes_to_get += -s "$tempdir/$subdir/$type.diff/$file.gz";
+        $bytes_to_get += -s "$tempdir/$subdir/$type.diff/$file.gz";
       }
       if (!check_diff("$tempdir/$subdir/$type.diff/$file", $diff_size{$file}, $diff_sha1{$file})) {
-	say("$subdir/$type.diff/$file.gz failed sha1sum check, removing");
-	push (@errlog,"$subdir/$type.diff/$file.gz failed sha1sum check, removing\n");
-	unlink "$tempdir/$subdir/$type.diff/$file.gz";
-	$ret = 0;
+        say("$subdir/$type.diff/$file.gz failed sha1sum check, removing");
+        push (@errlog,"$subdir/$type.diff/$file.gz failed sha1sum check, removing\n");
+        unlink "$tempdir/$subdir/$type.diff/$file.gz";
+        $ret = 0;
       }
     }
     $files{"$subdir/$type.diff/$file.gz"}=1 if ($diff_mode eq "mirror");
@@ -2527,11 +2557,11 @@ sub fetch_and_apply_diffs {
     foreach my $part (@parts) {
       $current.="$part/";
       if (! $seen{$current}) {
-	if (! -d $current) {
-	  mkdir($current) or die "mkdir failed: $!";
-	  debug("Created directory: $current");
-	}
-	$seen{$current}=1;
+        if (! -d $current) {
+          mkdir($current) or die "mkdir failed: $!";
+          debug("Created directory: $current");
+        }
+        $seen{$current}=1;
       }
     }
   }
@@ -2547,10 +2577,10 @@ sub cleanup_unknown_files {
     foreach my $file (sort keys %files) {
       next if (@di_dists && $file =~ m:installer-\w(-|\w)*/current/images/:);
       if ($files{$file} == 2 && -f $file) {
-	say("deleting $file") if ($verbose);
-	if (! $do_dry_run) {
-	  unlink $file or die "unlink $file: $!";
-	}
+        say("deleting $file") if ($verbose);
+        if (! $do_dry_run) {
+          unlink $file or die "unlink $file: $!";
+        }
       }
     }
   } else {
@@ -2564,11 +2594,11 @@ sub cleanup_unknown_files {
       $file=~s:^\./::;
       next if (@di_dists && $file =~ m:installer-\w(-|\w)*/current/images/:);
       unless ((exists $files{$file} && $files{$file} != 2) or
-	      (defined($ignore) && $file=~/$ignore/o)) {
-	say("deleting $file") if ($verbose);
-	if (! $do_dry_run) {
-	  unlink $file or die "unlink $file: $!";
-	}
+              (defined($ignore) && $file=~/$ignore/o)) {
+        say("deleting $file") if ($verbose);
+        if (! $do_dry_run) {
+          unlink $file or die "unlink $file: $!";
+        }
       }
     }
   }
@@ -2595,12 +2625,12 @@ sub di_check_dists {
       $distset{$di_dist}{"d-i"} = 1;
     } else {
       foreach my $dist (keys %distset) {
-	my ($dist_raw, $dist_sdir) = split_dist($dist);
-	if ($di_dist eq $distset{$dist_raw}{suite}) {
-	  # Suite specified, use codename instead
-	  $distset{"$dist_raw$dist_sdir"}{"d-i"} = 1;
-	  next DI_DIST;
-	}
+        my ($dist_raw, $dist_sdir) = split_dist($dist);
+        if ($di_dist eq $distset{$dist_raw}{suite}) {
+          # Suite specified, use codename instead
+          $distset{"$dist_raw$dist_sdir"}{"d-i"} = 1;
+          next DI_DIST;
+        }
       }
       # Only mirroring D-I images, not the archive itself
       my $tdir="$tempdir/.tmp/dists/$di_dist";
@@ -2625,11 +2655,11 @@ sub di_add_files {
       my $image_dir = "dists/$dist/main/installer-$arch/current/images";
       make_dir ("$tdir/$image_dir");
       if (!remote_get("$image_dir/MD5SUMS", $tdir)) {
-	say("Failed to download $image_dir/MD5SUMS; skipping.");
-	return;
+        say("Failed to download $image_dir/MD5SUMS; skipping.");
+        return;
       }
       if (-f "$tdir/$image_dir/MD5SUMS") {
-	$bytes_to_get += -s _; # As we did not have the size earlier
+        $bytes_to_get += -s _; # As we did not have the size earlier
       }
 
       local $/;
@@ -2637,20 +2667,20 @@ sub di_add_files {
       open(FILE, "<", "$tdir/$image_dir/MD5SUMS") or die "$tdir/$image_dir/MD5SUMS: $!";
       $_ = <FILE>;
       while (m/^([A-Za-z0-9]{32}  .*)/mg) {
-	my ($md5sum, $filename) = split(' ', $1, 3);
-	$filename =~ s:^\./::;
-	if(!(defined($include) && ($image_dir."/".$filename)=~/$include/o)) {
-	  next if (defined($exclude) && ($image_dir."/".$filename)=~/$exclude/o);
-	}
+        my ($md5sum, $filename) = split(' ', $1, 3);
+        $filename =~ s:^\./::;
+        if(!(defined($include) && ($image_dir."/".$filename)=~/$include/o)) {
+          next if (defined($exclude) && ($image_dir."/".$filename)=~/$exclude/o);
+        }
 
-	$di_files{$image_dir}{$filename}{md5sum} = $md5sum;
+        $di_files{$image_dir}{$filename}{md5sum} = $md5sum;
 
-	# Check against the version currently on the mirror
-	if (check_file(filename => "$image_dir/$filename", size => -1, MD5Sum => $md5sum)) {
-	  $di_files{$image_dir}{$filename}{status} = 1;
-	} else {
-	  $di_files{$image_dir}{$filename}{status} = 0;
-	}
+        # Check against the version currently on the mirror
+        if (check_file(filename => "$image_dir/$filename", size => -1, MD5Sum => $md5sum)) {
+          $di_files{$image_dir}{$filename}{status} = 1;
+        } else {
+          $di_files{$image_dir}{$filename}{status} = 0;
+        }
       }
       close(FILE);
     }
@@ -2672,22 +2702,22 @@ sub di_get_files {
       make_dir ("$tdir/$image_dir/$1") if $1;
       if (!remote_get("$image_dir/$file", $tdir) ||
           !check_file(filename => "$tdir/$image_dir/$file", size => -1, MD5Sum => $di_files{$image_dir}{$file}{md5sum})) {
-	$lres = 0;
-	last if (! $do_dry_run);
+        $lres = 0;
+        last if (! $do_dry_run);
       }
       if (-f "$tdir/$image_dir/$file") {
-	$bytes_to_get += -s _; # As we did not have the size in add_di_files()
+        $bytes_to_get += -s _; # As we did not have the size in add_di_files()
       }
     }
 
     # Move images in place on mirror
     if ($lres && ! $do_dry_run) {
       foreach my $file (sort keys %{ $di_files{$image_dir} }) {
-	next unless $di_files{$image_dir}{$file}{status} == 0;
-	$file =~ m:(^.*)/:;
-	make_dir ("$image_dir/$1") if $1;
-	unlink "$image_dir/$file" if (-f "$image_dir/$file");
-	link("$tdir/$image_dir/$file", "$image_dir/$file");
+        next unless $di_files{$image_dir}{$file}{status} == 0;
+        $file =~ m:(^.*)/:;
+        make_dir ("$image_dir/$1") if $1;
+        unlink "$image_dir/$file" if (-f "$image_dir/$file");
+        link("$tdir/$image_dir/$file", "$image_dir/$file");
       }
       # Move the MD5SUMS file in place on mirror
       unlink "$image_dir/MD5SUMS" if (-f "$image_dir/MD5SUMS");
@@ -2708,11 +2738,11 @@ sub di_cleanup {
       chomp $file;
       $file=~s:^\./::;
       if (! exists $di_files{$image_dir} || ! exists $di_files{$image_dir}{$file}) {
-	next if (exists $di_files{$image_dir} && $file eq "MD5SUMS");
-	say("deleting $image_dir/$file") if ($verbose);
-	if (! $do_dry_run) {
-	  unlink "$file" or die "unlink $image_dir/$file: $!\n";
-	}
+        next if (exists $di_files{$image_dir} && $file eq "MD5SUMS");
+        say("deleting $image_dir/$file") if ($verbose);
+        if (! $do_dry_run) {
+          unlink "$file" or die "unlink $image_dir/$file: $!\n";
+        }
       }
     }
     chdir("$mirrordir") or die "unable to chdir($tempdir): $!\n";
@@ -2733,7 +2763,7 @@ sub download_finished {
   if ($ftp) { $ftp->quit; }
 
   my $total_time = time - $start_time;
-  if ($download_method eq 'rsync' || $bytes_gotten == 0) {
+  if (downloads_via_rsync() || $bytes_gotten == 0) {
     say("Download completed in ".$total_time."s.");
   } else {
     my $avg_speed = 0;
@@ -2786,8 +2816,8 @@ sub save_state_cache {
       my $days = int($expires / 24);
       my $hours = $expires % 24;
       say("State cache will expire in " .
-	  ($days ? "$days day(s)" : ($hours ? "" : "the next hour")) .
-	  ($hours ? ($days ? " and " : "") . "$hours hour(s)" : "") . ".");
+          ($days ? "$days day(s)" : ($hours ? "" : "the next hour")) .
+          ($hours ? ($days ? " and " : "") . "$hours hour(s)" : "") . ".");
     } else {
       say("State cache expired during this run; next run will not use cache.");
     }
@@ -2839,6 +2869,71 @@ sub load_state_cache {
   }
 }
 
+sub downloads_via_http {
+  local $_ = shift;
+  defined or $_ = $download_method;
+  return $_ eq 'http';
+}
+
+sub downloads_via_https {
+  local $_ = shift;
+  defined or $_ = $download_method;
+  return $_ eq 'https';
+}
+
+sub downloads_via_http_or_https {
+  return downloads_via_http(@_) || downloads_via_https(@_);
+}
+
+sub downloads_via_ftp {
+  local $_ = shift;
+  defined or $_ = $download_method;
+  return $_ eq 'ftp';
+}
+
+sub downloads_via_file {
+  local $_ = shift;
+  defined or $_ = $download_method;
+  return $_ eq 'file';
+}
+
+sub downloads_via_rsync {
+  local $_ = shift;
+  defined or $_ = $download_method;
+  return $_ eq 'rsync';
+}
+
+sub uses_LWP {
+  return !downloads_via_rsync(@_);
+}
+
+# Do some specified thing with respect to a Contents file for each
+# specified distribution, architecture and section.  Optionally, do
+# the same thing also for the source of each specified distribution
+# and section.
+sub do_contents_for_each_dist_arch_sect {
+  my($routine, $routine_args, $operational_params) = @_;
+  my @sects = ((map {"/$_"} @sections), "");
+  foreach my $dist (keys %distset) {
+    next if $dist=~/\bexperimental\b|-proposed-updates\b/o;
+    next unless exists $distset{$dist}{mirror};
+    foreach my $arch (@arches) {
+      my %op_params = %$operational_params;
+      $op_params{is_source} = $arch=~/\bsource\b/o;
+      unless ($op_params{is_source} && !$op_params{do_for_source}) {
+        foreach my $sect (@sects) {
+          $routine->(
+            @$routine_args, \%op_params, $dist, $arch, $sect
+          ) if exists $file_lists{
+            "$tempdir/dists/$dist$sect/Contents-$arch.gz"
+          }
+        }
+      }
+    }
+  }
+  return 1;
+}
+
 sub say {
   print join(' ', @_)."\n" if ($verbose or $progress);
 }
@@ -2849,12 +2944,13 @@ sub debug {
 
 =head1 COPYRIGHT
 
-This program is copyright 2000-2001, 2010 by
+This program is copyright 2000-2001, 2010-2014 by
 Joey Hess <joeyh@debian.org>, under
 the terms of the GNU GPL (either version 2 of the licence or, at your
 option, any later version), copyright 2001-2002 by Joerg Wendland
 <joergland@debian.org>, copyright 2003-2007 by Goswin von Brederlow
-<goswin-v-b@web.de> and copyright 2009-2010 by Frans Pop <fjp@debian.org>.
+<goswin-v-b@web.de>, copyright 2009-2010 by Frans Pop <fjp@debian.org>,
+and copyright 2015 by Thaddeus H. Black <thb@debian.org>.
 
 The author disclaims any responsibility for any mangling of your system,
 unexpected bandwidth usage bills, meltdown of the Debian mirror network,
@@ -2862,13 +2958,17 @@ etc, that this script may cause. See NO WARRANTY section of GPL.
 
 =head1 AUTHOR
 
- Author and current maintainer:
+ Author:
    Joey Hess <joeyh@debian.org>
 
  Previous maintainers:
    Joerg Wendland <joergland@debian.org>
    Goswin von Brederlow <goswin-v-b@web.de>
    Frans Pop <fjp@debian.org>
+   Joey Hess <joeyh@debian.org>
+
+ Current maintainer:
+   Thaddeus H. Black <thb@debian.org>
 
 =head1 MOTTO
 

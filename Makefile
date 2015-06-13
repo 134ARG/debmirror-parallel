@@ -1,3 +1,5 @@
+.PHONY: clean
+
 all: debmirror.1
 
 debmirror.1:
@@ -5,3 +7,5 @@ debmirror.1:
 
 clean:
 	rm -f debmirror.1
+	$(MAKE) -C test $@
+

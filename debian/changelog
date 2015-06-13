@@ -1,3 +1,43 @@
+debmirror (1:2.18) unstable; urgency=low
+
+  * New maintainer, on a trial basis. We'll see how it goes. Thanks,
+    Joey, for four years recently filling the gap; and earlier, for
+    giving us the software in the first place. Joerg, Goswin, your work
+    is appreciated (see? it continues to be used). Frans, we still
+    miss you.
+    Closes: #768532
+  * Somewhat refactored the code that distinguishes between
+    download methods.
+  * Implemented the option --method=file, which -- besides being useful
+    in its own right -- may also make testing and debugging easier.
+  * In the unpacked source, implemented "make -C test", which builds
+    a small, mock Debian archive against which one can test and debug
+    the program.
+    Closes: #787760
+  * Applied Kees Cook's patch to add a retry cycle for rsync
+    connection failures, implementing the cycle optionally via the
+    new, experimental --retry-rsync-packages option.
+    Closes: #576577
+  * Per Joey's advice, did not apply patch 619363 regarding
+    the --ignore-missing-release option.
+    Closes: #619363
+  * Appreciated patch 628779 to work around an out-of-sync parent
+    mirror, but did not apply it.  Joey explains why in the bug log.
+    Closes: #628779
+  * Noted per Goswin's advice that the Debian archive ceased to ship
+    uncompressed Packages files about 2006.  Whatever trouble debmirror
+    might once have had with the 2006 transition is ancient history
+    now, so if a bug remains thereto, it probably affects no one and
+    won't be fixed.
+    Closes: #375381
+  * Did not yet fix bug #652138.  However, refactored the code that
+    downloads Contents files, with the intent to make this bug
+    easier later to fix.
+  * In the debmirror script, as a matter of the new maintainer's
+    preference, expanded all leading tabs as spaces.
+
+ -- Thaddeus H. Black <thb@debian.org>  Sat, 13 Jun 2015 00:00:00 -0000
+
 debmirror (1:2.17) unstable; urgency=medium
 
   * Debmirror needs a new maintainer, both in Debian and upstream.

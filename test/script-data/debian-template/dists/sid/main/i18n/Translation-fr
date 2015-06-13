@@ -1,0 +1,22 @@
+Package: bar
+Description-md5: 00000000000000000000000000000000
+Description-en: un paquet qui existe à des fins de test.
+ Bar est un logiciel inexistant. Vous ne pouvez pas construire.
+ Vous ne pouvez pas l'installer. Vous pouvez cependant en *miroir*,
+ ce qui est le point.
+
+Package: foo
+Description-md5: 00000000000000000000000000000000
+Description-en: une suite logicielle imaginaire
+ Que pouvez-vous imaginer? Oh, les pensées que vous pouvez penser
+ Pouvez-vous imaginer installer et d'utiliser ce paquet? En attendant,
+ essayez de copie miroir.
+ .
+ Voici une autre ligne de texte descriptif. (At l'ordinateur traduit
+ droite? Probablement pas.)
+
+Package: foo-data
+Description-md5: 00000000000000000000000000000000
+Description-en: data for an imaginary software suite (French)
+ Maybe this should be written in French, too.
+

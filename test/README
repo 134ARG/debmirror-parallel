@@ -1,0 +1,38 @@
+Run "make debian" to make the mock archive ./debian/, or to restore
+it to its newly built state.  Run "make clean" to delete it.
+
+The mock archive ./debian/ is not to be confused with the
+directory ../debian/.  The ./debian/ is a small, mock Debian
+archive.  You can use this archive to test debmirror.
+
+The mock archive's packages are not real packages.  You cannot build
+or install them.  You can however *mirror* them, which is the point.
+
+The mock archive is not a very good mock archive, nor are the scripts
+that manage it very good scripts.  They merely suffice for some tests,
+and may be improved or extended when more tests of thought of.  If you
+are developing or maintaining debmirror, then feel free to improve or
+extend the mock archive and its scripts as you need or wish.
+
+(When these words were written, the mock archive had no non-free
+section, but by the time these words are read it might have one.  If
+the mock archive does have a non-free section, then that section is
+mock-non-free -- which is free, insofar as the whole mock archive is
+free.  If this makes sense to you, then you can stop reading; but if it
+confuses then consider the following.  It's like an actor in
+Shakespeare's Julius Caesar, who is not Caesar, but is an actor who in
+the play is named "Caesar".  Naming an actor "Caesar" in a play does
+not make him Caesar!  Likewise, naming software "non-free" in a mock
+archive does not make it non-free.  As Shakespeare's Juliet almost
+said, "What's in a name?  That which we call a rose by any other name
+would smell as free...."  Unfortunately, this rose is named "non-rose,"
+more or less, which is especially confusing, but there it is.)
+
+Here is a sample test session:
+
+cd "$DEBMIRROR_SOURCE"
+rm -r /tmp/debian
+make -C test
+./debmirror -r "${PWD}/test/debian" --method=file -d sid -a amd64\
+ --getcontents --no-check-gpg /tmp/debian
+
