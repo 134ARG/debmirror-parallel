@@ -1,3 +1,10 @@
+debmirror (1:2.18+nmu1) unstable; urgency=medium
+
+  * Non-maintainer upload.
+  * Add support for xz-compressed index files. Closes: #737057
+
+ -- John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>  Wed, 18 Nov 2015 16:48:13 +0100
+
 debmirror (1:2.18) unstable; urgency=low
 
   * New maintainer, on a trial basis. We'll see how it goes. Thanks,

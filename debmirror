@@ -389,7 +389,7 @@ successfully applied).
 =item B<--slow-cpu>
 
 By default debmirror saves some bandwidth by performing cpu-intensive
-tasks, such as compressing files to generate .gz and .bz2 files. Use this
+tasks, such as compressing files to generate .gz and .xz files. Use this
 mode if the computer's CPU is slow, and it makes more sense to use more
 bandwidth and less CPU.
 
@@ -1062,7 +1062,7 @@ foreach my $dist (keys %distset) {
     foreach my $arch (@arches) {
       add_bytes("dists/$dist/$section/binary-$arch/Packages");
       add_bytes("dists/$dist/$section/binary-$arch/Packages.gz");
-      add_bytes("dists/$dist/$section/binary-$arch/Packages.bz2");
+      add_bytes("dists/$dist/$section/binary-$arch/Packages.xz");
       add_bytes("dists/$dist/$section/binary-$arch/Release");
       add_bytes("dists/$dist/$section/binary-$arch/Packages.diff/Index") unless ($diff_mode eq "none");
     }
@@ -1070,7 +1070,7 @@ foreach my $dist (keys %distset) {
     if ($do_source && $section !~ /debian-installer/) {
       add_bytes("dists/$dist/$section/source/Sources");
       add_bytes("dists/$dist/$section/source/Sources.gz");
-      add_bytes("dists/$dist/$section/source/Sources.bz2");
+      add_bytes("dists/$dist/$section/source/Sources.xz");
       add_bytes("dists/$dist/$section/source/Release");
       add_bytes("dists/$dist/$section/source/Sources.diff/Index") unless ($diff_mode eq "none");
     }
@@ -2218,7 +2218,7 @@ sub get_index {
         if (check_lists("$tempdir/$subdir/$file")) {
           if (! $slow_cpu) {
             system_redirect_io("gzip $gzip_options", "$tempdir/$subdir/$file", "$tempdir/$subdir/$file.gz");
-            system_redirect_io("bzip2", "$tempdir/$subdir/$file", "$tempdir/$subdir/$file.bz2");
+            system_redirect_io("xz", "$tempdir/$subdir/$file", "$tempdir/$subdir/$file.xz");
           }
         }
       }
@@ -2228,7 +2228,7 @@ sub get_index {
       if (check_lists("$tempdir/$subdir/$file")) {
         if (! $slow_cpu) {
           system_redirect_io("gzip $gzip_options", "$tempdir/$subdir/$file", "$tempdir/$subdir/$file.gz");
-          system_redirect_io("bzip2", "$tempdir/$subdir/$file", "$tempdir/$subdir/$file.bz2");
+          system_redirect_io("xz", "$tempdir/$subdir/$file", "$tempdir/$subdir/$file.xz");
         }
       }
     }
@@ -2241,7 +2241,7 @@ sub get_index {
       if (remote_get("$subdir/$file.gz")) {
         system_redirect_io("gzip -d", "$tempdir/$subdir/$file.gz", "$tempdir/$subdir/$file");
         if (! $slow_cpu) {
-          system_redirect_io("bzip2", "$tempdir/$subdir/$file", "$tempdir/$subdir/$file.bz2");
+          system_redirect_io("xz", "$tempdir/$subdir/$file", "$tempdir/$subdir/$file.xz");
         }
       } else {
         push (@errlog,"$subdir/$file.gz failed checksum verification\n");
@@ -2268,7 +2268,7 @@ sub get_index {
     if (!check_lists("$tempdir/$subdir/$file")) {
       if (remote_get("$subdir/$file")) {
         if (! $slow_cpu) {
-          system_redirect_io("bzip2", "$tempdir/$subdir/$file", "$tempdir/$subdir/$file.bz2");
+          system_redirect_io("xz", "$tempdir/$subdir/$file", "$tempdir/$subdir/$file.xz");
         }
       } else {
         push (@errlog,"$subdir/$file failed checksum verification\n");
@@ -2278,13 +2278,13 @@ sub get_index {
       $bytes_gotten += $file_lists{"$tempdir/$subdir/$file"}{size};
     }
   }
-  if (exists $file_lists{"$tempdir/$subdir/$file.bz2"}) {
-    if (!check_lists("$tempdir/$subdir/$file.bz2")) {
-      if (!remote_get("$subdir/$file.bz2")) {
-        push (@errlog,"$subdir/$file.bz2 failed checksum verification, removing\n");
+  if (exists $file_lists{"$tempdir/$subdir/$file.xz"}) {
+    if (!check_lists("$tempdir/$subdir/$file.xz")) {
+      if (!remote_get("$subdir/$file.xz")) {
+        push (@errlog,"$subdir/$file.xz failed checksum verification, removing\n");
       }
     } else {
-      $bytes_gotten += $file_lists{"$tempdir/$subdir/$file.bz2"}{size};
+      $bytes_gotten += $file_lists{"$tempdir/$subdir/$file.xz"}{size};
     }
   }
   if (exists $file_lists{"$tempdir/$subdir/Release"}) {
@@ -2304,12 +2304,12 @@ sub get_index {
     die "get_index called with unknown type $file\n";
   }
   $files{"$subdir/$file.gz"}=1;
-  $files{"$subdir/$file.bz2"}=1;
+  $files{"$subdir/$file.xz"}=1;
   # Uncompressed files are no longer kept on the mirrors
   $files{"$subdir/$file"}=1 unless exists $file_lists{"$tempdir/$subdir/$file.gz"};
   $files{"$subdir/Release"}=1;
   $files{"$tempdir/$subdir/$file.gz"}=1;
-  $files{"$tempdir/$subdir/$file.bz2"}=1;
+  $files{"$tempdir/$subdir/$file.xz"}=1;
   $files{"$tempdir/$subdir/$file"}=1;
   $files{"$tempdir/$subdir/Release"}=1;
 }
@@ -2400,10 +2400,10 @@ sub link_index {
   link("$tempdir/dists/$dist/$section/$archdir/$file.gz",
        "$mirrordir/dists/$dist/$next/$section/$archdir/$file.gz")
     or die "Error while linking $tempdir/dists/$dist/$section/$archdir/$file.gz: $!\n";
-  unlink("$mirrordir/dists/$dist/$next/$section/$archdir/$file.bz2");
-  link("$tempdir/dists/$dist/$section/$archdir/$file.bz2",
-       "$mirrordir/dists/$dist/$next/$section/$archdir/$file.bz2")
-    or die "Error while linking $tempdir/dists/$dist/$section/$archdir/$file.bz2: $!\n";
+  unlink("$mirrordir/dists/$dist/$next/$section/$archdir/$file.xz");
+  link("$tempdir/dists/$dist/$section/$archdir/$file.xz",
+       "$mirrordir/dists/$dist/$next/$section/$archdir/$file.xz")
+    or die "Error while linking $tempdir/dists/$dist/$section/$archdir/$file.xz: $!\n";
 }
 
 sub i18n_from_release {
