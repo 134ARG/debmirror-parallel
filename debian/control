@@ -4,8 +4,8 @@ Priority: extra
 Maintainer: Colin Watson <cjwatson@debian.org>
 Build-Depends: debhelper (>= 7.0.50)
 Standards-Version: 3.9.6
-Vcs-Git: git://git.debian.org/collab-maint/debmirror.git
-Vcs-Browser: http://git.debian.org/?p=collab-maint/debmirror.git
+Vcs-Git: https://anonscm.debian.org/git/collab-maint/debmirror.git
+Vcs-Browser: https://anonscm.debian.org/cgit/collab-maint/debmirror.git
 
 Package: debmirror
 Architecture: all
