@@ -2493,6 +2493,9 @@ sub fetch_and_apply_diffs {
         $diff_size{$file} = $size;
       }
     }
+    else {
+      $_ = <INDEX>;
+    }
   }
   close(INDEX);
 

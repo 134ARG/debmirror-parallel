@@ -2,6 +2,7 @@ debmirror (1:2.19) UNRELEASED; urgency=medium
 
   * New maintainer (closes: #813998).
   * Use HTTPS for Vcs-* URLs, and link to cgit rather than gitweb.
+  * Tolerate unknown lines in *.diff/Index (closes: #808216).
 
  -- Colin Watson <cjwatson@debian.org>  Sun, 07 Feb 2016 13:26:03 +0000
 
