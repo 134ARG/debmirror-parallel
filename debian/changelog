@@ -1,3 +1,9 @@
+debmirror (1:2.19) UNRELEASED; urgency=medium
+
+  * New maintainer (closes: #813998).
+
+ -- Colin Watson <cjwatson@debian.org>  Sun, 07 Feb 2016 13:26:03 +0000
+
 debmirror (1:2.18+nmu1) unstable; urgency=medium
 
   * Non-maintainer upload.

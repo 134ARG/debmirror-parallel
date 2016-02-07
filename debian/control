@@ -1,7 +1,7 @@
 Source: debmirror
 Section: net
 Priority: extra
-Maintainer: Thaddeus H. Black <thb@debian.org>
+Maintainer: Colin Watson <cjwatson@debian.org>
 Build-Depends: debhelper (>= 7.0.50)
 Standards-Version: 3.9.6
 Vcs-Git: git://git.debian.org/collab-maint/debmirror.git
