@@ -588,7 +588,7 @@ use LockFile::Simple;
 use Compress::Zlib;
 use Digest::MD5;
 use Digest::SHA;
-use Net::INET6Glue;
+use if $] lt "5.022", "Net::INET6Glue";
 use Net::FTP;
 use LWP::UserAgent;
 

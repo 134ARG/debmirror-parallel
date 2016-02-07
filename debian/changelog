@@ -3,6 +3,8 @@ debmirror (1:2.19) UNRELEASED; urgency=medium
   * New maintainer (closes: #813998).
   * Use HTTPS for Vcs-* URLs, and link to cgit rather than gitweb.
   * Tolerate unknown lines in *.diff/Index (closes: #808216).
+  * Only use Net::INET6Glue for Perl < 5.22, since the relevant modules in
+    core support IPv6 after that point (closes: #811020).
 
  -- Colin Watson <cjwatson@debian.org>  Sun, 07 Feb 2016 13:26:03 +0000
 
