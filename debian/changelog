@@ -1,4 +1,4 @@
-debmirror (1:2.19) UNRELEASED; urgency=medium
+debmirror (1:2.19) unstable; urgency=medium
 
   * New maintainer (closes: #813998).
   * Use HTTPS for Vcs-* URLs, and link to cgit rather than gitweb.
@@ -6,7 +6,7 @@ debmirror (1:2.19) UNRELEASED; urgency=medium
   * Only use Net::INET6Glue for Perl < 5.22, since the relevant modules in
     core support IPv6 after that point (closes: #811020).
 
- -- Colin Watson <cjwatson@debian.org>  Sun, 07 Feb 2016 13:26:03 +0000
+ -- Colin Watson <cjwatson@debian.org>  Sun, 07 Feb 2016 14:06:29 +0000
 
 debmirror (1:2.18+nmu1) unstable; urgency=medium
 
