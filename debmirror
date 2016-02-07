@@ -2953,7 +2953,8 @@ the terms of the GNU GPL (either version 2 of the licence or, at your
 option, any later version), copyright 2001-2002 by Joerg Wendland
 <joergland@debian.org>, copyright 2003-2007 by Goswin von Brederlow
 <goswin-v-b@web.de>, copyright 2009-2010 by Frans Pop <fjp@debian.org>,
-and copyright 2015 by Thaddeus H. Black <thb@debian.org>.
+copyright 2015 by Thaddeus H. Black <thb@debian.org>, and copyright 2016
+by Colin Watson <cjwatson@debian.org>.
 
 The author disclaims any responsibility for any mangling of your system,
 unexpected bandwidth usage bills, meltdown of the Debian mirror network,
@@ -2969,9 +2970,10 @@ etc, that this script may cause. See NO WARRANTY section of GPL.
    Goswin von Brederlow <goswin-v-b@web.de>
    Frans Pop <fjp@debian.org>
    Joey Hess <joeyh@debian.org>
+   Thaddeus H. Black <thb@debian.org>
 
  Current maintainer:
-   Thaddeus H. Black <thb@debian.org>
+   Colin Watson <cjwatson@debian.org>
 
 =head1 MOTTO
 

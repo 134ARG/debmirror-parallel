@@ -8,6 +8,7 @@ Copyright:
  2009-2010 Frans Pop <fjp@debian.org>
  2010-2014 Joey Hess <joeyh@debian.org>
  2015      Thaddeus H. Black <thb@debian.org>
+ 2016      Colin Watson <cjwatson@debian.org>
 License: GPL-2+
   The full text of the GPL is distributed as in
   /usr/share/common-licenses/GPL-2 on Debian systems.
