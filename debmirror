@@ -152,8 +152,8 @@ Specifying B<--arch=none> will mirror no archs.
 
 =item B<--rsync-extra>=I<foo[,bar,..]>
 
-Allows to also mirror files from a number of directories that are not part
-of the package archive itself.
+Allows you to also mirror files from a number of directories that are not
+part of the package archive itself.
 
 B<Debmirror> will B<always> use rsync for the transfer of these files,
 irrespective of what transfer method is specified in the B<--method> option.
@@ -513,7 +513,7 @@ directories (e.g. F<tools>, F<doc>) you wish to mirror.
 
 The tables also show how much additional space is required if you add
 a release on top of its predecessor. Note that the additional space
-needed for testing and (to a lesser extend) unstable varies during the
+needed for testing and (to a lesser extent) unstable varies during the
 development cycle of a release. The additional space needed for testing
 is zero immediately after a stable release and grows from that time
 onwards.
@@ -2148,7 +2148,7 @@ sub name_release {
     $origin = "none";
   }
 
-  # Allow for for example "<codename|suite>/updates"; split into the
+  # Allow for example "<codename|suite>/updates"; split into the
   # raw dist (codename or suite) and the subdirectory.
   my ($dist_raw, $dist_sdir) = split_dist($dist);
 
@@ -2977,6 +2977,6 @@ etc, that this script may cause. See NO WARRANTY section of GPL.
 
 =head1 MOTTO
 
-Waste bandwith -- put a partial mirror on your laptop today!
+Waste bandwidth -- put a partial mirror on your laptop today!
 
 =cut
