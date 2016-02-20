@@ -1,3 +1,9 @@
+debmirror (1:2.20) UNRELEASED; urgency=medium
+
+  * Convert to source format 3.0 (native).
+
+ -- Colin Watson <cjwatson@debian.org>  Sat, 20 Feb 2016 02:55:37 +0000
+
 debmirror (1:2.19) unstable; urgency=medium
 
   * New maintainer (closes: #813998).
