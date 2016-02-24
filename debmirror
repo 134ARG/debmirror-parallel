@@ -1001,7 +1001,17 @@ foreach my $dist (@dists) {
       $files{$tempdir."/"."dists/$codename$dist_sdir/Release.gpg"}=1;
       if ($debmarshal) {
         link_release_into_snapshot($mirrordir,$dist,$next,$tempdir,
-                                   $codename,$dist_sdir);
+                                   $codename,$dist_sdir,"Release.gpg");
+      }
+    }
+    if (-f "$tdir/InRelease") {
+      rename("$tdir/InRelease", "$tempdir/dists/$codename$dist_sdir/InRelease")
+        or die "Error while moving $tdir/InRelease: $!\n";
+      $files{"dists/$codename$dist_sdir/InRelease"}=1;
+      $files{$tempdir."/"."dists/$codename$dist_sdir/InRelease"}=1;
+      if ($debmarshal) {
+        link_release_into_snapshot($mirrordir,$dist,$next,$tempdir,
+                                   $codename,$dist_sdir,"InRelease");
       }
     }
   }
@@ -1037,7 +1047,7 @@ if ($num_errors != 0 && $ignore_missing_release) {
 
 if ($num_errors != 0) {
   print "Errors:\n ".join(" ",@errlog) if (@errlog);
-  die "Failed to download some Release or Release.gpg files!\n";
+  die "Failed to download some Release, Release.gpg or InRelease files!\n";
 }
 
 # Enable caching again for http
@@ -1997,12 +2007,12 @@ sub update_latest_links {
 }
 
 sub link_release_into_snapshot {
-  my ($mirrordir,$dist,$next,$tempdir,$codename,$dist_sdir) = @_;
+  my ($mirrordir,$dist,$next,$tempdir,$codename,$dist_sdir,$base) = @_;
 
-  unlink("$mirrordir/dists/$dist/$next/Release.gpg");
-  link("$tempdir/dists/$codename$dist_sdir/Release.gpg",
-       "$mirrordir/dists/$dist/$next/Release.gpg")
-    or die "Error while linking $tempdir/dists/$codename$dist_sdir/Release.gpg: $!\n";
+  unlink("$mirrordir/dists/$dist/$next/$base");
+  link("$tempdir/dists/$codename$dist_sdir/$base",
+       "$mirrordir/dists/$dist/$next/$base")
+    or die "Error while linking $tempdir/dists/$codename$dist_sdir/$base: $!\n";
 }
 
 sub link_contents_into_snapshot {
@@ -2031,6 +2041,76 @@ sub link_translation_into_snapshot {
     or die "Error while linking $tempdir/$file: $!";
 }
 
+sub gpg_verify {
+  my (@files) = @_;
+  # Check for gpg
+  if (system("gpgv --version >/dev/null 2>/dev/null")) {
+    say("gpgv failed: gpgv binary missing?");
+    push (@errlog,"gpgv failed: gpgv binary missing?\n");
+    $num_errors++;
+  } else {
+    # Verify Release signature
+    my $gpgv_res = 0;
+    my $outp = IO::Pipe->new;
+    my $errp = IO::Pipe->new;
+    my $gpgvout = "";
+    my $gpgverr = "";
+    if (my $child = fork) {
+      $outp->reader;
+      $errp->reader;
+      my $sel = IO::Select->new;
+      $sel->add($outp, $errp);
+      while (my @ready = $sel->can_read) {
+        for (@ready) {
+          my $buf = "";
+          my $bytesread = $_->read($buf, 1024);
+          if (!defined($bytesread)) {
+            die "read error: $!\n";
+          } elsif ($bytesread == 0) {
+            $sel->remove($_);
+            $_->close;
+          } else {
+            if ($_ == $outp) {
+              $gpgvout .= $buf;
+            }
+            if ($_ == $errp) {
+              $gpgverr .= $buf;
+            }
+          }
+        }
+      }
+
+      waitpid($child, 0) == -1
+        and die "was pid $child automatically reaped?\n";
+      $gpgv_res = not $?;
+    }
+    else {
+      $outp->writer;
+      $errp->writer;
+      STDOUT->fdopen(fileno($outp), "w") or die;
+      STDERR->fdopen(fileno($errp), "w") or die;
+      my @gpgv = qw(gpgv --status-fd 1);
+      push @gpgv, (map { ('--keyring' => $_) } @keyrings);
+      push @gpgv, @files;
+      exec(@gpgv) or die "exec: $gpgv[0]: $!\n";
+    }
+
+    # In debug or verbose mode, display the gpg error message on stdout.
+    if (! $gpgv_res || $debug) {
+      print $gpgvout;
+      print $gpgverr;
+    }
+    if ($verbose && ! $debug) {
+      print $gpgverr;
+    }
+    if (! $gpgv_res) {
+      say("$files[0] signature does not verify.");
+      push (@errlog,"$files[0] signature does not verify\n");
+      $num_errors++;
+    }
+  }
+}
+
 sub get_release {
   my ($tdir, $dist) = @_;
 
@@ -2041,82 +2121,35 @@ sub get_release {
   # is set; needed because remote_get() can register errors
   my @t_errlog = @errlog;
   my $t_errors = $num_errors;
+  remote_get("dists/$dist/InRelease", "$tempdir/.tmp");
+
+  # We don't care about Release.gpg if we have InRelease.
+  my @inr_t_errlog = @errlog;
+  my $inr_t_errors = $num_errors;
   remote_get("dists/$dist/Release.gpg", "$tempdir/.tmp");
+  if ($inr_t_errors == $t_errors) {
+    @errlog = @inr_t_errlog;
+    $num_errors = $inr_t_errors;
+  }
 
   if (! $check_gpg) {
     # Nothing to do.
   }
-  elsif (-f "$tdir/Release" && -f "$tdir/Release.gpg") {
-    # Check for gpg
-    if (system("gpgv --version >/dev/null 2>/dev/null")) {
-      say("gpgv failed: gpgv binary missing?");
-      push (@errlog,"gpgv failed: gpgv binary missing?\n");
-      $num_errors++;
-    } else {
-      # Verify Release signature
-      my $gpgv_res = 0;
-      my $outp = IO::Pipe->new;
-      my $errp = IO::Pipe->new;
-      my $gpgvout = "";
-      my $gpgverr = "";
-      if (my $child = fork) {
-        $outp->reader;
-        $errp->reader;
-        my $sel = IO::Select->new;
-        $sel->add($outp, $errp);
-        while (my @ready = $sel->can_read) {
-          for (@ready) {
-            my $buf = "";
-            my $bytesread = $_->read($buf, 1024);
-            if (!defined($bytesread)) {
-              die "read error: $!\n";
-            } elsif ($bytesread == 0) {
-              $sel->remove($_);
-              $_->close;
-            } else {
-              if ($_ == $outp) {
-                $gpgvout .= $buf;
-              }
-              if ($_ == $errp) {
-                $gpgverr .= $buf;
-              }
-            }
-          }
-        }
-
-        waitpid($child, 0) == -1
-          and die "was pid $child automatically reaped?\n";
-        $gpgv_res = not $?;
-      }
-      else {
-        $outp->writer;
-        $errp->writer;
-        STDOUT->fdopen(fileno($outp), "w") or die;
-        STDERR->fdopen(fileno($errp), "w") or die;
-        my @gpgv = qw(gpgv --status-fd 1);
-        push @gpgv, (map { ('--keyring' => $_) } @keyrings);
-        push @gpgv, "$tdir/Release.gpg", "$tdir/Release";
-        exec(@gpgv) or die "exec: $gpgv[0]: $!\n";
-      }
-
-      # In debug or verbose mode, display the gpg error message on stdout.
-      if (! $gpgv_res || $debug) {
-        print $gpgvout;
-        print $gpgverr;
-      }
-      if ($verbose && ! $debug) {
-        print $gpgverr;
-      }
-      if (! $gpgv_res) {
-        say("Release gpg signature does not verify.");
-        push (@errlog,"Release gpg signature does not verify\n");
-        $num_errors++;
-      }
+  else {
+    my $got_gpg = 0;
+    if (-f "$tdir/Release" && -f "$tdir/Release.gpg") {
+      $got_gpg = 1;
+      gpg_verify("$tdir/Release.gpg", "$tdir/Release");
     }
-  } else {
-    say("Release gpg signature does not verify, file missing.");
-    push (@errlog,"Release gpg signature does not verify\n");
-    $num_errors++;
+    if (-f "$tdir/InRelease") {
+      $got_gpg = 1;
+      gpg_verify("$tdir/InRelease");
+    }
+    if (! $got_gpg) {
+      say("Release gpg signature does not verify, file missing.");
+      push (@errlog,"Release gpg signature does not verify\n");
+      $num_errors++;
+    }
   }
 
   if ($ignore_release_gpg) {
@@ -2641,6 +2674,7 @@ sub di_check_dists {
       name_release("d-i", $tdir, $di_dist);
       unlink "$tdir/Release";
       unlink "$tdir/Release.gpg";
+      unlink "$tdir/InRelease";
     }
   }
 }
