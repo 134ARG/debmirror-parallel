@@ -687,6 +687,10 @@ my %file_lists;
 # info. Files also get registered in %files.
 my %i18n_get;
 
+# Hash to record which DEP-11 metadata files need to be downloaded. Files
+# also get registered in %files.
+my %dep11_get;
+
 # Separate hash for files belonging to Debian Installer images.
 # This data is not cached.
 my %di_files;
@@ -1135,7 +1139,7 @@ if ($num_errors != 0) {
 # for the ftp method.
 $do_dry_run = $dry_run;
 
-# Determine size of Contents and Translation files to get.
+# Determine size of Contents, Translation, and DEP-11 files to get.
 if ($getcontents) {
   # Updates of Contents files using diffs are done here; only full downloads
   # are delayed.
@@ -1161,6 +1165,7 @@ foreach my $dist (keys %distset) {
   next unless exists $distset{$dist}{mirror};
   foreach my $section (@sections) {
     i18n_from_release($dist,"$section/i18n");
+    dep11_from_release($dist,"$section/dep11");
   }
 }
 
@@ -1331,16 +1336,17 @@ SOURCE:
   }
 }
 
-# With pre-mirror cleanup Contents and Translation files need to be
+# With pre-mirror cleanup Contents, Translation, and DEP-11 files need to be
 # downloaded before the cleanup as otherwise they would be deleted
 # because they haven't been registered yet.
 # With post-mirror cleanup it's more neat to do all downloads together.
 # This could be simplified if we could register the files earlier.
 
-# Download Contents and Translation files.
+# Download Contents, Translation, and DEP-11 files.
 init_connection();
 get_contents_files() if ($getcontents);
 get_i18n_files();
+get_dep11_files();
 
 # Pre-mirror cleanup
 if ($pre_cleanup) {
@@ -2030,7 +2036,7 @@ sub link_contents_into_snapshot {
   }
 }
 
-sub link_translation_into_snapshot {
+sub link_auxfile_into_snapshot {
   my ($file,$dist,$distpath,$filename,$mirrordir,$tempdir) = @_;
   my $next = get_next_snapshot($dist);
   my $target_path = "$mirrordir/dists/$dist/$next/$distpath";
@@ -2484,12 +2490,67 @@ sub get_i18n_files {
     if (! check_i18n("$tempdir/$file", $i18n_get{$file}{size}, $i18n_get{$file}{sha1})) {
       remote_get("$file");
       if ($debmarshal) {
-        link_translation_into_snapshot($file,
-                                       $i18n_get{$file}{dist},
-                                       $i18n_get{$file}{distpath},
-                                       $i18n_get{$file}{filename},
-                                       $mirrordir,
-                                       $tempdir);
+        link_auxfile_into_snapshot($file,
+                                   $i18n_get{$file}{dist},
+                                   $i18n_get{$file}{distpath},
+                                   $i18n_get{$file}{filename},
+                                   $mirrordir,
+                                   $tempdir);
+      }
+    }
+  }
+}
+
+sub dep11_from_release {
+  my ($dist,$distpath) = @_;
+  my $subdir = "dists/$dist/$distpath";
+  my $compdir = $tempdir."/".$subdir;
+  my ($size, $filename);
+  my $exclude = "(".join("|", @excludes).")" if @excludes;
+  my $include = "(".join("|", @includes).")" if @includes;
+
+  # Create dep11 directories
+  make_dir($subdir);
+  make_dir($compdir);
+
+  # Search for DEP-11 files in file_lists
+  foreach my $path (keys %file_lists) {
+    next if length($compdir)+1>length($path); # the +1 stands for the slash after $compdir
+    next if substr($path, 0, length($compdir)) ne $compdir;
+
+    my $filename = substr($path, length($compdir)+1, length($path)-length($compdir)-1);
+    next if $filename !~ /\.(?:gz|bz2|xz)$/;
+    my $all_arches = "(".join("|", map(quotemeta, @arches)).")";
+    next if $filename =~ /^Components-/ and $filename !~ /^Components-$all_arches\./;
+
+    my $size = $file_lists{$path}{size};
+    if(!(defined($include) && ($subdir."/".$filename)=~/$include/o)) {
+      next if (defined($exclude) && ($subdir."/".$filename)=~/$exclude/o);
+    }
+
+    $files{"$subdir/$filename"}=1;
+    $files{$tempdir."/"."$subdir/$filename"}=1;
+    if (!check_lists("$tempdir/$subdir/$filename")) {
+      $bytes_to_get += $size;
+      $dep11_get{"$subdir/$filename"}{dist} = $dist;
+      $dep11_get{"$subdir/$filename"}{distpath} = $distpath;
+      $dep11_get{"$subdir/$filename"}{filename} = $filename;
+    }
+  }
+}
+
+sub get_dep11_files {
+  say("Get DEP-11 metadata files ...");
+  foreach my $file (sort keys %dep11_get) {
+    if (!check_lists("$tempdir/$file")) {
+      remote_get($file);
+      if ($debmarshal) {
+        link_auxfile_into_snapshot($file,
+                                   $dep11_get{$file}{dist},
+                                   $dep11_get{$file}{distpath},
+                                   $dep11_get{$file}{filename},
+                                   $mirrordir,
+                                   $tempdir);
       }
     }
   }

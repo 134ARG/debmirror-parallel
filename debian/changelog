@@ -3,6 +3,7 @@ debmirror (1:2.20) UNRELEASED; urgency=medium
   * Convert to source format 3.0 (native).
   * Fix a few spelling/grammar mistakes, some reported by Lintian.
   * Mirror and validate InRelease files (closes: #619188).
+  * Mirror DEP-11 metadata files (closes: #814416).
 
  -- Colin Watson <cjwatson@debian.org>  Sat, 20 Feb 2016 02:55:37 +0000
 
