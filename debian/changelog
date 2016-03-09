@@ -1,3 +1,9 @@
+debmirror (1:2.21) UNRELEASED; urgency=medium
+
+  * Generate trace file using LC_ALL=C (closes: #817721).
+
+ -- Colin Watson <cjwatson@debian.org>  Wed, 09 Mar 2016 21:27:40 +0000
+
 debmirror (1:2.20) unstable; urgency=medium
 
   * Convert to source format 3.0 (native).

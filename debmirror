@@ -1553,7 +1553,7 @@ if (! $omit_suite_symlinks && ! $do_dry_run) {
 if (! $do_dry_run) {
   make_dir("project/trace");
   open OUT, ">$tracefile" or die "$tracefile: $!";
-  print OUT `date -u`;
+  print OUT `LC_ALL=C date -u`;
   close OUT;
 }
 
