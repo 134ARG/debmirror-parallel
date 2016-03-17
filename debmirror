@@ -1681,21 +1681,6 @@ sub check_file {
   return 0;
 }
 
-# Always checks both file size and sha1 as the files get updated (this is
-# similar to what is done in check_lists, which forces verify_checksums).
-sub check_i18n {
-  my ($filename, $size, $sha1)=@_;
-  my $digest = Digest::SHA->new(1);
-  my $ret = 0;
-
-  if (-f "$filename" and ($size == -s _)) {
-    open HANDLE, $filename or die "$filename: $!";
-    $digest->addfile(*HANDLE);
-    $ret = ($sha1 eq $digest->hexdigest);
-  }
-  return $ret;
-}
-
 # Check uncompressed diff content against sha1sum from Index file.
 sub check_diff {
   my ($filename, $size, $sha1) = @_;
@@ -2483,7 +2468,6 @@ sub i18n_from_release {
     my $filename = substr($path, length($compdir)+1, length($path)-length($compdir)-1);
     next if $filename !~ /bz2$/;
 
-    my ($sha1, $size) = ($file_lists{$path}{SHA1}, $file_lists{$path}{size});
     if(!(defined($include) && ($subdir."/".$filename)=~/$include/o)) {
       next if (defined($exclude) && ($subdir."/".$filename)=~/$exclude/o);
     }
@@ -2491,10 +2475,8 @@ sub i18n_from_release {
 
     $files{"$subdir/$filename"}=1;
     $files{$tempdir."/"."$subdir/$filename"}=1;
-    if (! check_i18n("$tempdir/$subdir/$filename", $size, $sha1)) {
-      $bytes_to_get += $size;
-      $i18n_get{"$subdir/$filename"}{sha1} = $sha1;
-      $i18n_get{"$subdir/$filename"}{size} = $size;
+    if (! check_lists($path)) {
+      $bytes_to_get += $file_lists{$path}{size};
       $i18n_get{"$subdir/$filename"}{dist} = $dist;
       $i18n_get{"$subdir/$filename"}{distpath} = $distpath;
       $i18n_get{"$subdir/$filename"}{filename} = $filename;
@@ -2505,7 +2487,7 @@ sub i18n_from_release {
 sub get_i18n_files {
   say("Get Translation files ...");
   foreach my $file (sort keys %i18n_get) {
-    if (! check_i18n("$tempdir/$file", $i18n_get{$file}{size}, $i18n_get{$file}{sha1})) {
+    if (! check_lists("$tempdir/$file")) {
       remote_get("$file");
       if ($debmarshal) {
         link_auxfile_into_snapshot($file,
