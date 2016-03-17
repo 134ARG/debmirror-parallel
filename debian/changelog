@@ -1,4 +1,4 @@
-debmirror (1:2.21) UNRELEASED; urgency=medium
+debmirror (1:2.21) unstable; urgency=medium
 
   * Generate trace file using LC_ALL=C (closes: #817721).
   * Prefer xz over gz, and cope with either being missing as long as we can
@@ -6,7 +6,7 @@ debmirror (1:2.21) UNRELEASED; urgency=medium
   * Use check_lists to check Translation files rather than a similar custom
     function; this allows use of stronger hashes.
 
- -- Colin Watson <cjwatson@debian.org>  Wed, 09 Mar 2016 21:27:40 +0000
+ -- Colin Watson <cjwatson@debian.org>  Thu, 17 Mar 2016 12:26:18 +0000
 
 debmirror (1:2.20) unstable; urgency=medium
 
