@@ -2275,20 +2275,65 @@ sub get_index {
     $files{"$tempdir/$subdir/$file.diff/Index"}=1;
   }
 
+  my $got_any_file=0;
+  if (exists $file_lists{"$tempdir/$subdir/$file.xz"}{size}) {
+    if (!check_lists("$tempdir/$subdir/$file.xz")) {
+      if (remote_get("$subdir/$file.xz")) {
+        system_redirect_io("xz -d", "$tempdir/$subdir/$file.xz", "$tempdir/$subdir/$file");
+        if (! $slow_cpu) {
+          system_redirect_io("gzip $gzip_options", "$tempdir/$subdir/$file", "$tempdir/$subdir/$file.gz");
+        }
+        $files{"$subdir/$file.xz"}=1;
+        $files{"$tempdir/$subdir/$file.xz"}=1;
+        $got_any_file=1;
+      } else {
+        push (@errlog,"$subdir/$file.xz failed checksum verification\n");
+        $num_errors++;
+      }
+    } else {
+      $bytes_gotten += $file_lists{"$tempdir/$subdir/$file.xz"}{size};
+      $files{"$subdir/$file.xz"}=1;
+      $files{"$tempdir/$subdir/$file.xz"}=1;
+      $got_any_file=1;
+    }
+  }
   if (exists $file_lists{"$tempdir/$subdir/$file.gz"}{size}) {
     if (!check_lists("$tempdir/$subdir/$file.gz")) {
       if (remote_get("$subdir/$file.gz")) {
-        system_redirect_io("gzip -d", "$tempdir/$subdir/$file.gz", "$tempdir/$subdir/$file");
-        if (! $slow_cpu) {
+        if (! -f "$tempdir/$subdir/$file") {
+          system_redirect_io("gzip -d", "$tempdir/$subdir/$file.gz", "$tempdir/$subdir/$file");
+        }
+        if (! -f "$tempdir/$subdir/$file.xz" && ! $slow_cpu) {
           system_redirect_io("xz", "$tempdir/$subdir/$file", "$tempdir/$subdir/$file.xz");
         }
+        $files{"$subdir/$file.gz"}=1;
+        $files{"$tempdir/$subdir/$file.gz"}=1;
+        $got_any_file=1;
       } else {
         push (@errlog,"$subdir/$file.gz failed checksum verification\n");
         $num_errors++;
       }
     } else {
       $bytes_gotten += $file_lists{"$tempdir/$subdir/$file.gz"}{size};
+      $files{"$subdir/$file.gz"}=1;
+      $files{"$tempdir/$subdir/$file.gz"}=1;
+      $got_any_file=1;
     }
+  }
+  if (exists $file_lists{"$tempdir/$subdir/$file"}) {
+    if (!check_lists("$tempdir/$subdir/$file")) {
+      if (remote_get("$subdir/$file")) {
+        $got_any_file=1;
+      } else {
+        push (@errlog,"$subdir/$file failed checksum verification\n");
+        $num_errors++;
+      }
+    } else {
+      $bytes_gotten += $file_lists{"$tempdir/$subdir/$file"}{size};
+      $got_any_file=1;
+    }
+  }
+  if ($got_any_file) {
   } elsif ($ignore_missing_release) {
     say("Ignoring missing Release file for $subdir/$file.gz");
     push (@errlog,"Ignoring missing Release file for $subdir/$file.gz\n");
@@ -2301,29 +2346,6 @@ sub get_index {
       die "Won't mirror without $subdir/$file.gz signature in Release";
     } else {
       say("$subdir/$file.gz does not exist locally or in Release, skipping.") if ($debug);
-    }
-  }
-  if (exists $file_lists{"$tempdir/$subdir/$file"}) {
-    if (!check_lists("$tempdir/$subdir/$file")) {
-      if (remote_get("$subdir/$file")) {
-        if (! $slow_cpu) {
-          system_redirect_io("xz", "$tempdir/$subdir/$file", "$tempdir/$subdir/$file.xz");
-        }
-      } else {
-        push (@errlog,"$subdir/$file failed checksum verification\n");
-        $num_errors++;
-      }
-    } else {
-      $bytes_gotten += $file_lists{"$tempdir/$subdir/$file"}{size};
-    }
-  }
-  if (exists $file_lists{"$tempdir/$subdir/$file.xz"}) {
-    if (!check_lists("$tempdir/$subdir/$file.xz")) {
-      if (!remote_get("$subdir/$file.xz")) {
-        push (@errlog,"$subdir/$file.xz failed checksum verification, removing\n");
-      }
-    } else {
-      $bytes_gotten += $file_lists{"$tempdir/$subdir/$file.xz"}{size};
     }
   }
   if (exists $file_lists{"$tempdir/$subdir/Release"}) {
@@ -2342,13 +2364,9 @@ sub get_index {
   } else {
     die "get_index called with unknown type $file\n";
   }
-  $files{"$subdir/$file.gz"}=1;
-  $files{"$subdir/$file.xz"}=1;
   # Uncompressed files are no longer kept on the mirrors
-  $files{"$subdir/$file"}=1 unless exists $file_lists{"$tempdir/$subdir/$file.gz"};
+  $files{"$subdir/$file"}=1 unless exists $file_lists{"$tempdir/$subdir/$file.xz"} or exists $file_lists{"$tempdir/$subdir/$file.gz"};
   $files{"$subdir/Release"}=1;
-  $files{"$tempdir/$subdir/$file.gz"}=1;
-  $files{"$tempdir/$subdir/$file.xz"}=1;
   $files{"$tempdir/$subdir/$file"}=1;
   $files{"$tempdir/$subdir/Release"}=1;
 }

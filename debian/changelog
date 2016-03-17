@@ -1,6 +1,8 @@
 debmirror (1:2.21) UNRELEASED; urgency=medium
 
   * Generate trace file using LC_ALL=C (closes: #817721).
+  * Prefer xz over gz, and cope with either being missing as long as we can
+    get some version of the index file in question.
 
  -- Colin Watson <cjwatson@debian.org>  Wed, 09 Mar 2016 21:27:40 +0000
 
