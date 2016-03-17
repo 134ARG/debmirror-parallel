@@ -2114,13 +2114,14 @@ sub get_release {
   my $t_errors = $num_errors;
   remote_get("dists/$dist/InRelease", "$tempdir/.tmp");
 
-  # We don't care about Release.gpg if we have InRelease.
   my @inr_t_errlog = @errlog;
   my $inr_t_errors = $num_errors;
   remote_get("dists/$dist/Release.gpg", "$tempdir/.tmp");
-  if ($inr_t_errors == $t_errors) {
-    @errlog = @inr_t_errlog;
-    $num_errors = $inr_t_errors;
+
+  # We only need one of InRelease and Release.gpg.
+  if ($num_errors == $t_errors || $num_errors == $inr_t_errors) {
+    @errlog = @t_errlog;
+    $num_errors = $t_errors;
   }
 
   if (! $check_gpg) {
