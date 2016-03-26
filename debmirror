@@ -2263,44 +2263,48 @@ sub get_index {
 
   my $got_any_file=0;
   if (exists $file_lists{"$tempdir/$subdir/$file.xz"}{size}) {
+    my $got_xz=0;
     if (!check_lists("$tempdir/$subdir/$file.xz")) {
       if (remote_get("$subdir/$file.xz")) {
-        system_redirect_io("xz -d", "$tempdir/$subdir/$file.xz", "$tempdir/$subdir/$file");
-        if (! $slow_cpu) {
-          system_redirect_io("gzip $gzip_options", "$tempdir/$subdir/$file", "$tempdir/$subdir/$file.gz");
-        }
-        $files{"$subdir/$file.xz"}=1;
-        $files{"$tempdir/$subdir/$file.xz"}=1;
-        $got_any_file=1;
+        $got_xz=1;
       } else {
         push (@errlog,"$subdir/$file.xz failed checksum verification\n");
         $num_errors++;
       }
     } else {
       $bytes_gotten += $file_lists{"$tempdir/$subdir/$file.xz"}{size};
+      $got_xz=1;
+    }
+    if ($got_xz) {
+      system_redirect_io("xz -d", "$tempdir/$subdir/$file.xz", "$tempdir/$subdir/$file");
+      if (! $slow_cpu) {
+        system_redirect_io("gzip $gzip_options", "$tempdir/$subdir/$file", "$tempdir/$subdir/$file.gz");
+      }
       $files{"$subdir/$file.xz"}=1;
       $files{"$tempdir/$subdir/$file.xz"}=1;
       $got_any_file=1;
     }
   }
   if (exists $file_lists{"$tempdir/$subdir/$file.gz"}{size}) {
+    my $got_gz=0;
     if (!check_lists("$tempdir/$subdir/$file.gz")) {
       if (remote_get("$subdir/$file.gz")) {
-        if (! -f "$tempdir/$subdir/$file") {
-          system_redirect_io("gzip -d", "$tempdir/$subdir/$file.gz", "$tempdir/$subdir/$file");
-        }
-        if (! -f "$tempdir/$subdir/$file.xz" && ! $slow_cpu) {
-          system_redirect_io("xz", "$tempdir/$subdir/$file", "$tempdir/$subdir/$file.xz");
-        }
-        $files{"$subdir/$file.gz"}=1;
-        $files{"$tempdir/$subdir/$file.gz"}=1;
-        $got_any_file=1;
+        $got_gz=1;
       } else {
         push (@errlog,"$subdir/$file.gz failed checksum verification\n");
         $num_errors++;
       }
     } else {
       $bytes_gotten += $file_lists{"$tempdir/$subdir/$file.gz"}{size};
+      $got_gz=1;
+    }
+    if ($got_gz) {
+      if (!check_lists("$tempdir/$subdir/$file")) {
+        system_redirect_io("gzip -d", "$tempdir/$subdir/$file.gz", "$tempdir/$subdir/$file");
+      }
+      if (!check_lists("$tempdir/$subdir/$file.xz") && ! $slow_cpu) {
+        system_redirect_io("xz", "$tempdir/$subdir/$file", "$tempdir/$subdir/$file.xz");
+      }
       $files{"$subdir/$file.gz"}=1;
       $files{"$tempdir/$subdir/$file.gz"}=1;
       $got_any_file=1;

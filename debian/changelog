@@ -1,3 +1,10 @@
+debmirror (1:2.23) UNRELEASED; urgency=medium
+
+  * Fix incorrect handling of existing uncompressed index files under .temp
+    (LP: #1562118).
+
+ -- Colin Watson <cjwatson@debian.org>  Sat, 26 Mar 2016 17:16:21 +0000
+
 debmirror (1:2.22) unstable; urgency=medium
 
   * Fix regression in 1:2.20 that broke mirroring of suites that have
