@@ -2276,8 +2276,10 @@ sub get_index {
       $got_xz=1;
     }
     if ($got_xz) {
-      system_redirect_io("xz -d", "$tempdir/$subdir/$file.xz", "$tempdir/$subdir/$file");
-      if (! $slow_cpu) {
+      if (!check_lists("$tempdir/$subdir/$file") {
+        system_redirect_io("xz -d", "$tempdir/$subdir/$file.xz", "$tempdir/$subdir/$file");
+      }
+      if (!check_lists("$tempdir/$subdir/$file.gz") && ! $slow_cpu) {
         system_redirect_io("gzip $gzip_options", "$tempdir/$subdir/$file", "$tempdir/$subdir/$file.gz");
       }
       $files{"$subdir/$file.xz"}=1;
