@@ -2276,7 +2276,7 @@ sub get_index {
       $got_xz=1;
     }
     if ($got_xz) {
-      if (!check_lists("$tempdir/$subdir/$file") {
+      if (!check_lists("$tempdir/$subdir/$file")) {
         system_redirect_io("xz -d", "$tempdir/$subdir/$file.xz", "$tempdir/$subdir/$file");
       }
       if (!check_lists("$tempdir/$subdir/$file.gz") && ! $slow_cpu) {

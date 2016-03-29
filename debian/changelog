@@ -1,3 +1,10 @@
+debmirror (1:2.24) UNRELEASED; urgency=medium
+
+  * Fix embarrassing syntax error introduced in 1:2.23 (LP: #1562827).
+    Never upload in a rush ...
+
+ -- Colin Watson <cjwatson@debian.org>  Tue, 29 Mar 2016 10:43:12 +0100
+
 debmirror (1:2.23) unstable; urgency=medium
 
   * Fix incorrect handling of existing uncompressed index files under .temp
