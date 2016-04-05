@@ -220,7 +220,7 @@ Do not include source.
 
 =item B<--i18n>
 
-Additionally download F<Translation-E<lt>langE<gt>.bz2> files, which contain
+Additionally download F<Translation-E<lt>langE<gt>.*> files, which contain
 translations of package descriptions. Selection of specific translations is
 possible using the B<--include> and B<--exclude> options. The default
 is to download only the English file.
@@ -481,7 +481,7 @@ The --include and --exclude options can be combined. This combination
 for example will, if the --i18n option is used, exclude all F<Translation>
 files, except for the ones for Portuguese (pt) and Brazillian (pt_BR):
 
-  --exclude='/Translation-.*\.bz2$' --include='/Translation-pt.*\.bz2$'
+  --exclude='/Translation-.*' --include='/Translation-pt.*'
 
 =head2 Mirroring Debian Installer images
 
@@ -2473,7 +2473,7 @@ sub i18n_from_release {
     next if substr($path, 0, length($compdir)) ne $compdir;
 
     my $filename = substr($path, length($compdir)+1, length($path)-length($compdir)-1);
-    next if $filename !~ /bz2$/;
+    next if $filename !~ /\.(?:gz|bz2|xz)$/;
 
     if(!(defined($include) && ($subdir."/".$filename)=~/$include/o)) {
       next if (defined($exclude) && ($subdir."/".$filename)=~/$exclude/o);
