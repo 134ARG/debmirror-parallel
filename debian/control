@@ -3,7 +3,7 @@ Section: net
 Priority: extra
 Maintainer: Colin Watson <cjwatson@debian.org>
 Build-Depends: debhelper (>= 7.0.50), perl (>= 5.10), libnet-perl, libdigest-md5-perl, libdigest-sha-perl, liblockfile-simple-perl, libwww-perl (>= 5.815), perl (>= 5.22) | libnet-inet6glue-perl
-Standards-Version: 3.9.6
+Standards-Version: 3.9.8
 Vcs-Git: https://anonscm.debian.org/git/collab-maint/debmirror.git
 Vcs-Browser: https://anonscm.debian.org/cgit/collab-maint/debmirror.git
 
