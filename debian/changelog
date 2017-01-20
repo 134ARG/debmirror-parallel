@@ -1,4 +1,4 @@
-debmirror (1:2.26) UNRELEASED; urgency=medium
+debmirror (1:2.26) unstable; urgency=medium
 
   [ William Grant ]
   * Download Translation-*.gz/xz in addition to Translation-*.bz2. Launchpad
@@ -7,7 +7,7 @@ debmirror (1:2.26) UNRELEASED; urgency=medium
   [ Colin Watson ]
   * Policy version 3.9.8; no changes required.
 
- -- Colin Watson <cjwatson@debian.org>  Tue, 05 Apr 2016 11:42:50 +0100
+ -- Colin Watson <cjwatson@debian.org>  Fri, 20 Jan 2017 12:54:17 +0000
 
 debmirror (1:2.25) unstable; urgency=medium
 
