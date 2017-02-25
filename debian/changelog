@@ -1,3 +1,9 @@
+debmirror (1:2.27) UNRELEASED; urgency=medium
+
+  * Fix typo in "Verifying checksums" message (closes: #856163).
+
+ -- Colin Watson <cjwatson@debian.org>  Sat, 25 Feb 2017 21:39:52 +0000
+
 debmirror (1:2.26) unstable; urgency=medium
 
   [ William Grant ]

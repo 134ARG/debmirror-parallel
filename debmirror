@@ -842,7 +842,7 @@ say("D-I arches: ".join(",", @di_arches)) if @di_arches;
 say("D-I dists: ".join(",", @di_dists)) if @di_dists;
 say("Pdiff mode: $diff_mode");
 say("Slow CPU mode.") if $slow_cpu;
-say("Veriftying checksums.") if $verify_checksums;
+say("Verifying checksums.") if $verify_checksums;
 say("Not checking Release gpg signatures.") if ! $check_gpg;
 say("Passive mode on.") if $passive;
 say("Proxy: $proxy") if $proxy;
