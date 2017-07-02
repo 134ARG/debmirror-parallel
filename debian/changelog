@@ -1,6 +1,9 @@
 debmirror (1:2.27) UNRELEASED; urgency=medium
 
   * Fix typo in "Verifying checksums" message (closes: #856163).
+  * During the cleanup phase, remove local copies of files that could not be
+    downloaded; for example, this ensures that a local InRelease file is
+    removed when it has been removed from the remote host (closes: #866238).
 
  -- Colin Watson <cjwatson@debian.org>  Sat, 25 Feb 2017 21:39:52 +0000
 
