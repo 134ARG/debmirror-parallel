@@ -7,6 +7,9 @@ debmirror (1:2.28) UNRELEASED; urgency=medium
     publish .xz but not uncompressed index files, or .gz but not .xz without
     --slow-cpu, so I think that's common enough to rise above the level of a
     Recommends.
+  * Always use "exists $file_lists{foo}{size}" rather than just "exists
+    $file_lists{foo}".  The latter can return false positives due to
+    autovivification (closes: #868675).
 
  -- Colin Watson <cjwatson@debian.org>  Sun, 19 Nov 2017 10:11:27 +0000
 

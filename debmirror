@@ -1068,7 +1068,7 @@ $bytes_gotten = $bytes_meta;
 
 sub add_bytes {
   my $name=shift;
-  $bytes_to_get +=  $file_lists{"$tempdir/$name"}{size} if exists $file_lists{"$tempdir/$name"};
+  $bytes_to_get +=  $file_lists{"$tempdir/$name"}{size} if exists $file_lists{"$tempdir/$name"}{size};
 }
 foreach my $dist (keys %distset) {
   next unless exists $distset{$dist}{mirror};
@@ -1706,7 +1706,7 @@ sub check_lists {
   my $t = $verify_checksums;
   my $ret = 1;
   $verify_checksums = 1;
-  if (exists $file_lists{$file}) {
+  if (exists $file_lists{$file}{size}) {
     $ret = check_file(filename => $file, %{$file_lists{$file}});
   }
   $verify_checksums = $t;
@@ -2012,7 +2012,7 @@ sub link_contents_into_snapshot {
   push my @sects, @sections,  "";
   foreach my $sect (@sects) {
     if ($sect ne "") {$sect = "/$sect";}
-    if (exists $file_lists{"$tempdir/dists/$dist$sect/Contents-$arch.gz"}) {
+    if (exists $file_lists{"$tempdir/dists/$dist$sect/Contents-$arch.gz"}{size}) {
       unlink("$mirrordir/dists/$dist/$next$sect/Contents-$arch.gz");
       link("$tempdir/dists/$dist$sect/Contents-$arch.gz",
            "$mirrordir/dists/$dist/$next$sect/Contents-$arch.gz")
@@ -2234,7 +2234,7 @@ sub get_index {
   make_dir($subdir);
   make_dir("$tempdir/$subdir");
 
-  if ($diff_mode ne "none" && exists $file_lists{"$tempdir/$subdir/$file.diff/Index"}) {
+  if ($diff_mode ne "none" && exists $file_lists{"$tempdir/$subdir/$file.diff/Index"}{size}) {
     if (!check_lists("$tempdir/$subdir/$file.diff/Index")) {
       make_dir("$tempdir/$subdir/$file.diff");
       if (!remote_get("$subdir/$file.diff/Index")) {
@@ -2313,7 +2313,7 @@ sub get_index {
       $got_any_file=1;
     }
   }
-  if (exists $file_lists{"$tempdir/$subdir/$file"}) {
+  if (exists $file_lists{"$tempdir/$subdir/$file"}{size}) {
     if (!check_lists("$tempdir/$subdir/$file")) {
       if (remote_get("$subdir/$file")) {
         $got_any_file=1;
@@ -2341,7 +2341,7 @@ sub get_index {
       say("$subdir/$file.gz does not exist locally or in Release, skipping.") if ($debug);
     }
   }
-  if (exists $file_lists{"$tempdir/$subdir/Release"}) {
+  if (exists $file_lists{"$tempdir/$subdir/Release"}{size}) {
     if (!check_lists("$tempdir/$subdir/Release")) {
       if (!remote_get("$subdir/Release")) {
         push (@errlog,"$subdir/Release failed checksum verification, removing\n");
@@ -2358,7 +2358,7 @@ sub get_index {
     die "get_index called with unknown type $file\n";
   }
   # Uncompressed files are no longer kept on the mirrors
-  $files{"$subdir/$file"}=1 unless exists $file_lists{"$tempdir/$subdir/$file.xz"} or exists $file_lists{"$tempdir/$subdir/$file.gz"};
+  $files{"$subdir/$file"}=1 unless exists $file_lists{"$tempdir/$subdir/$file.xz"}{size} or exists $file_lists{"$tempdir/$subdir/$file.gz"}{size};
   $files{"$subdir/Release"}=1;
   $files{"$tempdir/$subdir/$file"}=1;
   $files{"$tempdir/$subdir/Release"}=1;
@@ -2370,7 +2370,7 @@ sub update_contents {
   my $file_ok = check_lists("$tempdir/$subdir/$file.gz");
 
   # Get the Index file for the diffs
-  if (exists $file_lists{"$tempdir/$subdir/$file.diff/Index"}) {
+  if (exists $file_lists{"$tempdir/$subdir/$file.diff/Index"}{size}) {
     if (!check_lists("$tempdir/$subdir/$file.diff/Index")) {
       make_dir("$tempdir/$subdir/$file.diff");
       if (!remote_get("$subdir/$file.diff/Index")) {
@@ -3033,7 +3033,7 @@ sub do_contents_for_each_dist_arch_sect {
             @$routine_args, \%op_params, $dist, $arch, $sect
           ) if exists $file_lists{
             "$tempdir/dists/$dist$sect/Contents-$arch.gz"
-          }
+          }{size}
         }
       }
     }
