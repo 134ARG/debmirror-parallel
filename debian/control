@@ -12,7 +12,8 @@ Architecture: all
 Depends: ${misc:Depends}, perl (>= 5.10), libnet-perl, libdigest-md5-perl,
 	libdigest-sha-perl, liblockfile-simple-perl, rsync,
 	bzip2, libwww-perl (>= 5.815),
-	perl (>= 5.22) | libnet-inet6glue-perl
+	perl (>= 5.22) | libnet-inet6glue-perl,
+	xz-utils
 Recommends: gpgv, patch, ed
 Suggests: gnupg
 Description: Debian partial mirror script, with ftp and package pool support
