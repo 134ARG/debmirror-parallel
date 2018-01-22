@@ -2153,10 +2153,11 @@ sub get_release {
 
 sub name_release {
   my ($type, $tdir, $dist) = @_;
-  my ($buf, $codename, $suite);
+  my ($codename, $suite);
   my $origin = "unknown";
 
   if (-f "$tdir/Release") {
+    my $buf = "";
     if (open RELEASE, "<$tdir/Release") {
       while (<RELEASE>) {
         last if /^MD5Sum:/;
