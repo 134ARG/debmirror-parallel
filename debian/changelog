@@ -1,6 +1,7 @@
 debmirror (1:2.28) UNRELEASED; urgency=medium
 
   * Change priority to optional, since "Priority: extra" is now deprecated.
+  * Move VCS to salsa.debian.org.
 
  -- Colin Watson <cjwatson@debian.org>  Sun, 19 Nov 2017 10:11:27 +0000
 
