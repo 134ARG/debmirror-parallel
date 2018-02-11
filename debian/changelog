@@ -2,6 +2,7 @@ debmirror (1:2.29) UNRELEASED; urgency=medium
 
   [ Stefan Kisdaroczi ]
   * Add version string and --version option.
+  * Add additional trace info (closes: #863194).
 
   [ Colin Watson ]
   * Automatically update $version at binary package build time.

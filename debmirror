@@ -629,6 +629,8 @@ our $doing_meta=1;
 our $ignore_missing_release=0;
 our $ignore_release_gpg=0;
 our $start_time = time;
+our $start_date = `LC_ALL=C date -R`;
+chomp $start_date;
 our $dry_run=0;
 our $do_dry_run=0;
 our $rsync_options="-aIL --partial";
@@ -1564,8 +1566,23 @@ if (! $omit_suite_symlinks && ! $do_dry_run) {
 # Write out trace file.
 if (! $do_dry_run) {
   make_dir("project/trace");
+  my $end_date = `LC_ALL=C date -R`;
+  chomp $end_date;
+  my $trace_dists = join(' ', @dists);
+  my $trace_arches = join(' ', @arches);
+  $trace_arches .= ' source' if $do_source;
   open OUT, ">$tracefile" or die "$tracefile: $!";
   print OUT `LC_ALL=C date -u`;
+  print OUT <<EOF;
+Date: $end_date
+Date-Started: $start_date
+Used debmirror version: $version
+Creator: debmirror $version
+Running on host: $hostname
+Suites: $trace_dists
+Architectures: $trace_arches
+Upstream-Mirror: $host
+EOF
   close OUT;
 }
 
