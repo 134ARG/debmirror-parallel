@@ -1,4 +1,4 @@
-debmirror (1:2.29) UNRELEASED; urgency=medium
+debmirror (1:2.29) unstable; urgency=medium
 
   [ Stefan Kisdaroczi ]
   * Add version string and --version option.
@@ -7,7 +7,7 @@ debmirror (1:2.29) UNRELEASED; urgency=medium
   [ Colin Watson ]
   * Automatically update $version at binary package build time.
 
- -- Stefan Kisdaroczi <skisda@gmail.com>  Sun, 11 Feb 2018 21:23:30 +0000
+ -- Colin Watson <cjwatson@debian.org>  Sun, 11 Feb 2018 22:54:20 +0000
 
 debmirror (1:2.28) unstable; urgency=medium
 
