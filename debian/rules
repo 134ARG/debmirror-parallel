@@ -5,7 +5,7 @@ deb_version := $(shell dpkg-parsechangelog | sed -ne "s/^Version: \(.*\)/\1/p")
 %:
 	dh $@
 
-override_dh_auto_install:
-	dh_auto_install
+override_dh_install:
+	dh_install
 	sed -i 's/^\(our \$$version=\).*/\1"$(deb_version)";/' \
 		debian/debmirror/usr/bin/debmirror
