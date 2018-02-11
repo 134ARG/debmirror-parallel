@@ -1,6 +1,10 @@
 debmirror (1:2.29) UNRELEASED; urgency=medium
 
+  [ Stefan Kisdaroczi ]
   * Add version string and --version option.
+
+  [ Colin Watson ]
+  * Automatically update $version at binary package build time.
 
  -- Stefan Kisdaroczi <skisda@gmail.com>  Sun, 11 Feb 2018 21:23:30 +0000
 
