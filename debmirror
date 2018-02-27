@@ -2692,7 +2692,7 @@ sub fetch_and_apply_diffs {
       $current.="$part/";
       if (! $seen{$current}) {
         if (! -d $current) {
-          mkdir($current) or die "mkdir failed: $!";
+          mkdir($current) or die "mkdir $current: $!";
           debug("Created directory: $current");
         }
         $seen{$current}=1;
