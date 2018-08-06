@@ -4,6 +4,7 @@ debmirror (1:2.30) UNRELEASED; urgency=medium
   * Restart partial HTTP downloads (closes: #629922).
   * Use /usr/share/dpkg/pkg-info.mk rather than equivalent hand-written
     code.
+  * Upgrade to debhelper v9.
 
  -- Colin Watson <cjwatson@debian.org>  Tue, 27 Feb 2018 17:07:56 +0000
 
