@@ -1794,22 +1794,70 @@ sub http_get {
   }
   my $ret=1;
 
-  print "$url => " if ($debug);
+  print "$url => " if $debug;
   print_percent "Getting: $file... " if $progress or $verbose;
   print "\t #" if $progress;
   if (! $do_dry_run) {
-    unlink($file) if (-f $file);
-    $ret = $ua->mirror($url, $file);
-    print $ret->status_line . "\n" if ($debug);
-    if ($ret->is_error) {
+    unlink $file if -f $file;
+    my $tmpfile="$file-$$";
+    unlink $tmpfile if -f $tmpfile;
+    my $prevsize=0;
+    eval {
+      open my $fh, ">", $tmpfile or die "Can't open $tmpfile: $!";
+      for (;;) {
+        my $got=0;
+        my $write_content=sub {
+          print $fh $_[0] or die "Can't write to $tmpfile: $!";
+          $fh->flush;
+          $got += length $_[0];
+        };
+        my %headers;
+        $headers{Range}="bytes=$prevsize-" if $prevsize;
+        $headers{':content_cb'}=$write_content;
+        my $response=$ua->get($url, %headers);
+        print $response->status_line . "\n" if $debug;
+        die $response->header('X-Died') if $response->header('X-Died');
+        if ($response->is_success) {
+          my $content_length=$response->header('Content-Length');
+          if (defined $content_length) {
+            if ($got < $content_length) {
+              # We got a partial response, but if we at least made some
+              # progress then we can try again.
+              if ($got > 0) {
+                print "Got $got out of $content_length bytes.\n"
+                  if $progress or $verbose;
+                print "$url => " if $debug;
+                print_percent "Retrying: $file... " if $progress or $verbose;
+                print "\t #" if $progress;
+                $prevsize += $got;
+                next;
+              } else {
+                die "Transfer truncated: " .
+                    "only $got out of $content_length bytes received\n";
+              }
+            } elsif ($got > $content_length) {
+              die "Content-Length mismatch: " .
+                  "expected $content_length bytes, got $got\n";
+            }
+          }
+        } else {
+          die "Download of $file failed: " . $response->status_line . "\n";
+        }
+        last;
+      }
+    };
+    if ($@) {
+      unlink $tmpfile if -f $tmpfile;
       $files{$file} = -1;
-      warn "failed " . $ret->status_line . "\n" if ($progress or $verbose);
-      push (@errlog,"Download of $file failed: ".$ret->status_line."\n");
+      warn $@ if $progress or $verbose;
+      push (@errlog,$@);
       $num_errors++;
-    } elsif ($progress || $verbose) {
-      print "ok\n";
+      $ret='';
+    } else {
+      rename $tmpfile, $file;
+      print "ok\n" if $progress or $verbose;
+      $ret=1;
     }
-    $ret = not ( $ret->is_error );
   } elsif ($progress || $verbose) {
     print "ok\n";
   }
