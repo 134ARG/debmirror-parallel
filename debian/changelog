@@ -1,4 +1,4 @@
-debmirror (1:2.30) UNRELEASED; urgency=medium
+debmirror (1:2.30) unstable; urgency=medium
 
   * Make the error message when mkdir fails more helpful.
   * Restart partial HTTP downloads (closes: #629922).
@@ -6,7 +6,7 @@ debmirror (1:2.30) UNRELEASED; urgency=medium
     code.
   * Upgrade to debhelper v9.
 
- -- Colin Watson <cjwatson@debian.org>  Tue, 27 Feb 2018 17:07:56 +0000
+ -- Colin Watson <cjwatson@debian.org>  Mon, 06 Aug 2018 10:07:54 +0100
 
 debmirror (1:2.29) unstable; urgency=medium
 
