@@ -2,6 +2,8 @@ debmirror (1:2.30) UNRELEASED; urgency=medium
 
   * Make the error message when mkdir fails more helpful.
   * Restart partial HTTP downloads (closes: #629922).
+  * Use /usr/share/dpkg/pkg-info.mk rather than equivalent hand-written
+    code.
 
  -- Colin Watson <cjwatson@debian.org>  Tue, 27 Feb 2018 17:07:56 +0000
 

@@ -1,11 +1,11 @@
 #!/usr/bin/make -f
 
-deb_version := $(shell dpkg-parsechangelog | sed -ne "s/^Version: \(.*\)/\1/p")
+include /usr/share/dpkg/pkg-info.mk
 
 %:
 	dh $@
 
 override_dh_install:
 	dh_install
-	sed -i 's/^\(our \$$version=\).*/\1"$(deb_version)";/' \
+	sed -i 's/^\(our \$$version=\).*/\1"$(DEB_VERSION)";/' \
 		debian/debmirror/usr/bin/debmirror
