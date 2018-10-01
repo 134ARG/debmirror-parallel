@@ -1,6 +1,7 @@
 debmirror (1:2.31) UNRELEASED; urgency=medium
 
   * d/copyright: Use https protocol in Format field
+  * d/changelog: Remove trailing whitespaces
 
  -- Ondřej Nový <onovy@debian.org>  Mon, 01 Oct 2018 10:31:31 +0200
 
@@ -793,9 +794,9 @@ debmirror (20020424-1) unstable; urgency=medium
 debmirror (20011230-1) unstable; urgency=low
 
   * New Release.
-  * Fixed typo in POD/manpage, thanks to Britton Leo Kerin. 
+  * Fixed typo in POD/manpage, thanks to Britton Leo Kerin.
     (closes: Bug#126859)
-  * Applied patch from Camille Dominique fixing download of Release files. 
+  * Applied patch from Camille Dominique fixing download of Release files.
     (closes: Bug#126758)
   * Added Depends: libdigest-md5-perl to support --md5sum switch.
     (closes: unreported Bug, thanks to Maik Busch)
