@@ -1,4 +1,5 @@
 dists/sid/main/Contents-source
+dists/sid/main/Contents-all
 dists/sid/main/Contents-amd64
 dists/sid/main/Contents-i386
 dists/sid/main/Contents-udeb-amd64

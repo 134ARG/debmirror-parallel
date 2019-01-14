@@ -1087,7 +1087,7 @@ sub add_bytes {
 foreach my $dist (keys %distset) {
   next unless exists $distset{$dist}{mirror};
   foreach my $section (@sections) {
-    foreach my $arch (@arches) {
+    foreach my $arch (@arches, "all") {
       add_bytes("dists/$dist/$section/binary-$arch/Packages");
       add_bytes("dists/$dist/$section/binary-$arch/Packages.gz");
       add_bytes("dists/$dist/$section/binary-$arch/Packages.xz");
@@ -1117,7 +1117,7 @@ foreach my $dist (keys %distset) {
   foreach my $section (@sections) {
     # some suites don't have d-i
     next if ($section =~ /debian-installer/ && di_skip_dist($dist) );
-    foreach my $arch (@arches) {
+    foreach my $arch (@arches, "all") {
       get_index("dists/$dist/$section/binary-$arch", "Packages");
       link_index($dist,$section,$arch) if $debmarshal;
     }
@@ -3101,7 +3101,7 @@ sub do_contents_for_each_dist_arch_sect {
   foreach my $dist (keys %distset) {
     next if $dist=~/\bexperimental\b|-proposed-updates\b/o;
     next unless exists $distset{$dist}{mirror};
-    foreach my $arch (@arches) {
+    foreach my $arch (@arches, "all") {
       my %op_params = %$operational_params;
       $op_params{is_source} = $arch=~/\bsource\b/o;
       unless ($op_params{is_source} && !$op_params{do_for_source}) {

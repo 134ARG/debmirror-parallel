@@ -1,4 +1,5 @@
 dists/sid/main/source/Sources
+dists/sid/main/binary-all/Packages
 dists/sid/main/binary-amd64/Packages
 dists/sid/main/binary-i386/Packages
 dists/sid/main/debian-installer/binary-amd64/Packages

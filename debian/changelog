@@ -1,7 +1,11 @@
 debmirror (1:2.31) UNRELEASED; urgency=medium
 
+  [ Ondřej Nový ]
   * d/copyright: Use https protocol in Format field
   * d/changelog: Remove trailing whitespaces
+
+  [ Colin Watson ]
+  * Fetch Packages-all and Contents-all if they exist (closes: #904927).
 
  -- Ondřej Nový <onovy@debian.org>  Mon, 01 Oct 2018 10:31:31 +0200
 

@@ -47,6 +47,12 @@ script/sum-packages\
  debian/dists/sid/main/i18n\
  debian
 script/sum-packages\
+ script-data/debian-template/dists/sid/main/binary-all/Packages\
+ script-data/debian-template/dists/sid/main/i18n\
+ debian/dists/sid/main/binary-all/Packages\
+ debian/dists/sid/main/i18n\
+ debian
+script/sum-packages\
  script-data/debian-template/dists/sid/main/debian-installer/binary-amd64/Packages\
  script-data/debian-template/dists/sid/main/i18n\
  debian/dists/sid/main/debian-installer/binary-amd64/Packages\
