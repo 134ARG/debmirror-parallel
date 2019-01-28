@@ -2196,7 +2196,7 @@ sub get_release {
   remote_get("dists/$dist/Release.gpg", "$tempdir/.tmp");
 
   # We only need one of InRelease and Release.gpg.
-  if ($num_errors == $t_errors || $num_errors == $inr_t_errors) {
+  if ($inr_t_errors == $t_errors || $num_errors == $inr_t_errors) {
     @errlog = @t_errlog;
     $num_errors = $t_errors;
   }
