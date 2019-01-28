@@ -1,4 +1,4 @@
-debmirror (1:2.31) UNRELEASED; urgency=medium
+debmirror (1:2.31) unstable; urgency=medium
 
   [ Ondřej Nový ]
   * d/copyright: Use https protocol in Format field
@@ -11,7 +11,7 @@ debmirror (1:2.31) UNRELEASED; urgency=medium
     least one good signature from a trusted key, and borrow code from APT to
     explicitly verify the structure of InRelease files (closes: #918304).
 
- -- Ondřej Nový <onovy@debian.org>  Mon, 01 Oct 2018 10:31:31 +0200
+ -- Colin Watson <cjwatson@debian.org>  Mon, 28 Jan 2019 11:41:12 +0000
 
 debmirror (1:2.30) unstable; urgency=medium
 
