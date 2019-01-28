@@ -588,6 +588,7 @@ use File::Temp qw/ tempfile /;
 use File::Path qw(make_path);
 use IO::Pipe;
 use IO::Select;
+use Fcntl;
 use LockFile::Simple;
 use Compress::Zlib;
 use Digest::MD5;
@@ -2109,8 +2110,86 @@ sub link_auxfile_into_snapshot {
     or die "Error while linking $tempdir/$file: $!";
 }
 
+# Split a clearsigned message into data and signature.
+# Based on the similar SplitClearSignedFile in APT.
+sub split_clearsigned_file {
+  my ($filename, $content_fh, $signature_fh) = @_;
+  my $found_message_start = '';
+  my $found_message_end = '';
+  my $skip_until_empty_line = '';
+  my $found_signature = '';
+  my $first_line = 1;
+  my $signed_message_not_on_first_line = '';
+  my $found_garbage = '';
+  open my $handle, "<", $filename or die "can't open $filename: $1";
+  while (my $line = <$handle>) {
+    $line =~ s/[\n\r]+$//;
+    if (not $found_message_start) {
+      if ($line eq '-----BEGIN PGP SIGNED MESSAGE-----') {
+        $found_message_start = 1;
+        $skip_until_empty_line = 1;
+      } else {
+        $signed_message_not_on_first_line = 1;
+        $found_garbage = 1;
+      }
+    } elsif ($skip_until_empty_line) {
+      if ($line eq '') {
+        $skip_until_empty_line = '';
+      }
+    } elsif (not $found_signature) {
+      if ($line eq '-----BEGIN PGP SIGNATURE-----') {
+        $found_signature = 1;
+        $found_message_end = 1;
+        print $signature_fh "$line\n";
+      } elsif (not $found_message_end) {  # we are in the message block
+        # We don't have any fields that need to be dash-escaped, but
+        # implementations are free to encode all lines.
+        $line =~ s/^- //;
+        if ($first_line) {  # first line does not need a newline
+          $first_line = '';
+        } else {
+          print $content_fh "\n";
+        }
+        print $content_fh $line;
+      } else {
+        $found_garbage = 1;
+      }
+    } else {
+      print $signature_fh "$line\n";
+      if ($line eq '-----END PGP SIGNATURE-----') {
+        $found_signature = '';
+      }
+    }
+  }
+
+  $content_fh->flush;
+  $signature_fh->flush;
+
+  if ($found_message_start) {
+    if ($signed_message_not_on_first_line) {
+      die "Clearsigned file '$filename' does not start with a signed message block.\n";
+    } elsif ($found_garbage) {
+      die "Clearsigned file '$filename' contains unsigned lines or multiple signed message blocks.\n";
+    }
+  }
+
+  if ($found_signature) {
+    die "Signature in file $filename wasn't closed.\n";
+  }
+
+  if ($first_line and not $found_message_start and not $found_message_end) {
+    # This is an unsigned file, so don't generate an error, but splitting
+    # was unsuccessful nonetheless.
+    return 0;
+  } elsif ($first_line or not $found_message_start or not $found_message_end) {
+    # Syntax error.
+    die "Splitting of $filename failed as it doesn't contain all expected signature parts.";
+  }
+  return 1;
+}
+
 sub gpg_verify {
-  my (@files) = @_;
+  my ($real_filename, @files) = @_;
   # Check for gpg
   if (system("gpgv --version >/dev/null 2>/dev/null")) {
     say("gpgv failed: gpgv binary missing?");
@@ -2118,16 +2197,18 @@ sub gpg_verify {
     $num_errors++;
   } else {
     # Verify Release signature
-    my $gpgv_res = 0;
     my $outp = IO::Pipe->new;
     my $errp = IO::Pipe->new;
+    my $statusp = IO::Pipe->new;
     my $gpgvout = "";
     my $gpgverr = "";
+    my $gpgvstatus = "";
     if (my $child = fork) {
       $outp->reader;
       $errp->reader;
+      $statusp->reader;
       my $sel = IO::Select->new;
-      $sel->add($outp, $errp);
+      $sel->add($outp, $errp, $statusp);
       while (my @ready = $sel->can_read) {
         for (@ready) {
           my $buf = "";
@@ -2140,9 +2221,10 @@ sub gpg_verify {
           } else {
             if ($_ == $outp) {
               $gpgvout .= $buf;
-            }
-            if ($_ == $errp) {
+            } elsif ($_ == $errp) {
               $gpgverr .= $buf;
+            } elsif ($_ == $statusp) {
+              $gpgvstatus .= $buf;
             }
           }
         }
@@ -2150,30 +2232,37 @@ sub gpg_verify {
 
       waitpid($child, 0) == -1
         and die "was pid $child automatically reaped?\n";
-      $gpgv_res = not $?;
     }
     else {
       $outp->writer;
       $errp->writer;
+      $statusp->writer;
       STDOUT->fdopen(fileno($outp), "w") or die;
       STDERR->fdopen(fileno($errp), "w") or die;
-      my @gpgv = qw(gpgv --status-fd 1);
+      my $status_flags = fcntl($statusp, F_GETFD, 0)
+        or die "get flags on gpg status-fd: $!";
+      fcntl($statusp, F_SETFD, $status_flags & ~FD_CLOEXEC)
+        or die "clear close-on-exec flag on gpg status-fd: $!";
+      my @gpgv = qw(gpgv --output - --status-fd);
+      push @gpgv, fileno($statusp);
       push @gpgv, (map { ('--keyring' => $_) } @keyrings);
       push @gpgv, @files;
       exec(@gpgv) or die "exec: $gpgv[0]: $!\n";
     }
 
+    my $gpgv_ok = $gpgvstatus =~ /^\[GNUPG:\] GOODSIG /m;
     # In debug or verbose mode, display the gpg error message on stdout.
-    if (! $gpgv_res || $debug) {
+    if (! $gpgv_ok || $debug) {
+      print $gpgvstatus;
       print $gpgvout;
       print $gpgverr;
     }
     if ($verbose && ! $debug) {
       print $gpgverr;
     }
-    if (! $gpgv_res) {
-      say("$files[0] signature does not verify.");
-      push (@errlog,"$files[0] signature does not verify\n");
+    if (! $gpgv_ok) {
+      say("$real_filename signature does not verify.");
+      push (@errlog,"$real_filename signature does not verify\n");
       $num_errors++;
     }
   }
@@ -2208,11 +2297,26 @@ sub get_release {
     my $got_gpg = 0;
     if (-f "$tdir/Release" && -f "$tdir/Release.gpg") {
       $got_gpg = 1;
-      gpg_verify("$tdir/Release.gpg", "$tdir/Release");
+      gpg_verify("$tdir/Release.gpg", "$tdir/Release.gpg", "$tdir/Release");
     }
     if (-f "$tdir/InRelease") {
-      $got_gpg = 1;
-      gpg_verify("$tdir/InRelease");
+      my ($content_fh, $content_filename) = tempfile();
+      my ($signature_fh, $signature_filename) = tempfile();
+      eval {
+        if (split_clearsigned_file("$tdir/InRelease",
+                                   $content_fh, $signature_fh)) {
+          $got_gpg = 1;
+          gpg_verify("$tdir/InRelease",
+                     $signature_filename, $content_filename);
+        } else {
+          say("InRelease file is not signed.");
+        }
+      };
+      if ($@) {
+        warn $@;
+        push (@errlog,$@);
+        $num_errors++;
+      }
     }
     if (! $got_gpg) {
       say("Release gpg signature does not verify, file missing.");
