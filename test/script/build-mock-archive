@@ -1,0 +1,106 @@
+#!/bin/bash -e
+
+cd $(dirname $(readlink -f $0))/..
+
+# Copy the template archive.
+rm -rf debian
+cp -r script-data/debian-template debian
+
+# Compress some files.
+for A in $(find debian/pool -name '*.tar' | sort); do gzip $A; done
+for A in $(<script-data/files-to-gzip-early.dat); do
+    gzip debian/$A
+done
+for A in $(<script-data/files-to-bzip2-early.dat); do
+    bzip2 debian/$A
+done
+for A in $(<script-data/files-to-xz-early.dat); do
+    xz debian/$A
+done
+
+# Finish each source's DSC.
+for A in $(find debian/pool -name '*.dsc' | sort); do
+    TEMP=$(mktemp)
+    script/sum-dsc $A >$TEMP
+    cat >$A $TEMP
+    rm $TEMP
+done
+
+# Start scheduling an i386 distribution.
+mkdir debian/dists/sid/main/binary-i386
+
+# Finish Packages and Sources files.
+TEMP=$(mktemp)
+sed -re 's/([ ._-])amd64([ ._-]|$)/\1i386\2/'\
+ script-data/debian-template/dists/sid/main/binary-amd64/Packages >$TEMP
+script/sum-packages\
+ $TEMP\
+ script-data/debian-template/dists/sid/main/i18n\
+ debian/dists/sid/main/binary-i386/Packages\
+ debian/dists/sid/main/i18n\
+ debian
+rm $TEMP
+script/sum-packages\
+ script-data/debian-template/dists/sid/main/binary-amd64/Packages\
+ script-data/debian-template/dists/sid/main/i18n\
+ debian/dists/sid/main/binary-amd64/Packages\
+ debian/dists/sid/main/i18n\
+ debian
+script/sum-packages\
+ script-data/debian-template/dists/sid/main/binary-all/Packages\
+ script-data/debian-template/dists/sid/main/i18n\
+ debian/dists/sid/main/binary-all/Packages\
+ debian/dists/sid/main/i18n\
+ debian
+script/sum-packages\
+ script-data/debian-template/dists/sid/main/debian-installer/binary-amd64/Packages\
+ script-data/debian-template/dists/sid/main/i18n\
+ debian/dists/sid/main/debian-installer/binary-amd64/Packages\
+ debian/dists/sid/main/i18n\
+ debian
+mkdir debian/dists/stable-proposed-updates/main/i18n
+script/sum-packages\
+ script-data/debian-template/dists/stable-proposed-updates/main/binary-amd64/Packages\
+ script-data/debian-template/dists/sid/main/i18n\
+ debian/dists/stable-proposed-updates/main/binary-amd64/Packages\
+ debian/dists/stable-proposed-updates/main/i18n\
+ debian
+script/sum-packages\
+ script-data/debian-template/dists/stable-proposed-updates/main/debian-installer/binary-amd64/Packages\
+ script-data/debian-template/dists/sid/main/i18n\
+ debian/dists/stable-proposed-updates/main/debian-installer/binary-amd64/Packages\
+ debian/dists/stable-proposed-updates/main/i18n\
+ debian
+rm -rf debian/dists/stable-proposed-updates/main/i18n
+script/sum-sources\
+ <script-data/debian-template/dists/sid/main/source/Sources\
+ >debian/dists/sid/main/source/Sources
+
+# Finish scheduling an i386 distribution.
+sed -re 's/([ ._-])amd64([ ._-]|$)/\1i386\2/'\
+ debian/dists/sid/main/binary-amd64/Release\
+ >debian/dists/sid/main/binary-i386/Release
+
+# Compress other files.
+for A in $(<script-data/files-to-gzip.dat); do
+    gzip -k debian/$A
+done
+for A in $(<script-data/files-to-bzip2.dat); do
+    bzip2 -k debian/$A
+done
+for A in $(<script-data/files-to-xz.dat); do
+    xz -k debian/$A
+done
+
+# Finish the dist's top-level release file.
+for DIST in sid stable-proposed-updates; do
+    (cd debian/dists/$DIST && ../../../script/sum-release >>Release;)
+done
+
+# For the latter group of compressed files, remove the originals.
+for A in\
+ $(<script-data/files-to-gzip.dat)\
+ $(<script-data/files-to-bzip2.dat)\
+ $(<script-data/files-to-xz.dat);\
+ do rm debian/$A; done
+

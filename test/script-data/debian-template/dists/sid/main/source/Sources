@@ -1,0 +1,38 @@
+Package: bar
+Binary: bar
+Version: 1.0-7
+Maintainer: James Bar <jamesbar@debian.org>
+Architecture: all
+Standards-Version: 3.9.6
+Format: 3.0 (quilt)
+Files:
+ 00000000000000000000000000000000 0 bar_1.0-7.dsc
+ 00000000000000000000000000000000 0 bar_1.0.orig.tar.gz
+ 00000000000000000000000000000000 0 bar_1.0-7.debian.tar.gz
+Package-List: 
+ bar deb test optional
+Directory: pool/main/b/bar
+Priority: source
+Section: test
+
+Package: foo
+Binary: foo, foo-data, foo-udeb
+Version: 1.23-4
+Maintainer: John Foo <johnfoo@debian.org>
+Uploaders: James Bar <jamesbar@debian.org>
+Build-Depends: baz (>= 2.0)
+Build-Depends-Indep: qux (>= 1.0)
+Architecture: any all
+Standards-Version: 3.9.6
+Format: 3.0 (quilt)
+Files:
+ 00000000000000000000000000000000 0 foo_1.23-4.dsc
+ 00000000000000000000000000000000 0 foo_1.23.orig.tar.gz
+ 00000000000000000000000000000000 0 foo_1.23-4.debian.tar.gz
+Package-List: 
+ foo deb test optional
+ foo-data deb test optional
+Directory: pool/main/f/foo
+Priority: source
+Section: test
+

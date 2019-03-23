@@ -1,0 +1,21 @@
+#!/usr/bin/perl
+use warnings;
+use strict;
+use integer;
+
+# This script prints a checksum in Debian-Release or -Sources format.
+
+our $field_width = 8;
+
+die "usage: $0 [Release|Sources] [SUMMING-COMMAND] [FILE]\n" unless @ARGV == 3;
+my ($style, $summing_command, $infile) = @ARGV;
+
+$infile =~ s%^\./%%; # optional
+my $sum_output = `$summing_command $infile`;
+my ($sum, $filename) = $sum_output =~ /(\S+)\s+(\S+)/;
+my @stat = stat $infile;
+my $size0 = $stat[7];
+my $size = $style eq 'Sources' ? $size0 : sprintf "%${field_width}d", $size0;
+my ($basename) = $filename =~ m%/([^/]+)$%;
+print " $sum $size " . ($style eq 'Sources' ? $basename : $filename) . "\n";
+

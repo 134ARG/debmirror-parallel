@@ -1,0 +1,42 @@
+#!/usr/bin/perl
+use warnings;
+use strict;
+use integer;
+
+our @kind = (
+    { cmd => 'sha1sum'  , name => 'Checksums-Sha1'   },
+    { cmd => 'sha256sum', name => 'Checksums-Sha256' },
+    { cmd => 'md5sum'   , name => 'Files' },
+);
+
+@ARGV == 1 or die "usage: $0 [DSC-FILE]\n";
+
+my $dsc = shift @ARGV;
+open DSC, '<', $dsc;
+chdir $1 if $dsc =~ m%^(.*/).*?$%;
+
+while (<DSC>) {
+    last if /^Files:/;
+    print;
+}
+
+my @filename;
+while (<DSC>) {
+    /\S/ or last;
+    my ($sum, $size, $filename) = /(\S+)\s*(\S+)\s*(\S+)/;
+    push @filename, $filename;
+}
+
+close DSC;
+
+for my $kind (@kind) {
+    print "$kind->{name}:\n";
+    for my $filename (@filename) {
+        my $sumout = `$kind->{cmd} $filename`;
+        my ($sum, $fn) = $sumout =~ /(\S+)\s*(\S+)/;
+        my @stat = stat $fn;
+        print " $sum $stat[7] $fn\n";
+    }
+}
+print "\n";
+

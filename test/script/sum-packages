@@ -1,0 +1,76 @@
+#!/usr/bin/perl
+use warnings;
+use strict;
+use integer;
+use FindBin;
+
+our @kind = (
+    { cmd => 'md5sum'   , name => 'MD5sum' },
+    { cmd => 'sha1sum'  , name => 'SHA1'   },
+    { cmd => 'sha256sum', name => 'SHA256' },
+);
+
+@ARGV == 5 or die "usage: $0"
+ . " [OLD-PACKAGES-FILE] [OLD-I18N-DIRECTORY]"
+ . " [NEW-PACKAGES-FILE] [NEW-I18N-DIRECTORY] [NEW-ARCHIVE-DIRECTORY]\n";
+my ($file_pkg1, $dir_i18n1, $file_pkg2, $dir_i18n2, $dir_arc) = @ARGV;
+
+my @file_i18n;
+opendir DIR, $dir_i18n1 or die "$0: cannot open i18n directory\n";
+while(readdir DIR) {
+    push @file_i18n, $_
+      unless $_ eq "Translation-en" || $_ eq '.' || $_ eq '..';
+}
+closedir DIR;
+
+local $/ = '';
+my %md; # md5sums of package descriptions
+
+for my $basename ('Translation-en', @file_i18n) {
+    open F1, '<', "$dir_i18n1/$basename"
+      or die "$0: failed to open i18n source directory";
+    open F2, '>', "$dir_i18n2/$basename"
+      or die "$0: failed to open i18n destination directory";
+    my $tempfilename = `mktemp`; chomp $tempfilename;
+    open TEMP, '>', $tempfilename; close TEMP;
+    while (<F1>) {
+        my ($pkg) = /^Package:\s*(\S+)$/m;
+        my ($desc) = /^Description-(?!md5:)\w+: (.*\n(?: .*\n)*)/m;
+        open TEMP, '>', $tempfilename;
+        print TEMP $desc;
+        close TEMP;
+        # The following probably should have been done using Perl's
+        # Digest::MD5 module, but the matter is unimportant and the
+        # writer lacks time to reconsider the design.  This is just
+        # uninstalled test software, after all.
+        my $md = `md5sum <$tempfilename`; chomp $md; $md =~ s/^(\S+).*$/$1/;
+        s/^(Description-md5:).*/$1 $md/m;
+        print F2 $_;
+        $md{$pkg} = $md if $basename eq 'Translation-en';
+        defined($md) && defined($pkg) or die "$0: missing fields in i18n\n";
+    }
+    unlink $tempfilename;
+    close F2;
+    close F1;
+}
+
+open F1, '<', $file_pkg1
+  or die "$0: failed to open Packages source file";
+open F2, '>', $file_pkg2
+  or die "$0: failed to open Packages destination file";
+while (<F1>) {
+    my ($pkg) = /^Package:\s*(\S+)$/m;
+    s/^(Description-md5:).*$/$1 ${md{$pkg}}/m if defined $md{$pkg};
+    my ($fn) = /^Filename:\s*(\S+)/m;
+    for my $kind (@kind) {
+        my ($sum) = `$kind->{cmd} $dir_arc/$fn` =~ /(\S+)/;
+        s/^($kind->{name}:).*/$1 $sum/m;
+    }
+    my @stat = stat "$dir_arc/$fn";
+    my $size = $stat[7];
+    s/^(Size:).*$/$1 $size/m;
+    print F2 $_;
+}
+close F2;
+close F1;
+

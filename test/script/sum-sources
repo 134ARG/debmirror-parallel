@@ -1,0 +1,53 @@
+#!/usr/bin/perl
+use warnings;
+use strict;
+use integer;
+use FindBin;
+
+our @kind = (
+    { cmd => 'md5sum'   , name => undef    },
+    { cmd => 'sha1sum'  , name => 'Sha1'   },
+    { cmd => 'sha256sum', name => 'Sha256' },
+);
+
+my @saved_line;
+sub getline (\@) {
+    $_ = @saved_line ? pop(@saved_line) : shift @{$_[0]};
+    return defined;
+}
+sub ungetline () { push @saved_line, $_ }
+
+local $/ = '';
+while (<>) {
+    1 while chomp; $_ .= "\n";
+    my (@line) = /(.*)\n/g;
+    my $dir;
+    for (@line) {
+        if (/^Directory:\s*(\S+)/) {
+            $dir = $1;
+        }
+    }
+    defined $dir or die "$0: missing Directory field\n";
+    while (getline @line) {
+        print "$_\n";
+        if (/^Files:\s*$/) {
+            my @file;
+            while (getline @line) {
+                ungetline(), last if /^\S/;
+                s/^.*?(\S+)\s*$/$1/;
+                push @file, $_;
+            }
+            for my $kind (@kind) {
+                print "Checksums-$kind->{name}:\n" if defined $kind->{name};
+                for (@file) {
+                    my $cmd = "${FindBin::RealBin}/calculate-sum "
+                      . "Sources $kind->{cmd} debian/$dir/$_";
+                    print `$cmd`;
+                    #print "$cmd\n";
+                }
+            }
+        }
+    }
+    print "\n";
+}
+

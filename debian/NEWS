@@ -1,0 +1,234 @@
+debmirror (1:2.5) unstable; urgency=low
+
+  The --cleanup option has been renamed to --precleanup for clarity.
+  (The old option name will continue to work for now.)
+
+  Debian mirror admins recommend that all mirrors include trace files.
+  So debmirror now defaults to --rsync-extra=trace. It will warn
+  if you specify a configuration that does not include trace files,
+  or if the trace files cannot be downloaded, using rsync, from
+  the specified mirror.
+
+  A proxy specified with --proxy or the ftp_proxy environment variable
+  will now be used for ftp mirroring. There is no need to use
+  --method=hftp to enable using ftp proxy, and that method is deprecated.
+
+ -- Joey Hess <joeyh@debian.org>  Sun, 26 Sep 2010 21:37:38 -0400
+
+debmirror (1:2.3) unstable; urgency=low
+
+  * Use diff files to update Contents files; option --pdiff is now --diff
+
+    Contents files are relatively large and can change frequently,
+    especially for the testing and unstable suites. Use of the diff files
+    to update Contents files will significantly reduce the total download
+    size.
+
+    The option '--pdiff' has been renamed to '--diff' because it no longer
+    affects only "package diffs". For the configuration file the variable
+    to use is now '$diff_mode'.
+
+ -- Frans Pop <fjp@debian.org>  Sat, 03 Oct 2009 13:33:39 +0200
+
+debmirror (1:2.2) unstable; urgency=low
+
+  * Support mirroring of translated packages descriptions
+
+    If the option --i18n is passed, debmirror will also mirror the files
+    containing translated package descriptions. The --include and --exclude
+    options can be used to select which translations to mirror.
+
+ -- Frans Pop <fjp@debian.org>  Sat, 12 Sep 2009 08:58:07 +0200
+
+debmirror (1:2.1) unstable; urgency=low
+
+  * Support mirroring of trace files, ./doc, ./indices and ./tools
+
+    Mirroring trace files and files from the listed directories can be
+    specified using the --rsync-extra option. As the name implies,
+    debmirror will always use rsync to transfer these files, irrespective
+    of what transfer method is specified in the --method option.
+
+    With this new feature, debmirror can mirror all files needed to
+    create custom CD images using debian-cd. Note that current versions
+    of debian-cd no longer require the ./indices directory.
+
+    See the man page for details.
+
+ -- Frans Pop <fjp@debian.org>  Sat, 29 Aug 2009 18:55:19 +0200
+
+debmirror (1:2.0) unstable; urgency=low
+
+  * Option --root=directory no longer requires "/" or ":" prefix
+
+    It is now possible to leave the default at "debian" and all
+    transfer methods should just work. For backwards compatibility
+    debmirror will remove a leading "/" or ":" if one is passed.
+
+  * More efficient mirroring through use of a state cache
+
+    Debmirror now has the option to save the state of the mirror to a
+    cache file between runs. The cache has a configurable expiry time.
+    While the cache is valid, debmirror will trust that the mirror is
+    consistent with this cache instead of checking the presence of files
+    on disk. Use of the cache avoids a large amount of disk access and
+    may reduce the time required for updates.
+
+    The limited validity of the cache ensures that the actual state of
+    the mirror still gets checked periodically. You may want to consider
+    using the --md5sums option in combination with the state cache.
+
+    See the man page for details.
+
+  * Support for mirroring "current" Debian Installer images
+
+    With the option to specify a different set of dists and arches than
+    for the package archive. In this release there are no progress
+    updates displayed yet.
+
+ -- Frans Pop <fjp@debian.org>  Fri, 28 Aug 2009 15:32:09 +0200
+
+debmirror (1:1.0) unstable; urgency=low
+
+  * Uncompressed Packages/Sources files
+
+    In line with official Debian mirrors, debmirror will no longer
+    include uncompressed Packages and Sources files on the local
+    mirror. The only exception is when the remote mirror itself does
+    not contain a gzipped Packages/Sources file.
+
+  * Automatic creation and update of suite->codename symlinks
+
+    Debmirror will now extract the correct codename and suite from
+    the Release file and use those for the local mirror. The directory
+    name for a release will always be the codename, and a symlink will
+    be created for the suite. This means it no longer makes any
+    difference whether you pass --dists=<codename> or --dists=<suite>.
+
+    A new option --omit-suite-symlinks allows to skip creation of the
+    symlinks (e.g. when mirroring archived releases).
+
+    Your local mirror will need to be converted if it currently uses
+    suites as directories. Use the --allow-dist-rename option to allow
+    debmirror to automatically do the conversion for you. This should
+    only need to be done once.
+
+ -- Frans Pop <fjp@debian.org>  Thu, 20 Aug 2009 19:44:02 +0200
+
+debmirror (20070123) unstable; urgency=low
+
+  * New gpgv support
+
+    The Release.gpg check has been rewritten to use gpgv, the same
+    method as used by apt and debian-installer. As a side effect the
+    keyring file has been changed to ~/.gnupg/trustedkeys.gpg.
+    Existing setups must copy their pubring.gpg to trustedkeys.gpg or
+    import the relevant keys there. This allows to only have the
+    Archive keys in trustedkeys.gpg while still having a pubring.gpg
+    for other use.
+
+ -- Goswin von Brederlow <brederlo@informatik.uni-tuebingen.de>  Tue, 23 Jan 2007 14:53:14 +0100
+
+debmirror (20060907) unstable; urgency=low
+
+  * Pdiff support
+
+    The Debian archive added pdiff files for the index files to speed
+    up apt-get update. Debmirror now uses those pdiff files to update
+    the index files but by default keeps them out of the local mirror
+    because they greatly slow down operations for local networks. You
+    can change the behaviour with the --pdiff-mode option.
+
+  * Postcleanup is now default
+
+    It was mentioned that the default --cleanup removes files before
+    the index files are updated. That can result in files missing from
+    the mirror when the mirroring fails and the index files aren't
+    updated at the end (and also while debmirror runs). The
+    --postcleanup does not have that effect but can lead to temporarily
+    more space usage on the mirror. If you are short on space you
+    might want to make sure you use --cleanup.
+
+  * Autodetecting non-existing archs and sections
+
+    In the past it was impossible to mirror i386,amd64 and sarge,etch
+    because sarge has no amd64 architecture. Similarly there is no
+    debian-installer section in contrib. Debmirror now ignores any
+    combination of arch, suite and section that does not exist locally
+    and is not listed in the Release file for the suite. This
+    obsoletes the previously hardcoded exceptions and should allow to
+    mirror unknown archives like Ubuntu without problems.
+
+    Note that debmirror will fail when a combination of arch, suite
+    and section that exists locally gets dropped from the Release
+    file. There is no danger of loosing a branch when the Release file
+    is corrupted or the upstream changes.
+
+ -- Goswin von Brederlow <brederlo@informatik.uni-tuebingen.de>  Thu,  7 Sep 2006 15:36:47 +0200
+
+debmirror (20050207) unstable; urgency=low
+
+  * Release.gpg file and check is now mandatory unless ignored
+
+    Debmirror now checks the Release.gpg signature when mirroring to
+    guard against syncing against a compromised mirror. For security
+    reasons this check is on by default but can be disabled using
+    --ignore-release-gpg. For the check to work the Debian archive key
+    must be added to the (debmirror) users keyring or an alternative
+    keyring must be configured.
+
+    !!! This breaks existing debmirror scripts and cron !!!
+    !!! jobs in almost all cases. Take care to adapt.   !!!
+
+  * Release files are now mandatory unless ignored
+
+    Sometimes downloads of meta files can abort for some reason and the
+    download modules are not always reliable on reporting this.
+    Debmirror now stops if the md5sum of meta file does not match the
+    info in the Release file to guard against tampering or download
+    failures. This check can be disabled with --ignore-missing-release
+    but that is discouraged strongly.
+
+  * output options have been split into verbose, progress and debug
+
+    Verbose gives an overview of whats happening and a file by file
+    progress while progress option adds individual download progress
+    for the files (FTP and rsync only). Debug isn't useful unless
+    something doesn't work.
+
+  * download methods now include hftp and http
+
+    Hftp is ftp over a http proxy like squid, what most people will
+    (mistakenly) know as ftp_proxy.
+
+    Hftp requires the use of a proxy while http will use it if given.
+    ftp_proxy or http_proxy are taken from the environment unless
+    overridden by --proxy.
+
+  * cleanup can now be done pre or post mirroring
+
+    Cleaning up after mirroring will use more space during mirroring
+    but keeps a consistent mirror available at all times. Cleaning up
+    before mirroring on the other hand will remove obsolete files
+    while they are still referenced from the old Packages/Sources
+    files. --postcleanup is recommended unless space prohibits it.
+
+  * rsync options can be specified, e.g. to add --bwlimit
+
+    Take note that --rsync-options override the default options
+    completely and should include "-aIL --partial" for normal
+    operation.
+
+  * small errors (a missing deb or src)) can be ignored
+
+    Sometimes the upstream mirror is inconsistent in itself. By
+    default debmirror will download all available files but not update
+    the meta data (Packages/Sources files) unless the mirror is
+    consistent. Your mirror will stay stuck in the past until the
+    upstream mirror is repaired. With --ignore-small-errors you can
+    sync the mirror even if some files are missing.
+
+    Users of --cleanup might want to always use --ignore-small-errors
+    to minimize the overall inconsistencies.
+
+ -- Goswin von Brederlow <brederlo@informatik.uni-tuebingen.de>  Mon,  7 Feb 2005 05:30:34 +0100

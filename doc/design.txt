@@ -1,0 +1,78 @@
+Here are some design Ideas for debmirror V2.0
+=============================================
+
+Files to Mirror:
+
+- debs:	        /dists/sid/main/binary-alpha/Packages
+- source:       /dists/sid/main/binary-alpha/Packages
+- D-I:	        /dists/sid/main/source/Sources
+- disks:        /dists/woody/main/disks-alpha/* (Any Release files there?)
+- experimental: /project/experimental/main/binary-alpha/Packages
+                /project/experimental/main/sources/Sources
+- extras:       doc, indices, project, tools, ls-lR
+- trace:        /project/trace
+
+
+Source:
+
+1) Central management core
+   - parse config (apt sources.list format?)
+   - read options
+   - start modules (as needed or let them autostart when queues fill up?)
+   - fetch Release.gpg files
+   - check Release files and reget as needed
+   - check Packages/Sources files and reget as needed
+   - check other files
+   - finalize cleanup module
+   - get other files as needed
+   - collect summaries
+   - use trace files
+
+   + checking a file registers it with the cleanup module too
+   + files leaving a download object are fed into a Signature object
+     and retried a few times
+   + when waiting periodically probe modules for stats and display
+
+2) Modules
+
+   - Modules run as threads
+   - One queue for files to be processed (in)
+   - One queue for files finished processing (out)
+   - Some status vars [files/bytes queued, files/byte getting,
+     speed(1,5,15m ?)...] (out)
+   - args function to get additional args (run() argument?)
+   - help function to display help
+   - finalize function (close in queue)
+   - pause/continue to suspend the thread
+   - wait_finalize (wait for finalize to finish and return summary, die)
+
+3) Clean Module
+
+   - gather a list of files present
+   - gather a list of all files that should be there (in queue, from
+     checking file)
+   - cleanup files on finalize
+
+   + limit IO/s
+   + limit number of files / bytes to be deleted (prevent a mirror wipe)
+
+4) Signature Modules
+   - MD5sum
+   - SHA1
+   - GPG
+
+   + limit IO/s
+   + limit throughput
+
+5) Download Modules
+   - ftp
+   - hftp (ftp via http://user:pass@proxy:port/)
+   - http
+   - https
+   - rsync
+   - wget (wget-ftp)
+   - print (output what should be done)
+
+   + limit IO/s
+   + limit bandwith
+   + limit traffic

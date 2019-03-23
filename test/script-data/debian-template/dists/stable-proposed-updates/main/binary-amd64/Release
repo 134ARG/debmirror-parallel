@@ -1,0 +1,6 @@
+Archive: proposed-updates
+Origin: Debian
+Label: Debian
+Version: 8-updates
+Component: main
+Architecture: amd64

@@ -1,0 +1,6 @@
+This file pretends to be a Contents file.
+
+FILE                                                    LOCATION
+usr/bin/bar                                             test/bar
+usr/share/foo-data                                      test/foo-data
+usr/share/foo-data/data.dat                             test/foo-data

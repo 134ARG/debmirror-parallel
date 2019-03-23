@@ -1,0 +1,16 @@
+Package: foo-udeb
+Source: foo
+Version: 1.23-4
+Installed-Size: 0
+Maintainer: John Foo <johnfoo@debian.org>
+Architecture: amd64
+Description: an imaginary software suite
+Description-md5: 00000000000000000000000000000000
+Section: debian-installer
+Priority: optional
+Filename: pool/main/f/foo/foo-udeb_1.23-4_amd64.udeb
+Size: 0
+MD5sum: 00000000000000000000000000000000
+SHA1: 0000000000000000000000000000000000000000
+SHA256: 0000000000000000000000000000000000000000000000000000000000000000
+

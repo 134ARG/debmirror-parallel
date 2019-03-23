@@ -1,0 +1,8 @@
+Origin: Debian
+Label: Debian
+Suite: unstable
+Codename: sid
+Date: Sat, 25 Apr 2015 11:11:17 UTC
+Architectures: amd64 i386
+Components: main
+Description: Debian x.y Unstable - Not Released

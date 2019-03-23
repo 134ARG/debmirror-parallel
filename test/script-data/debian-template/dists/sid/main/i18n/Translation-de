@@ -1,0 +1,22 @@
+Package: bar
+Description-md5: 00000000000000000000000000000000
+Description-en: ein Paket, das zu Testzwecken besteht
+ Bar ist unexistierenden Software. Du kannst nicht bauen. Du kannst
+ nicht installieren. Du kannst jedoch *spiegeln* sie, was
+ der Punkt ist.
+
+Package: foo
+Description-md5: 00000000000000000000000000000000
+Description-en: eine imaginäre Software-Suie
+ Was kannst du dich vorstellen? Oh, die Gedanken kannst du denken!
+ Kannst du dich vorstellen mit der Installation des Pakets? In der
+ Zwischenheit, versuch es zum spiegeln.
+ .
+ Hier ist eine andere Linie der Beschreibungstext, warscheinlich
+ nicht gut auf Deutch geschriebt.
+
+Package: foo-data
+Description-md5: 00000000000000000000000000000000
+Description-en: data for an imaginary software suite (German)
+ Maybe this should be written in German, too.
+
