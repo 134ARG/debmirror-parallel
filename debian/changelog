@@ -1,9 +1,9 @@
-debmirror (1:2.32) UNRELEASED; urgency=medium
+debmirror (1:2.32) unstable; urgency=medium
 
   [ Jamie Strandboge ]
   * Support downloading command-not-found metadata (LP: #1821251).
 
- -- Colin Watson <cjwatson@debian.org>  Sat, 23 Mar 2019 10:32:33 +0000
+ -- Colin Watson <cjwatson@debian.org>  Sat, 23 Mar 2019 10:40:44 +0000
 
 debmirror (1:2.31) unstable; urgency=medium
 
