@@ -700,6 +700,10 @@ my %i18n_get;
 # also get registered in %files.
 my %dep11_get;
 
+# Hash to record which Command Not Found metadata files need to be downloaded.
+# Files also get registered in %files.
+my %cnf_get;
+
 # Separate hash for files belonging to Debian Installer images.
 # This data is not cached.
 my %di_files;
@@ -1181,6 +1185,7 @@ foreach my $dist (keys %distset) {
   foreach my $section (@sections) {
     i18n_from_release($dist,"$section/i18n");
     dep11_from_release($dist,"$section/dep11");
+    cnf_from_release($dist,"$section/cnf");
   }
 }
 
@@ -1362,6 +1367,7 @@ init_connection();
 get_contents_files() if ($getcontents);
 get_i18n_files();
 get_dep11_files();
+get_cnf_files();
 
 # Pre-mirror cleanup
 if ($pre_cleanup) {
@@ -2683,6 +2689,61 @@ sub get_i18n_files {
                                    $i18n_get{$file}{dist},
                                    $i18n_get{$file}{distpath},
                                    $i18n_get{$file}{filename},
+                                   $mirrordir,
+                                   $tempdir);
+      }
+    }
+  }
+}
+
+sub cnf_from_release {
+  my ($dist,$distpath) = @_;
+  my $subdir = "dists/$dist/$distpath";
+  my $compdir = $tempdir."/".$subdir;
+  my ($size, $filename);
+  my $exclude = "(".join("|", @excludes).")" if @excludes;
+  my $include = "(".join("|", @includes).")" if @includes;
+
+  # Create cnf directories
+  make_dir($subdir);
+  make_dir($compdir);
+
+  # Search for comand-not-found files in file_lists
+  foreach my $path (keys %file_lists) {
+    next if length($compdir)+1>length($path); # the +1 stands for the slash after $compdir
+    next if substr($path, 0, length($compdir)) ne $compdir;
+
+    my $filename = substr($path, length($compdir)+1, length($path)-length($compdir)-1);
+    next if $filename !~ /\.(?:gz|bz2|xz)$/;
+    my $all_arches = "(".join("|", map(quotemeta, @arches)).")";
+    next if $filename =~ /^Commands-/;
+
+    my $size = $file_lists{$path}{size};
+    if(!(defined($include) && ($subdir."/".$filename)=~/$include/o)) {
+      next if (defined($exclude) && ($subdir."/".$filename)=~/$exclude/o);
+    }
+
+    $files{"$subdir/$filename"}=1;
+    $files{$tempdir."/"."$subdir/$filename"}=1;
+    if (!check_lists("$tempdir/$subdir/$filename")) {
+      $bytes_to_get += $size;
+      $cnf_get{"$subdir/$filename"}{dist} = $dist;
+      $cnf_get{"$subdir/$filename"}{distpath} = $distpath;
+      $cnf_get{"$subdir/$filename"}{filename} = $filename;
+    }
+  }
+}
+
+sub get_cnf_files {
+  say("Get Command Not Found metadata files ...");
+  foreach my $file (sort keys %cnf_get) {
+    if (!check_lists("$tempdir/$file")) {
+      remote_get($file);
+      if ($debmarshal) {
+        link_auxfile_into_snapshot($file,
+                                   $cnf_get{$file}{dist},
+                                   $cnf_get{$file}{distpath},
+                                   $cnf_get{$file}{filename},
                                    $mirrordir,
                                    $tempdir);
       }
