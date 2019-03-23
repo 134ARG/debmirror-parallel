@@ -1,0 +1,32 @@
+Package: bar
+Version: 1.0-7
+Installed-Size: 0
+Maintainer: James Bar <jamesbar@debian.org>
+Architecture: all
+Description: a package that exists for test purposes
+Description-md5: 00000000000000000000000000000000
+Section: test
+Priority: optional
+Filename: pool/main/b/bar/bar_1.0-7_all.deb
+Size: 0
+MD5sum: 00000000000000000000000000000000
+SHA1: 0000000000000000000000000000000000000000
+SHA256: 0000000000000000000000000000000000000000000000000000000000000000
+
+Package: foo-data
+Source: foo
+Version: 1.23-4
+Installed-Size: 0
+Maintainer: John Foo <johnfoo@debian.org>
+Architecture: all
+Depends: bar (>= 1.0), foo-data
+Description: data for an imaginary software suite
+Description-md5: 00000000000000000000000000000000
+Section: test
+Priority: optional
+Filename: pool/main/f/foo/foo-data_1.23-4_all.deb
+Size: 0
+MD5sum: 00000000000000000000000000000000
+SHA1: 0000000000000000000000000000000000000000
+SHA256: 0000000000000000000000000000000000000000000000000000000000000000
+

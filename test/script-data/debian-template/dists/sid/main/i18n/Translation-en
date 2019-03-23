@@ -1,0 +1,19 @@
+Package: bar
+Description-md5: 00000000000000000000000000000000
+Description-en: a package that exists for test purposes
+ Bar is nonexistent software.  You cannot build it.  You cannot install it.
+ You can however *mirror* it, which is the point.
+
+Package: foo
+Description-md5: 00000000000000000000000000000000
+Description-en: an imaginary software suite
+ What can you imagine?  Oh, the thoughts you can think!  Can you imagine
+ installing and using this package?  In the meantime, try mirroring it.
+ .
+ Here is another line of descriptive text.
+
+Package: foo-data
+Description-md5: 00000000000000000000000000000000
+Description-en: data for an imaginary software suite
+ Imagination apparently wants data.  Here it is (isn't).
+

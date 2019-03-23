@@ -1,0 +1,7 @@
+Origin: Debian
+Label: Debian
+Suite: proposed-updates
+Date: Sat, 25 Apr 2015 11:11:17 UTC
+Architectures: amd64
+Components: main
+Description: Proposed Updates for Debian 8 - Not Released
