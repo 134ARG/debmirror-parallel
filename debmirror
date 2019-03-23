@@ -700,7 +700,7 @@ my %i18n_get;
 # also get registered in %files.
 my %dep11_get;
 
-# Hash to record which Command Not Found metadata files need to be downloaded.
+# Hash to record which command-not-found metadata files need to be downloaded.
 # Files also get registered in %files.
 my %cnf_get;
 
@@ -2735,7 +2735,7 @@ sub cnf_from_release {
 }
 
 sub get_cnf_files {
-  say("Get Command Not Found metadata files ...");
+  say("Get command-not-found metadata files ...");
   foreach my $file (sort keys %cnf_get) {
     if (!check_lists("$tempdir/$file")) {
       remote_get($file);
