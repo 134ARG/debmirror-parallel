@@ -2716,7 +2716,7 @@ sub cnf_from_release {
     my $filename = substr($path, length($compdir)+1, length($path)-length($compdir)-1);
     next if $filename !~ /\.(?:gz|bz2|xz)$/;
     my $all_arches = "(".join("|", map(quotemeta, @arches)).")";
-    next if $filename =~ /^Commands-/;
+    next if $filename =~ /^Commands-/ and $filename !~ /^Commands-$all_arches\./;
 
     my $size = $file_lists{$path}{size};
     if(!(defined($include) && ($subdir."/".$filename)=~/$include/o)) {
