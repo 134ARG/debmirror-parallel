@@ -1,3 +1,9 @@
+debmirror (1:2.33) UNRELEASED; urgency=medium
+
+  * Use debhelper-compat instead of debian/compat.
+
+ -- Colin Watson <cjwatson@debian.org>  Sat, 03 Aug 2019 11:56:56 +0100
+
 debmirror (1:2.32) unstable; urgency=medium
 
   [ Jamie Strandboge ]
