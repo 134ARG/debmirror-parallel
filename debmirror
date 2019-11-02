@@ -2156,6 +2156,9 @@ sub split_clearsigned_file {
         } else {
           print $content_fh "\n";
         }
+        # RFC 4880, section 7.1: trailing spaces and tabs are removed when
+        # the cleartext signature is generated.
+        $line =~ s/[ \t]+$//;
         print $content_fh $line;
       } else {
         $found_garbage = 1;
