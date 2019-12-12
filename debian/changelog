@@ -1,11 +1,11 @@
-debmirror (1:2.33) UNRELEASED; urgency=medium
+debmirror (1:2.33) unstable; urgency=medium
 
   * Use debhelper-compat instead of debian/compat.
   * Strip trailing spaces and tabs from the content of clearsigned files
     before verifying the signature, in accordance with RFC 4880 section 7.1
     (closes: #943970).
 
- -- Colin Watson <cjwatson@debian.org>  Sat, 03 Aug 2019 11:56:56 +0100
+ -- Colin Watson <cjwatson@debian.org>  Thu, 12 Dec 2019 00:24:23 +0000
 
 debmirror (1:2.32) unstable; urgency=medium
 
