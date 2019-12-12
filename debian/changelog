@@ -1,6 +1,7 @@
 debmirror (1:2.34) UNRELEASED; urgency=medium
 
   * Bump debhelper from old 9 to 12.
+  * Fix day-of-week for changelog entry 20040926.
 
  -- Debian Janitor <janitor@jelmer.uk>  Thu, 12 Dec 2019 14:10:07 +0000
 
@@ -657,7 +658,7 @@ debmirror (20040926) unstable; urgency=low
   * Copy meta files in cases where hardlinks fail (afs) (Closes: #267956)
   * Unlink meta files before download (Closes: #264504)
 
- -- Goswin von Brederlow <brederlo@informatik.uni-tuebingen.de>  Sun, 16 Sep 2004 14:29:34 +0200
+ -- Goswin von Brederlow <brederlo@informatik.uni-tuebingen.de>  Thu, 16 Sep 2004 14:29:34 +0200
 
 debmirror (20040802) unstable; urgency=low
 
