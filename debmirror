@@ -1046,7 +1046,7 @@ di_check_dists() if @di_dists;
 foreach my $dist (keys %distset) {
   next unless exists $distset{$dist}{mirror};
   # Parse the Release and extract the files listed for all checksum types.
-  if (open RELEASE, "<$tempdir/dists/$dist/Release") {
+  if (open RELEASE, "<", "$tempdir/dists/$dist/Release") {
     my $checksum_type;
     while (<RELEASE>) {
         if (/^(MD5Sum|SHA\d+):/) {
@@ -1578,7 +1578,7 @@ if (! $do_dry_run) {
   my $trace_dists = join(' ', @dists);
   my $trace_arches = join(' ', @arches);
   $trace_arches .= ' source' if $do_source;
-  open OUT, ">$tracefile" or die "$tracefile: $!";
+  open OUT, '>', $tracefile or die "$tracefile: $!";
   print OUT `LC_ALL=C date -u`;
   print OUT <<EOF;
 Date: $end_date
@@ -1706,7 +1706,7 @@ sub check_file {
       if (! defined $summer) {
               die "unsupported checksum type(s): ".(join(" ", keys %params))."\n";
       }
-      open HANDLE, $filename or die "$filename: $!";
+      open HANDLE, "<", $filename or die "$filename: $!";
       $summer->addfile(*HANDLE);
       return 1 if $checksum eq $summer->hexdigest;
     }
@@ -1726,7 +1726,7 @@ sub check_diff {
   if (-f "$filename.gz") {
     system_redirect_io("gzip -d", "$filename.gz", "$filename");
     if ($size == -s $filename) {
-      open HANDLE, $filename or die "$filename: $!";
+      open HANDLE, "<", $filename or die "$filename: $!";
       $digest->addfile(*HANDLE);
       $ret = ($sha1 eq $digest->hexdigest);
     }
@@ -2348,7 +2348,7 @@ sub name_release {
 
   if (-f "$tdir/Release") {
     my $buf = "";
-    if (open RELEASE, "<$tdir/Release") {
+    if (open RELEASE, "<", "$tdir/Release") {
       while (<RELEASE>) {
         last if /^MD5Sum:/;
         $buf = $buf . $_;
@@ -2817,7 +2817,7 @@ sub fetch_and_apply_diffs {
   my $t = $num_errors;
 
   # Parse DiffIndex file
-  open(INDEX, "$tempdir/$subdir/$type.diff/Index") or die "$tempdir/$subdir/$type.diff/Index: $!";
+  open(INDEX, "<", "$tempdir/$subdir/$type.diff/Index") or die "$tempdir/$subdir/$type.diff/Index: $!";
   $_ = <INDEX>;
   while (defined($_)) {
     if (m/^SHA1-Current:/m) {
@@ -2869,7 +2869,7 @@ sub fetch_and_apply_diffs {
   return if ($fetch_only || ! $ret);
 
   # Apply diff files
-  open(FILE, "$tempdir/$subdir/$type") or return;
+  open(FILE, "<", "$tempdir/$subdir/$type") or return;
   $digest = Digest::SHA->new(1);
   $digest->addfile(*FILE);
   $sha1 = $digest->hexdigest;
@@ -2881,7 +2881,7 @@ sub fetch_and_apply_diffs {
       unlink "$tempdir/$subdir/$type";
       return;
     }
-    open(FILE, "$tempdir/$subdir/$type") or return;
+    open(FILE, "<", "$tempdir/$subdir/$type") or return;
     $digest = Digest::SHA->new(1);
     $digest->addfile(*FILE);
     $sha1 = $digest->hexdigest;
