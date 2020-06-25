@@ -6,6 +6,7 @@ debmirror (1:2.34) UNRELEASED; urgency=medium
 
   [ Colin Watson ]
   * Avoid two-argument open.
+  * Avoid bareword file handles.
 
  -- Debian Janitor <janitor@jelmer.uk>  Thu, 12 Dec 2019 14:10:07 +0000
 

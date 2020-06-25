@@ -1046,9 +1046,9 @@ di_check_dists() if @di_dists;
 foreach my $dist (keys %distset) {
   next unless exists $distset{$dist}{mirror};
   # Parse the Release and extract the files listed for all checksum types.
-  if (open RELEASE, "<", "$tempdir/dists/$dist/Release") {
+  if (open my $release, "<", "$tempdir/dists/$dist/Release") {
     my $checksum_type;
-    while (<RELEASE>) {
+    while (<$release>) {
         if (/^(MD5Sum|SHA\d+):/) {
                 $checksum_type=$1;
         }
@@ -1058,7 +1058,7 @@ foreach my $dist (keys %distset) {
                 $file_lists{"$tempdir/dists/$dist/$filename"}{size} = $size;
         }
     }
-    close RELEASE;
+    close $release;
   }
 }
 
@@ -1211,9 +1211,9 @@ say("Parsing Packages and Sources files ...");
 
   foreach my $file (@package_files) {
     next if (!-f $file);
-    open(FILE, "<", $file) or die "$file: $!";
+    open(my $fh, "<", $file) or die "$file: $!";
     for (;;) {
-      unless (defined( $_ = <FILE> )) {
+      unless (defined( $_ = <$fh> )) {
         last if eof;
         die "$file: $!" if $!;
       }
@@ -1258,15 +1258,15 @@ say("Parsing Packages and Sources files ...");
       }
       $empty_mirror = 0;
     }
-    close(FILE);
+    close($fh);
   }
   foreach my $file (@source_files) {
     next if (!-f $file);
-    open(FILE, "<", $file) or die "$file: $!";
+    open(my $fh, "<", $file) or die "$file: $!";
 SOURCE:
     for (;;) {
       my $stanza;
-      unless (defined( $stanza = <FILE> )) {
+      unless (defined( $stanza = <$fh> )) {
         last if eof;
         die "$file: $!" if $!;
       }
@@ -1346,7 +1346,7 @@ SOURCE:
       }
       $empty_mirror = 0;
     }
-    close(FILE);
+    close($fh);
   }
 
   # Sanity check to avoid completely nuking a mirror.
@@ -1578,9 +1578,9 @@ if (! $do_dry_run) {
   my $trace_dists = join(' ', @dists);
   my $trace_arches = join(' ', @arches);
   $trace_arches .= ' source' if $do_source;
-  open OUT, '>', $tracefile or die "$tracefile: $!";
-  print OUT `LC_ALL=C date -u`;
-  print OUT <<EOF;
+  open my $out, '>', $tracefile or die "$tracefile: $!";
+  print $out `LC_ALL=C date -u`;
+  print $out <<EOF;
 Date: $end_date
 Date-Started: $start_date
 Used debmirror version: $version
@@ -1590,7 +1590,7 @@ Suites: $trace_dists
 Architectures: $trace_arches
 Upstream-Mirror: $host
 EOF
-  close OUT;
+  close $out;
 }
 
 # Post mirror cleanup.
@@ -1706,8 +1706,9 @@ sub check_file {
       if (! defined $summer) {
               die "unsupported checksum type(s): ".(join(" ", keys %params))."\n";
       }
-      open HANDLE, "<", $filename or die "$filename: $!";
-      $summer->addfile(*HANDLE);
+      open my $handle, "<", $filename or die "$filename: $!";
+      $summer->addfile($handle);
+      close $handle;
       return 1 if $checksum eq $summer->hexdigest;
     }
     else {
@@ -1726,8 +1727,9 @@ sub check_diff {
   if (-f "$filename.gz") {
     system_redirect_io("gzip -d", "$filename.gz", "$filename");
     if ($size == -s $filename) {
-      open HANDLE, "<", $filename or die "$filename: $!";
-      $digest->addfile(*HANDLE);
+      open my $handle, "<", $filename or die "$filename: $!";
+      $digest->addfile($handle);
+      close $handle;
       $ret = ($sha1 eq $digest->hexdigest);
     }
     unlink ($filename);
@@ -2348,12 +2350,12 @@ sub name_release {
 
   if (-f "$tdir/Release") {
     my $buf = "";
-    if (open RELEASE, "<", "$tdir/Release") {
-      while (<RELEASE>) {
+    if (open my $release, "<", "$tdir/Release") {
+      while (<$release>) {
         last if /^MD5Sum:/;
         $buf = $buf . $_;
       }
-      close RELEASE;
+      close $release;
     }
 
     $_ = $buf;
@@ -2811,21 +2813,20 @@ sub get_dep11_files {
 
 sub fetch_and_apply_diffs {
   my ($fetch_only, $subdir, $type) = @_;
-  local (*INDEX, *FILE);
   my (%history_sha1, %history_size, %diff_sha1, %diff_size);
   my ($current_sha1, $current_size, $sha1, $size, $file, $digest, $ret);
   my $t = $num_errors;
 
   # Parse DiffIndex file
-  open(INDEX, "<", "$tempdir/$subdir/$type.diff/Index") or die "$tempdir/$subdir/$type.diff/Index: $!";
-  $_ = <INDEX>;
+  open(my $index, "<", "$tempdir/$subdir/$type.diff/Index") or die "$tempdir/$subdir/$type.diff/Index: $!";
+  $_ = <$index>;
   while (defined($_)) {
     if (m/^SHA1-Current:/m) {
       ($current_sha1, $current_size) = m/^SHA1-Current:\s+([A-Za-z0-9]+)\s+(\d+)/m;
-      $_ = <INDEX>;
+      $_ = <$index>;
     }
     elsif (m/^SHA1-History:/m) {
-      while (defined($_ = <INDEX>)) {
+      while (defined($_ = <$index>)) {
         last if (!m/^\s/m);
         ($sha1, $size, $file) = m/^\s+([A-Za-z0-9]+)\s+(\d+)\s+(.*)/m;
         $history_sha1{$file} = $sha1;
@@ -2833,7 +2834,7 @@ sub fetch_and_apply_diffs {
       }
     }
     elsif (m/^SHA1-Patches:/m) {
-      while (defined($_ = <INDEX>)) {
+      while (defined($_ = <$index>)) {
         last if (!m/^\s/m);
         ($sha1, $size, $file) = m/^\s+([A-Za-z0-9]+)\s+(\d+)\s+(.*)/m;
         $diff_sha1{$file} = $sha1;
@@ -2841,10 +2842,10 @@ sub fetch_and_apply_diffs {
       }
     }
     else {
-      $_ = <INDEX>;
+      $_ = <$index>;
     }
   }
-  close(INDEX);
+  close($index);
 
   # Download diff files as necessary
   $ret = 1;
@@ -2869,9 +2870,10 @@ sub fetch_and_apply_diffs {
   return if ($fetch_only || ! $ret);
 
   # Apply diff files
-  open(FILE, "<", "$tempdir/$subdir/$type") or return;
+  open(my $fh, "<", "$tempdir/$subdir/$type") or return;
   $digest = Digest::SHA->new(1);
-  $digest->addfile(*FILE);
+  $digest->addfile($fh);
+  close($fh);
   $sha1 = $digest->hexdigest;
   $size = -s "$tempdir/$subdir/$type";
   foreach $file (sort keys %history_sha1) {
@@ -2881,9 +2883,10 @@ sub fetch_and_apply_diffs {
       unlink "$tempdir/$subdir/$type";
       return;
     }
-    open(FILE, "<", "$tempdir/$subdir/$type") or return;
+    open(my $fh, "<", "$tempdir/$subdir/$type") or return;
     $digest = Digest::SHA->new(1);
-    $digest->addfile(*FILE);
+    $digest->addfile($fh);
+    close($fh);
     $sha1 = $digest->hexdigest;
     $size = -s "$tempdir/$subdir/$type";
     say("$subdir/$type patched with $subdir/$type.diff/$file.gz");
@@ -3016,8 +3019,8 @@ sub di_add_files {
 
       local $/;
       undef $/; # Read whole file
-      open(FILE, "<", "$tdir/$image_dir/MD5SUMS") or die "$tdir/$image_dir/MD5SUMS: $!";
-      $_ = <FILE>;
+      open(my $fh, "<", "$tdir/$image_dir/MD5SUMS") or die "$tdir/$image_dir/MD5SUMS: $!";
+      $_ = <$fh>;
       while (m/^([A-Za-z0-9]{32}  .*)/mg) {
         my ($md5sum, $filename) = split(' ', $1, 3);
         $filename =~ s:^\./::;
@@ -3034,7 +3037,7 @@ sub di_add_files {
           $di_files{$image_dir}{$filename}{status} = 0;
         }
       }
-      close(FILE);
+      close($fh);
     }
   }
 }
