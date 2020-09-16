@@ -535,7 +535,7 @@ settings defined in F<debmirror.conf>):
   debmirror /srv/mirror/debian
 
 Make a mirror of i386 and sparc binaries, main only, and include both unstable
-and testing versions of Debian; download from 'ftp.kernel.org':
+and testing versions of Debian; download from 'ftp.nl.debian.org':
 
   debmirror -a i386,sparc -d sid -d etch -s main --nosource \
             -h ftp.nl.debian.org --progress $HOME/mirror/debian
