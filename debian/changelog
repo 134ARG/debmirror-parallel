@@ -1,4 +1,4 @@
-debmirror (1:2.34) UNRELEASED; urgency=medium
+debmirror (1:2.34) unstable; urgency=medium
 
   [ Debian Janitor ]
   * Bump debhelper from old 9 to 12.
@@ -9,7 +9,7 @@ debmirror (1:2.34) UNRELEASED; urgency=medium
   * Avoid bareword file handles.
   * Correct example in debmirror(1) (closes: #970435).
 
- -- Debian Janitor <janitor@jelmer.uk>  Thu, 12 Dec 2019 14:10:07 +0000
+ -- Colin Watson <cjwatson@debian.org>  Sat, 06 Feb 2021 17:33:50 +0000
 
 debmirror (1:2.33) unstable; urgency=medium
 
