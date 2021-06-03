@@ -2328,6 +2328,8 @@ sub get_release {
         push (@errlog,$@);
         $num_errors++;
       }
+      unlink($content_filename);
+      unlink($signature_filename);
     }
     if (! $got_gpg) {
       say("Release gpg signature does not verify, file missing.");
