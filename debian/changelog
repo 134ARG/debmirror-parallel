@@ -1,4 +1,4 @@
-debmirror (1:2.36) UNRELEASED; urgency=medium
+debmirror (1:2.36) unstable; urgency=medium
 
   [ Sascha Lucas ]
   * Enable Ubuntu ESM mirroring.
@@ -8,7 +8,7 @@ debmirror (1:2.36) UNRELEASED; urgency=medium
     + Build-Depends: Drop versioned constraint on libwww-perl and perl.
     + debmirror: Drop versioned constraint on libwww-perl and perl in Depends.
 
- -- Colin Watson <cjwatson@debian.org>  Fri, 18 Jun 2021 14:55:54 +0100
+ -- Colin Watson <cjwatson@debian.org>  Fri, 19 Nov 2021 11:32:24 +0000
 
 debmirror (1:2.35) unstable; urgency=medium
 
