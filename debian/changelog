@@ -1,3 +1,9 @@
+debmirror (1:2.37) UNRELEASED; urgency=medium
+
+  * Simplify a debhelper override slightly.
+
+ -- Colin Watson <cjwatson@debian.org>  Wed, 29 Dec 2021 01:16:40 +0000
+
 debmirror (1:2.36) unstable; urgency=medium
 
   [ Sascha Lucas ]
