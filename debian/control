@@ -2,19 +2,32 @@ Source: debmirror
 Section: net
 Priority: optional
 Maintainer: Colin Watson <cjwatson@debian.org>
-Build-Depends: debhelper-compat (= 12), libnet-perl, libdigest-md5-perl, libdigest-sha-perl, liblockfile-simple-perl, libwww-perl
+Build-Depends: debhelper-compat (= 12),
+               libdigest-md5-perl,
+               libdigest-sha-perl,
+               liblockfile-simple-perl,
+               libnet-perl,
+               libwww-perl,
 Standards-Version: 3.9.8
 Vcs-Git: https://salsa.debian.org/debian/debmirror.git
 Vcs-Browser: https://salsa.debian.org/debian/debmirror
 
 Package: debmirror
 Architecture: all
-Depends: ${misc:Depends}, perl, libnet-perl, libdigest-md5-perl,
-	libdigest-sha-perl, liblockfile-simple-perl, rsync,
-	bzip2, libwww-perl,
-	xz-utils
-Recommends: gpgv, patch, ed
-Suggests: gnupg
+Depends: bzip2,
+         libdigest-md5-perl,
+         libdigest-sha-perl,
+         liblockfile-simple-perl,
+         libnet-perl,
+         libwww-perl,
+         perl,
+         rsync,
+         xz-utils,
+         ${misc:Depends},
+Recommends: ed,
+            gpgv,
+            patch,
+Suggests: gnupg,
 Description: Debian partial mirror script, with ftp and package pool support
  This program downloads and maintains a partial local Debian mirror.
  It can mirror any combination of architectures, distributions and
