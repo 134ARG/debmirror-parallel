@@ -147,7 +147,7 @@ suite in their F<Release> files.
 =item B<-s>, B<--section>=I<foo[,bar,..]>
 
 Specify the section of Debian to mirror. Defaults to
-C<main,contrib,non-free,main/debian-installer>.
+C<main,contrib,non-free,non-free-firmware,main/debian-installer>.
 
 =item B<-a>, B<--arch>=I<foo[,bar,..]>
 
@@ -816,7 +816,7 @@ $remoteroot =~ s%^[:/]%% unless downloads_via_file();
 @dists=split(/,/,join(',',@dists));
 @dists=qw(sid) unless @dists;
 @sections=split(/,/,join(',',@sections));
-@sections=qw(main contrib non-free main/debian-installer) unless @sections;
+@sections=qw(main contrib non-free non-free-firmware main/debian-installer) unless @sections;
 @arches=split(/,/,join(',',@arches));
 @arches=qw(i386) unless @arches;
 @arches=() if (join(',',@arches) eq "none");
