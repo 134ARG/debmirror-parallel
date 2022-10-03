@@ -1,9 +1,9 @@
-debmirror (1:2.37) UNRELEASED; urgency=medium
+debmirror (1:2.37) unstable; urgency=medium
 
   * Simplify a debhelper override slightly.
   * Add non-free-firmware to the default sections.
 
- -- Colin Watson <cjwatson@debian.org>  Wed, 29 Dec 2021 01:16:40 +0000
+ -- Colin Watson <cjwatson@debian.org>  Mon, 03 Oct 2022 12:46:52 +0100
 
 debmirror (1:2.36) unstable; urgency=medium
 
