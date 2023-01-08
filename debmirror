@@ -93,6 +93,10 @@ Display a usage summary.
 
 Print version number and exit.
 
+=item B<--threads>=I<number>
+
+Set the number of downloading threads.
+
 =item B<-h>, B<--host>=I<remotehost>
 
 Specify the remote host to mirror from. Defaults to I<ftp.debian.org>,
@@ -597,7 +601,10 @@ use if $] lt "5.022", "Net::INET6Glue";
 use Net::FTP;
 use LWP::UserAgent;
 
-our $version="1:2.29";
+use IPC::Shareable;
+use Parallel::ForkManager;
+
+our $version="1:2.37";
 
 # Yeah, I use too many global variables in this program.
 our $mirrordir;
@@ -624,7 +631,8 @@ our $max_batch=0;
 our $rsync_batch=200;
 our $num_errors=0;
 our $bytes_to_get=0;
-our $bytes_gotten=0;
+tie our $bytes_gotten=0, 'IPC::Shareable', { create => 1, key => 'bytes_gotten', destory => 1 };
+# our $bytes_gotten=0;
 our $bytes_meta=0;
 our $doing_meta=1;
 our $ignore_missing_release=0;
@@ -650,6 +658,8 @@ our $retry_rsync_packages_delay=30; # seconds
 my @errlog;
 my $HOME;
 ($HOME = $ENV{'HOME'}) or die "HOME not defined in environment!\n";
+
+our $download_threads=10;
 
 # Load in config files first so options can override them.
 Getopt::Long::Configure qw(pass_through);
@@ -772,6 +782,7 @@ GetOptions('debug'                  => \$debug,
            'keyring=s'              => \@keyrings,
            'help'                   => \$help,
            'version'                => \$print_version,
+           'threads=i'                => \$download_threads,
 ) or usage;
 usage if $help;
 usage("invalid number of arguments") if $ARGV[1];
@@ -878,6 +889,8 @@ say("Dry run.") if $dry_run;
 say("Debmarshal snapshots kept.") if $debmarshal;
 say("Disable SSL verification.") if $disable_ssl_verification;
 
+say("Download threads: $download_threads");
+
 # Set up mirror directory and resolve $mirrordir to a full path for
 # locking and rsync
 if (! -d $mirrordir) {
@@ -899,8 +912,11 @@ my $lockmgr = LockFile::Simple->make(-format => "%f/$lockfile", -max => 12,
                                      -warn => 1, -stale => 1, -hold => 0);
 my $lock = $lockmgr->lock("$mirrordir")
   or die "$lockfile exists or you lack proper permissions; aborting";
-$SIG{INT}=sub { $lock->release; exit 1 };
-$SIG{TERM}=sub { $lock->release; exit 1 };
+# $SIG{INT}=sub { $lock->release; exit 1 };
+$SIG{INT}=sub { exit 1 };
+# $SIG{TERM}=sub { $lock->release; exit 1 };
+$SIG{TERM}=sub { exit 1 };
+$lock->release;
 
 # Create tempdir if missing
 my $tempdir=".temp";
@@ -1383,6 +1399,7 @@ say("Files to download: ".print_dl_size($bytes_to_get - $bytes_gotten));
 batch_get();
 
 sub batch_get {
+  my $fork_manager = Parallel::ForkManager->new($download_threads);
   if (uses_LWP()) {
     my $dirname;
     my $i=0;
@@ -1392,10 +1409,14 @@ sub batch_get {
           make_dir($dirname);
         }
         if ($ftp) {
-                ftp_get($file);
+          ftp_get($file);
         }
         else {
-                http_get($file);
+          my $pid = $fork_manager->start;
+          if (!$pid) {
+            http_get($file, "flag");
+          }
+          $fork_manager->finish;
         }
         if ($max_batch > 0 && ++$i >= $max_batch) {
           push (@errlog,"Batch limit exceeded, mirror run was partial\n");
@@ -1404,6 +1425,7 @@ sub batch_get {
         }
       }
     }
+    $fork_manager->wait_all_children();
     return;
   }
   else {
@@ -1614,7 +1636,7 @@ if ($res != 0) {
 save_state_cache() if $state_cache_days && !$do_dry_run;
 
 say("All done.");
-$lock->release;
+# $lock->release;
 print "Errors:\n ".join(" ",@errlog) if (@errlog);
 if ($num_errors != 0) {
   print "Failed to download files ($num_errors errors)!\n";
@@ -1640,7 +1662,9 @@ sub print_dl_size {
 
 sub add_bytes_gotten {
   my $size=shift;
+  tied($bytes_gotten)->lock;
   $bytes_gotten += $size;
+  tied($bytes_gotten)->unlock;
   if ($doing_meta) {
     $bytes_meta += $size;
   }
@@ -1794,6 +1818,7 @@ sub http_get {
   my $oldautoflush = $|;
   $| = 1;
   my $file=shift;
+  my $optional_flag=shift;
   my $url;
   if ($user eq 'anonymous'){
     $url="$download_method://${host}/${remoteroot}/${file}";
@@ -1806,6 +1831,7 @@ sub http_get {
   print "$url => " if $debug;
   print_percent "Getting: $file... " if $progress or $verbose;
   print "\t #" if $progress;
+  print "\n" if defined $optional_flag;
   if (! $do_dry_run) {
     unlink $file if -f $file;
     my $tmpfile="$file-$$";
@@ -1864,11 +1890,19 @@ sub http_get {
       $ret='';
     } else {
       rename $tmpfile, $file;
-      print "ok\n" if $progress or $verbose;
+      if (defined $optional_flag) {
+        print_percent "Finished: $file\n" if $progress or $verbose;
+      } else {
+        print "ok\n" if $progress or $verbose;
+      }
       $ret=1;
     }
   } elsif ($progress || $verbose) {
-    print "ok\n";
+    if (defined $optional_flag) {
+      print_percent "Got: $file\n" if $progress or $verbose;
+    } else {
+      print "ok\n";
+    }
   }
   # Account for actual bytes gotten
   my @stat = stat $file;
